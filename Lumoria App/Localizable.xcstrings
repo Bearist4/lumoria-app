@@ -1,0 +1,160 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Appearance" : {
+      "comment" : "Settings row — navigates to appearance (light/dark/system) screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Build" : {
+      "comment" : "Footer label next to the build number in Settings.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Contact support" : {
+      "comment" : "Settings row — opens mailto: link to support.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Notifications" : {
+      "comment" : "Settings row — navigates to notification preferences.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Plan" : {
+      "comment" : "Settings row — navigates to subscription / plan screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Privacy Policy" : {
+      "comment" : "Settings row — opens privacy policy web page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Referral / Invite" : {
+      "comment" : "Settings row — navigates to the invite screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Settings" : {
+      "comment" : "Large title of the Settings screen.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Show profile" : {
+      "comment" : "Secondary text on the profile card, prompting the user to open their profile.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Terms of Service" : {
+      "comment" : "Settings row — opens the Terms of Service web page.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    },
+    "Your profile" : {
+      "comment" : "Fallback name shown on the profile card when the user has no email/display name yet.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "es" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "fr" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "it" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ja" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "ko" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "pt-PT" : { "stringUnit" : { "state" : "new", "value" : "" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "new", "value" : "" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

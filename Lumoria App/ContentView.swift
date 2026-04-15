@@ -2,60 +2,44 @@
 //  ContentView.swift
 //  Lumoria App
 //
-//  Created by Benjamin Caillet on 13/04/2026.
+//  Root container for authenticated users. Hosts the main tab navigation
+//  and owns the shared stores so ticket/collection counts stay in sync
+//  across tabs.
 //
 
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+
+    @StateObject private var ticketsStore = TicketsStore()
+    @StateObject private var collectionsStore = CollectionsStore()
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
+        TabView {
+            CollectionsView()
+                .tabItem {
+                    Label("Collections", systemImage: "square.grid.2x2")
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
+            AllTicketsView()
+                .tabItem {
+                    Label("All tickets", systemImage: "ticket")
+                }
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
+            SettingsView()
+                .tabItem {
+                    Label("Settings", systemImage: "gearshape")
+                }
+        }
+        .environmentObject(ticketsStore)
+        .environmentObject(collectionsStore)
+        .task {
+            await collectionsStore.load()
+            await ticketsStore.load()
         }
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }

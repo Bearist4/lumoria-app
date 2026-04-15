@@ -6,6 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		692E418D2F8FF4E000733174 /* ProgressiveBlurHeader in Frameworks */ = {isa = PBXBuildFile; productRef = 692E418C2F8FF4E000733174 /* ProgressiveBlurHeader */; };
+		694D478F2F8E2DD0007340A4 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 694D478E2F8E2DD0007340A4 /* Auth */; };
+		694D47912F8E2DD0007340A4 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47902F8E2DD0007340A4 /* Functions */; };
+		694D47932F8E2DD0007340A4 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47922F8E2DD0007340A4 /* PostgREST */; };
+		694D47952F8E2DD0007340A4 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47942F8E2DD0007340A4 /* Realtime */; };
+		694D47972F8E2DD0007340A4 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47962F8E2DD0007340A4 /* Storage */; };
+		694D47992F8E2DD0007340A4 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47982F8E2DD0007340A4 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		694D476B2F8D0EDF007340A4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +62,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				694D47932F8E2DD0007340A4 /* PostgREST in Frameworks */,
+				692E418D2F8FF4E000733174 /* ProgressiveBlurHeader in Frameworks */,
+				694D47912F8E2DD0007340A4 /* Functions in Frameworks */,
+				694D47992F8E2DD0007340A4 /* Supabase in Frameworks */,
+				694D478F2F8E2DD0007340A4 /* Auth in Frameworks */,
+				694D47972F8E2DD0007340A4 /* Storage in Frameworks */,
+				694D47952F8E2DD0007340A4 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +129,13 @@
 			);
 			name = "Lumoria App";
 			packageProductDependencies = (
+				694D478E2F8E2DD0007340A4 /* Auth */,
+				694D47902F8E2DD0007340A4 /* Functions */,
+				694D47922F8E2DD0007340A4 /* PostgREST */,
+				694D47942F8E2DD0007340A4 /* Realtime */,
+				694D47962F8E2DD0007340A4 /* Storage */,
+				694D47982F8E2DD0007340A4 /* Supabase */,
+				692E418C2F8FF4E000733174 /* ProgressiveBlurHeader */,
 			);
 			productName = "Lumoria App";
 			productReference = 694D475B2F8D0EDE007340A4 /* Lumoria App.app */;
@@ -192,9 +216,21 @@
 			knownRegions = (
 				en,
 				Base,
+				fr,
+				de,
+				it,
+				ja,
+				ko,
+				"zh-Hans",
+				"pt-PT",
+				es,
 			);
 			mainGroup = 694D47522F8D0EDE007340A4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				692E418B2F8FF4E000733174 /* XCRemoteSwiftPackageReference "ProgressiveBlurHeader" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 694D475C2F8D0EDE007340A4 /* Products */;
 			projectDirPath = "";
@@ -329,6 +365,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
@@ -386,6 +423,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
@@ -393,18 +431,24 @@
 		694D477F2F8D0EE0007340A4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Transpride";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UV5KDNCKWS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Lumoria;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Lumoria saves your exported tickets to your photo library.";
+				INFOPLIST_KEY_UIAppFonts = "Doto-Black.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -413,6 +457,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "bearista.Lumoria-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -425,18 +473,24 @@
 		694D47802F8D0EE0007340A4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Transpride";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UV5KDNCKWS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Lumoria;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Lumoria saves your exported tickets to your photo library.";
+				INFOPLIST_KEY_UIAppFonts = "Doto-Black.ttf";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -445,6 +499,10 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "bearista.Lumoria-App";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -578,6 +636,63 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		692E418B2F8FF4E000733174 /* XCRemoteSwiftPackageReference "ProgressiveBlurHeader" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/dominikmartn/ProgressiveBlurHeader";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+		694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		692E418C2F8FF4E000733174 /* ProgressiveBlurHeader */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 692E418B2F8FF4E000733174 /* XCRemoteSwiftPackageReference "ProgressiveBlurHeader" */;
+			productName = ProgressiveBlurHeader;
+		};
+		694D478E2F8E2DD0007340A4 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		694D47902F8E2DD0007340A4 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		694D47922F8E2DD0007340A4 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		694D47942F8E2DD0007340A4 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		694D47962F8E2DD0007340A4 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		694D47982F8E2DD0007340A4 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 694D47532F8D0EDE007340A4 /* Project object */;
 }
