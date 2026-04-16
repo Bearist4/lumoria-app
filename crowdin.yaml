@@ -1,6 +1,0 @@
-files:
-  - source: /Lumoria App/Localizable.xcstrings
-    translation: /Lumoria App/Localizable.xcstrings
-    type: xcstrings
-bundles:
-  - 1

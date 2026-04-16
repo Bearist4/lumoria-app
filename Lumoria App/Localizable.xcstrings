@@ -4,16 +4,22 @@
     "Appearance" : {
       "comment" : "Settings row — navigates to appearance (light/dark/system) screen.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Darstellung"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Appearance"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Appearance"
+            "state" : "translated",
+            "value" : "Apariencia"
           }
         },
         "fr" : {
@@ -22,40 +28,34 @@
             "value" : "Apparence"
           }
         },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Appearance"
-          }
-        },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Appearance"
+            "state" : "translated",
+            "value" : "Aspetto"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Appearance"
+            "state" : "translated",
+            "value" : "外観"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Appearance"
+            "state" : "translated",
+            "value" : "화면 모드"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Appearance"
+            "state" : "translated",
+            "value" : "Aparência"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Appearance"
+            "state" : "translated",
+            "value" : "外观"
           }
         }
       }
@@ -63,15 +63,21 @@
     "Build" : {
       "comment" : "Footer label next to the build number in Settings.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Build"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Build"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Build"
           }
         },
@@ -81,40 +87,34 @@
             "value" : "Build"
           }
         },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Build"
-          }
-        },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Build"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Build"
+            "state" : "translated",
+            "value" : "ビルド"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Build"
+            "state" : "translated",
+            "value" : "빌드"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Build"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Build"
+            "state" : "translated",
+            "value" : "构建"
           }
         }
       }
@@ -122,58 +122,58 @@
     "Contact support" : {
       "comment" : "Settings row — opens mailto: link to support.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Support kontaktieren"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Contact support"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Contact support"
+            "state" : "translated",
+            "value" : "Contactar con soporte"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Contacter l'assistance"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Contact support"
+            "value" : "Contacter l’assistance"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Contact support"
+            "state" : "translated",
+            "value" : "Contatta l’assistenza"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Contact support"
+            "state" : "translated",
+            "value" : "サポートに問い合わせる"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Contact support"
+            "state" : "translated",
+            "value" : "고객 지원 문의"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Contact support"
+            "state" : "translated",
+            "value" : "Contactar o suporte"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Contact support"
+            "state" : "translated",
+            "value" : "联系客服"
           }
         }
       }
@@ -181,16 +181,22 @@
     "Notifications" : {
       "comment" : "Settings row — navigates to notification preferences.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mitteilungen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notifications"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notifications"
+            "state" : "translated",
+            "value" : "Notificaciones"
           }
         },
         "fr" : {
@@ -199,40 +205,34 @@
             "value" : "Notifications"
           }
         },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notifications"
-          }
-        },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notifications"
+            "state" : "translated",
+            "value" : "Notifiche"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notifications"
+            "state" : "translated",
+            "value" : "通知"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notifications"
+            "state" : "translated",
+            "value" : "알림"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notifications"
+            "state" : "translated",
+            "value" : "Notificações"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Notifications"
+            "state" : "translated",
+            "value" : "通知"
           }
         }
       }
@@ -240,15 +240,21 @@
     "Plan" : {
       "comment" : "Settings row — navigates to subscription / plan screen.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abonnement"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Plan"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Plan"
           }
         },
@@ -258,40 +264,34 @@
             "value" : "Abonnement"
           }
         },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Plan"
-          }
-        },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Plan"
+            "state" : "translated",
+            "value" : "Abbonamento"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Plan"
+            "state" : "translated",
+            "value" : "プラン"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Plan"
+            "state" : "translated",
+            "value" : "요금제"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Plan"
+            "state" : "translated",
+            "value" : "Plano"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Plan"
+            "state" : "translated",
+            "value" : "订阅方案"
           }
         }
       }
@@ -299,58 +299,58 @@
     "Privacy Policy" : {
       "comment" : "Settings row — opens privacy policy web page.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datenschutzerklärung"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Privacy Policy"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Privacy Policy"
+            "state" : "translated",
+            "value" : "Política de privacidad"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Politique de Confidentialité"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Privacy Policy"
+            "value" : "Politique de confidentialité"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Privacy Policy"
+            "state" : "translated",
+            "value" : "Informativa sulla privacy"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Privacy Policy"
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Privacy Policy"
+            "state" : "translated",
+            "value" : "개인정보 처리방침"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Privacy Policy"
+            "state" : "translated",
+            "value" : "Política de privacidade"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Privacy Policy"
+            "state" : "translated",
+            "value" : "隐私政策"
           }
         }
       }
@@ -358,58 +358,58 @@
     "Referral / Invite" : {
       "comment" : "Settings row — navigates to the invite screen.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empfehlen / Einladen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Referral / Invite"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Referral / Invite"
+            "state" : "translated",
+            "value" : "Recomendar / Invitar"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Parrainage / Invitation"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Referral / Invite"
+            "value" : "Parrainage / Inviter"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Referral / Invite"
+            "state" : "translated",
+            "value" : "Segnala / Invita"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Referral / Invite"
+            "state" : "translated",
+            "value" : "紹介 / 招待"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Referral / Invite"
+            "state" : "translated",
+            "value" : "추천 / 초대"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Referral / Invite"
+            "state" : "translated",
+            "value" : "Recomendar / Convidar"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Referral / Invite"
+            "state" : "translated",
+            "value" : "推荐 / 邀请"
           }
         }
       }
@@ -417,58 +417,58 @@
     "Settings" : {
       "comment" : "Large title of the Settings screen.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Einstellungen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Settings"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Settings"
+            "state" : "translated",
+            "value" : "Ajustes"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Paramètres"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Settings"
+            "value" : "Réglages"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Settings"
+            "state" : "translated",
+            "value" : "Impostazioni"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Settings"
+            "state" : "translated",
+            "value" : "設定"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Settings"
+            "state" : "translated",
+            "value" : "설정"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Settings"
+            "state" : "translated",
+            "value" : "Definições"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Settings"
+            "state" : "translated",
+            "value" : "设置"
           }
         }
       }
@@ -476,58 +476,58 @@
     "Show profile" : {
       "comment" : "Secondary text on the profile card, prompting the user to open their profile.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profil anzeigen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show profile"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Show profile"
+            "state" : "translated",
+            "value" : "Ver perfil"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Afficher le profil"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Show profile"
+            "value" : "Voir le profil"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Show profile"
+            "state" : "translated",
+            "value" : "Mostra profilo"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Show profile"
+            "state" : "translated",
+            "value" : "プロフィールを表示"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Show profile"
+            "state" : "translated",
+            "value" : "프로필 보기"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Show profile"
+            "state" : "translated",
+            "value" : "Ver perfil"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Show profile"
+            "state" : "translated",
+            "value" : "查看个人资料"
           }
         }
       }
@@ -535,58 +535,58 @@
     "Terms of Service" : {
       "comment" : "Settings row — opens the Terms of Service web page.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nutzungsbedingungen"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Terms of Service"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Terms of Service"
+            "state" : "translated",
+            "value" : "Términos del servicio"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Conditions d'utilisation"
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Terms of Service"
+            "value" : "Conditions d’utilisation"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Terms of Service"
+            "state" : "translated",
+            "value" : "Termini di servizio"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Terms of Service"
+            "state" : "translated",
+            "value" : "利用規約"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Terms of Service"
+            "state" : "translated",
+            "value" : "서비스 약관"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Terms of Service"
+            "state" : "translated",
+            "value" : "Termos de Serviço"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Terms of Service"
+            "state" : "translated",
+            "value" : "服务条款"
           }
         }
       }
@@ -594,16 +594,22 @@
     "Your profile" : {
       "comment" : "Fallback name shown on the profile card when the user has no email/display name yet.",
       "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dein Profil"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Your profile"
           }
         },
-        "zh-Hans" : {
+        "es" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Your profile"
+            "state" : "translated",
+            "value" : "Tu perfil"
           }
         },
         "fr" : {
@@ -612,40 +618,34 @@
             "value" : "Votre profil"
           }
         },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Your profile"
-          }
-        },
         "it" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Your profile"
+            "state" : "translated",
+            "value" : "Il tuo profilo"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Your profile"
+            "state" : "translated",
+            "value" : "あなたのプロフィール"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Your profile"
+            "state" : "translated",
+            "value" : "내 프로필"
           }
         },
         "pt" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Your profile"
+            "state" : "translated",
+            "value" : "O seu perfil"
           }
         },
-        "es" : {
+        "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Your profile"
+            "state" : "translated",
+            "value" : "您的个人资料"
           }
         }
       }
