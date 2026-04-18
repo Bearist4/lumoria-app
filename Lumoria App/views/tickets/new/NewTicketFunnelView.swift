@@ -15,6 +15,8 @@ struct NewTicketFunnelView: View {
     @EnvironmentObject private var ticketsStore: TicketsStore
     @StateObject private var funnel = NewTicketFunnel()
 
+    @State private var showAbandonAlert = false
+
     var body: some View {
         VStack(spacing: 0) {
             if funnel.step != .success {
@@ -35,16 +37,38 @@ struct NewTicketFunnelView: View {
                         .padding(.top, funnel.step == .success ? 0 : 16)
                         .padding(.bottom, 24)
                 }
+                .scrollDismissesKeyboard(.interactively)
             }
-
-            bottomBar
         }
         .background(Color.Background.default)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            bottomBar
+        }
         .task(id: funnel.step) {
             // Persist the ticket as soon as we land on the success step.
             if funnel.step == .success {
                 await funnel.persist(using: ticketsStore)
             }
+        }
+        .onAppear {
+            Analytics.track(.newTicketStarted(entryPoint: .gallery))
+        }
+        .onDisappear {
+            guard funnel.createdTicket == nil else { return }
+            let ms = Int(Date().timeIntervalSince(funnel.startedAt) * 1000)
+            Analytics.track(.ticketFunnelAbandoned(
+                stepReached: funnel.step.analyticsProp,
+                timeInFunnelMs: ms
+            ))
+        }
+        .alert(
+            "Discard ticket?",
+            isPresented: $showAbandonAlert
+        ) {
+            Button("Keep crafting", role: .cancel) { }
+            Button("Discard", role: .destructive) { dismiss() }
+        } message: {
+            Text("Leave now? Your ticket won't be saved.")
         }
     }
 
@@ -53,13 +77,12 @@ struct NewTicketFunnelView: View {
     private var header: some View {
         HStack(alignment: .center) {
             Text("New ticket")
-                .font(.system(size: 34, weight: .bold))
-                .tracking(0.4)
+                .font(.largeTitle.bold())
                 .foregroundStyle(Color.Text.primary)
 
             Spacer()
 
-            LumoriaIconButton(systemImage: "xmark") { dismiss() }
+            LumoriaIconButton(systemImage: "xmark") { showAbandonAlert = true }
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
@@ -69,14 +92,12 @@ struct NewTicketFunnelView: View {
     private var stepHeading: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(funnel.step.title)
-                .font(.system(size: 22, weight: .bold))
-                .tracking(-0.26)
+                .font(.title2.bold())
                 .foregroundStyle(Color.Text.primary)
 
             if let subtitle = funnel.step.subtitle {
                 Text(subtitle)
-                    .font(.system(size: 17, weight: .regular))
-                    .tracking(-0.43)
+                    .font(.body)
                     .foregroundStyle(Color.Text.secondary)
             }
         }
@@ -107,7 +128,7 @@ struct NewTicketFunnelView: View {
             Button {
                 dismiss()
             } label: {
-                Text("Back to Home")
+                Text("Back to home")
             }
             .lumoriaButtonStyle(.primary, size: .large)
             .padding(.horizontal, 16)

@@ -28,6 +28,13 @@ struct NewTicketTemplateStep: View {
         .sheet(item: $detailsFor) { kind in
             TemplateDetailsSheet(kind: kind)
         }
+        .onChange(of: funnel.template) { _, newValue in
+            guard let newValue else { return }
+            Analytics.track(.ticketTemplateSelected(
+                category: newValue.analyticsCategory,
+                template: newValue.analyticsTemplate
+            ))
+        }
     }
 
     private var availableTemplates: [TicketTemplateKind] {

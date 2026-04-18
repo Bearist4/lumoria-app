@@ -29,5 +29,9 @@ struct NewTicketCategoryStep: View {
                 )
             }
         }
+        .onChange(of: funnel.category) { _, newValue in
+            guard let newValue else { return }
+            Analytics.track(.ticketCategorySelected(category: newValue.analyticsProp))
+        }
     }
 }

@@ -14,7 +14,9 @@ struct NewTicketSuccessStep: View {
     /// Dismisses the whole funnel. Supplied by the container.
     var onBackHome: () -> Void
 
-    @State private var showAddToCollection: Bool = false
+    @EnvironmentObject private var ticketsStore: TicketsStore
+
+    @State private var showAddToMemory: Bool = false
     @State private var showExport: Bool = false
 
     var body: some View {
@@ -31,15 +33,64 @@ struct NewTicketSuccessStep: View {
 
             actionsGrid
         }
-        .sheet(isPresented: $showAddToCollection) {
+        .sheet(isPresented: $showAddToMemory) {
             if let ticket = funnel.createdTicket {
-                AddToCollectionSheet(ticket: ticket)
+                AddToMemorySheet(ticket: ticket)
             }
         }
         .sheet(isPresented: $showExport) {
             if let ticket = funnel.createdTicket {
                 ExportSheet(ticket: ticket)
             }
+        }
+        .onChange(of: funnel.createdTicket) { _, created in
+            guard let created,
+                  let template = funnel.template else { return }
+
+            let category = template.analyticsCategory
+            let templateProp = template.analyticsTemplate
+            let orientation = funnel.orientation.analyticsProp
+            let styleId = funnel.selectedStyleId
+            let lifetime = ticketsStore.tickets.count
+
+            let (fieldCount, hasOrigin, hasDest): (Int, Bool, Bool) = {
+                switch template {
+                case .express, .orient, .night:
+                    let t = funnel.trainForm
+                    return (0, t.originStationLocation != nil, t.destinationStationLocation != nil)
+                default:
+                    let f = funnel.form
+                    return (0, f.originAirport != nil, f.destinationAirport != nil)
+                }
+            }()
+
+            Analytics.track(.ticketCreated(
+                category: category,
+                template: templateProp,
+                orientation: orientation,
+                styleId: styleId,
+                fieldFillCount: fieldCount,
+                hasOriginLocation: hasOrigin,
+                hasDestinationLocation: hasDest,
+                ticketsLifetime: lifetime
+            ))
+
+            Analytics.updateUserProperties([
+                "tickets_created_lifetime": lifetime,
+                "last_ticket_category": category.rawValue,
+            ])
+
+            if lifetime == 1 {
+                Analytics.track(.firstTicketCreated(category: category, template: templateProp))
+                Analytics.updateUserProperties(["has_created_first_ticket": true])
+            }
+        }
+        .onChange(of: funnel.errorMessage) { _, err in
+            guard let err else { return }
+            Analytics.track(.ticketCreationFailed(
+                stepReached: .success,
+                errorType: err
+            ))
         }
     }
 
@@ -64,13 +115,11 @@ struct NewTicketSuccessStep: View {
     private var heroText: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Your ticket is ready.")
-                .font(.system(size: 34, weight: .bold))
-                .tracking(0.4)
+                .font(.largeTitle.bold())
                 .foregroundStyle(heroGradient)
 
             Text("Give it a home.")
-                .font(.system(size: 34, weight: .bold))
-                .tracking(0.4)
+                .font(.largeTitle.bold())
                 .foregroundStyle(Color.Text.primary)
         }
     }
@@ -90,10 +139,18 @@ struct NewTicketSuccessStep: View {
         }
     }
 
-    /// Fallback preview while the Supabase insert is in-flight.
+    /// Fallback preview while the Supabase insert is in-flight. Must
+    /// carry the picked `styleId` so the preview matches the final
+    /// saved ticket immediately — otherwise the default style renders
+    /// first and flashes to the selected one when `createdTicket`
+    /// arrives.
     private var livePreviewTicket: Ticket? {
         guard let payload = funnel.buildPayload() else { return nil }
-        return Ticket(orientation: funnel.orientation, payload: payload)
+        return Ticket(
+            orientation: funnel.orientation,
+            payload: payload,
+            styleId: funnel.selectedStyleId
+        )
     }
 
     // MARK: - Actions grid
@@ -102,11 +159,11 @@ struct NewTicketSuccessStep: View {
         VStack(spacing: 16) {
             HStack(spacing: 16) {
                 actionTile(
-                    title: "Add to collection",
+                    title: "Add to memory",
                     systemImage: "folder.fill.badge.plus",
                     background: Color(hex: "EBF7FF"),
                     height: 167,
-                    action: { showAddToCollection = true }
+                    action: { showAddToMemory = true }
                 )
                 actionTile(
                     title: "Export",
@@ -136,11 +193,10 @@ struct NewTicketSuccessStep: View {
         Button(action: action) {
             VStack(spacing: 16) {
                 Image(systemName: systemImage)
-                    .font(.system(size: 28, weight: .regular))
+                    .font(.title)
                     .foregroundStyle(Color.Text.primary)
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .tracking(-0.43)
+                    .font(.headline)
                     .foregroundStyle(Color.Text.primary)
             }
             .frame(maxWidth: .infinity)
@@ -161,7 +217,7 @@ struct NewTicketSuccessStep: View {
         HStack(spacing: 12) {
             ProgressView()
             Text("Saving your ticket…")
-                .font(.system(size: 15, weight: .regular))
+                .font(.subheadline)
                 .foregroundStyle(Color.Text.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -177,7 +233,7 @@ struct NewTicketSuccessStep: View {
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(Color.Feedback.Danger.icon)
             Text(message)
-                .font(.system(size: 13))
+                .font(.footnote)
                 .foregroundStyle(Color.Feedback.Danger.text)
                 .lineLimit(3)
         }

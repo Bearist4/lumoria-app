@@ -30,6 +30,13 @@ struct NewTicketOrientationStep: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: funnel.orientation) { _, newValue in
+            guard let template = funnel.template else { return }
+            Analytics.track(.ticketOrientationSelected(
+                template: template.analyticsTemplate,
+                orientation: newValue.analyticsProp
+            ))
+        }
     }
 
     private var previewPayload: TicketPayload {
