@@ -19,10 +19,14 @@ enum AnalyticsIdentity {
         hashString(uuid.uuidString)
     }
 
+    /// SHA-256 of the UTF-8 encoding of `input`, returned as the first 16
+    /// lowercase hex characters (64-bit prefix). Input is hashed verbatim —
+    /// no normalization is applied. Callers hashing UUIDs should use
+    /// `hashUUID(_:)` to guarantee the canonical representation.
     static func hashString(_ input: String) -> String {
         let data = Data(input.utf8)
         let digest = SHA256.hash(data: data)
-        let hex = digest.compactMap { String(format: "%02x", $0) }.joined()
+        let hex = digest.map { String(format: "%02x", $0) }.joined()
         return String(hex.prefix(16))
     }
 

@@ -2,6 +2,10 @@
 //  AnalyticsIdentityTests.swift
 //  Lumoria AppTests
 //
+//  Tests for AnalyticsIdentity: SHA-256 truncation for UUID/token hashing
+//  and email-domain extraction. All pure functions — no Keychain, no
+//  network, no SwiftUI.
+//
 
 import Foundation
 import Testing
@@ -26,8 +30,8 @@ struct AnalyticsIdentityTests {
 
     @Test("hashUUID differs per UUID")
     func hashUUIDDistinct() {
-        let a = UUID()
-        let b = UUID()
+        let a = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+        let b = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
         #expect(AnalyticsIdentity.hashUUID(a) != AnalyticsIdentity.hashUUID(b))
     }
 
@@ -44,8 +48,12 @@ struct AnalyticsIdentityTests {
         #expect(AnalyticsIdentity.emailDomain("a@") == nil)
     }
 
-    @Test("hashString is stable across invocations")
-    func hashStringStable() {
+    @Test("hashString matches the SHA-256 known vector for 'abc'")
+    func hashStringKnownVector() {
+        // SHA-256("abc") = ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad
+        // First 16 hex chars:
+        #expect(AnalyticsIdentity.hashString("abc") == "ba7816bf8f01cfea")
+        // Stability check (same input → same output):
         #expect(AnalyticsIdentity.hashString("abc") == AnalyticsIdentity.hashString("abc"))
         #expect(AnalyticsIdentity.hashString("abc").count == 16)
     }
