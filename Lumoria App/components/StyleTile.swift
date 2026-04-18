@@ -36,63 +36,77 @@ struct StyleTile: View {
 
 // MARK: - Palette
 
-/// Colors used to preview a style. Maps roughly to the 4 zones in the swatch.
+/// Colors used to preview a style. Supports two preview layouts:
+///
+/// - `.fourZone` (default): surface + accent quadrants on the left,
+///   background on the right. Use when the variant has a distinct
+///   accent color separate from text/background.
+/// - `.twoZone`: a single filled container with a centered surface
+///   circle. Use for variants that only meaningfully vary on
+///   background + text color (e.g. Studio light vs dark).
 struct StyleSwatchPalette: Equatable {
-    /// Top-left quadrant fill.
+    enum Layout: Equatable {
+        case fourZone
+        case twoZone
+    }
+
+    /// Four-zone: top-left quadrant. Two-zone: bottom-anchored
+    /// rounded-top surface tab.
     let surface: Color
-    /// Bottom-left quadrant fill.
+    /// Four-zone: bottom-left accent quadrant. Two-zone: unused
+    /// (kept so variants can share a single palette type).
     let accent: Color
-    /// Right half fill.
+    /// Four-zone: right half. Two-zone: container fill.
     let background: Color
-    /// Color of the "Aa" sample text drawn in the surface quadrant.
+    /// "Aa" sample color drawn on top of `surface` / `accent`.
     let textOnSurface: Color
+    /// "Aa" sample color drawn on top of `background`.
+    let textOnBackground: Color
+    /// Which layout to render in the picker tile.
+    let layout: Layout
+
+    init(
+        surface: Color,
+        accent: Color,
+        background: Color,
+        textOnSurface: Color,
+        textOnBackground: Color,
+        layout: Layout = .fourZone
+    ) {
+        self.surface = surface
+        self.accent = accent
+        self.background = background
+        self.textOnSurface = textOnSurface
+        self.textOnBackground = textOnBackground
+        self.layout = layout
+    }
 
     /// Quick constructor using palette families (e.g. "Blue") plus weights.
     static func family(_ family: String) -> StyleSwatchPalette {
         StyleSwatchPalette(
-            surface:       Color("Colors/\(family)/200"),
-            accent:        Color("Colors/\(family)/400"),
-            background:    Color("Colors/\(family)/50"),
-            textOnSurface: Color("Colors/Gray/Black")
+            surface:          Color("Colors/\(family)/200"),
+            accent:           Color("Colors/\(family)/400"),
+            background:       Color("Colors/\(family)/50"),
+            textOnSurface:    Color("Colors/Gray/Black"),
+            textOnBackground: Color("Colors/Gray/Black")
         )
     }
 }
 
 // MARK: - Swatch
 
-/// The 120×120 box: 60×60 surface + 60×60 accent stacked on the left,
-/// 60×120 background on the right, separated by a diagonal line.
+/// Swatch container. Delegates to the correct zone layout based on
+/// `palette.layout`. Border + clipping are shared.
 private struct StyleSwatch: View {
 
     let palette: StyleSwatchPalette
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Right half (background)
-            HStack(spacing: 0) {
-                Color.clear
-                palette.background
+        ZStack {
+            switch palette.layout {
+            case .fourZone: FourZoneSwatch(palette: palette)
+            case .twoZone:  TwoZoneSwatch(palette: palette)
             }
-
-            // Top-left quadrant (surface) with "Aa" sample
-            ZStack(alignment: .topLeading) {
-                palette.surface
-                Text("Aa")
-                    .font(.system(size: 20, weight: .semibold))
-                    .tracking(-0.45)
-                    .foregroundStyle(palette.textOnSurface)
-                    .padding(.leading, 15)
-                    .padding(.top, 17)
-            }
-            .frame(width: 60, height: 60)
-
-            // Bottom-left quadrant (accent)
-            palette.accent
-                .frame(width: 60, height: 60)
-                .offset(y: 60)
-
-            // Diagonal divider between left and right halves
-            diagonalDivider
         }
         .frame(width: 120, height: 120)
         .background(
@@ -105,10 +119,51 @@ private struct StyleSwatch: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
+}
 
-    /// Soft diagonal seam across the vertical midline, echoing the Figma
-    /// swatch where the left palette meets the right background.
-    private var diagonalDivider: some View {
+/// 60×60 surface quadrant + 60×60 accent quadrant stacked on the left,
+/// 60×120 background half on the right, separated by a vertical seam.
+/// "Aa" appears on the background (top-right zone) and on the accent
+/// (bottom-left zone) to preview text contrast on each.
+private struct FourZoneSwatch: View {
+    let palette: StyleSwatchPalette
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            // Right half — background
+            HStack(spacing: 0) {
+                Color.clear
+                palette.background
+            }
+
+            // Top-left — surface (no sample text)
+            palette.surface
+                .frame(width: 60, height: 60)
+
+            // Bottom-left — accent + "Aa" sample
+            palette.accent
+                .frame(width: 60, height: 60)
+                .offset(y: 60)
+
+            // Aa on background — positioned inside the right half
+            sampleText(color: palette.textOnBackground)
+                .offset(x: 76, y: 18)
+
+            // Aa on accent — positioned inside the bottom-left quadrant
+            sampleText(color: palette.textOnSurface)
+                .offset(x: 15, y: 77)
+
+            seam
+        }
+    }
+
+    private func sampleText(color: Color) -> some View {
+        Text(verbatim: "Aa")
+            .font(.title3)
+            .foregroundStyle(color)
+    }
+
+    private var seam: some View {
         GeometryReader { geo in
             Path { p in
                 p.move(to: CGPoint(x: geo.size.width / 2, y: 0))
@@ -119,12 +174,76 @@ private struct StyleSwatch: View {
     }
 }
 
+/// Full-bleed background with a 72×60 bottom-anchored tab (rounded top
+/// corners) representing the surface. "Aa" samples appear in both
+/// zones so the user can preview text contrast on each.
+private struct TwoZoneSwatch: View {
+    let palette: StyleSwatchPalette
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            palette.background
+
+            // Aa on background — centered in the top half
+            Text(verbatim: "Aa")
+                .font(.title3)
+                .foregroundStyle(palette.textOnBackground)
+                .frame(width: 72, height: 60)
+                .offset(x: 23, y: 0)
+
+            // Bottom-anchored surface tab (rounded top corners only)
+            UnevenRoundedRectangle(
+                topLeadingRadius: 16,
+                topTrailingRadius: 16,
+                style: .continuous
+            )
+            .fill(palette.surface)
+            .frame(width: 72, height: 60)
+            .offset(x: 23, y: 59)
+
+            // Aa on surface — centered inside the tab
+            Text(verbatim: "Aa")
+                .font(.title3)
+                .foregroundStyle(palette.textOnSurface)
+                .frame(width: 72, height: 60)
+                .offset(x: 23, y: 59)
+        }
+    }
+}
+
 // MARK: - Preview
 
 #Preview("Style tiles") {
-    HStack(spacing: 16) {
-        StyleTile(title: "Ocean", palette: .family("Blue"))
-        StyleTile(title: "Ocean", palette: .family("Blue"), isSelected: true)
+    VStack(spacing: 16) {
+        HStack(spacing: 16) {
+            StyleTile(title: "Ocean", palette: .family("Blue"))
+            StyleTile(title: "Ocean", palette: .family("Blue"), isSelected: true)
+        }
+        HStack(spacing: 16) {
+            StyleTile(
+                title: "Light",
+                palette: StyleSwatchPalette(
+                    surface: .white,
+                    accent: .black,
+                    background: Color("Colors/Blue/50"),
+                    textOnSurface: .black,
+                    textOnBackground: .black,
+                    layout: .twoZone
+                )
+            )
+            StyleTile(
+                title: "Dark",
+                palette: StyleSwatchPalette(
+                    surface: .black,
+                    accent: .white,
+                    background: Color("Colors/Blue/50"),
+                    textOnSurface: .white,
+                    textOnBackground: .black,
+                    layout: .twoZone
+                ),
+                isSelected: true
+            )
+        }
     }
     .padding(24)
     .background(Color.Background.default)

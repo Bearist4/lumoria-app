@@ -1,0 +1,26 @@
+appId: ${APP_ID}
+name: Subflow · Login
+---
+- launchApp:
+    clearState: true
+    arguments:
+      uitest: "YES"
+- extendedWaitUntil:
+    visible: "Tickets that last forever"
+    timeout: 10000
+- tapOn:
+    text: "^Log in$"
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 10000
+- tapOn: "Your email address"
+- inputText: ${TEST_EMAIL}
+- hideKeyboard
+- tapOn: "Your password"
+- inputText: ${TEST_PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "^Log in$"
+- extendedWaitUntil:
+    visible: "All tickets"
+    timeout: 20000

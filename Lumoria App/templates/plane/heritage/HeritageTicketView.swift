@@ -35,6 +35,8 @@ struct HeritageTicket: Codable, Hashable {
 struct HeritageTicketView: View {
     let ticket: HeritageTicket
 
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
+
     private let aspectRatio: CGFloat = 455 / 260
     private let stubWidth: CGFloat = 74
 
@@ -153,7 +155,7 @@ struct HeritageTicketView: View {
             Spacer(minLength: 0)
 
             VStack(spacing: 0) {
-                Text("→")
+                Text(verbatim: "→")
                     .font(.custom("Georgia", size: 12.235 * s))
                     .foregroundStyle(.black)
 
@@ -255,37 +257,12 @@ struct HeritageTicketView: View {
 
     // MARK: - Made with Lumoria badge
 
+    @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
-        HStack(spacing: 3.5 * s) {
-            Text("Made with")
-                .font(.system(size: 7.48 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(.black)
-
-            HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 7 * s, height: 7 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.24 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.24 * s, style: .continuous)
-                    )
-
-                Image("brand/default/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 3 * s)
-            }
+        if showsLumoriaWatermark {
+            // 7.48pt local font ÷ 17pt component font ≈ 0.44 scale factor.
+            MadeWithLumoria(style: .white, version: .small, scale: 0.44 * s)
         }
-        .padding(5.28 * s)
-        .background(
-            RoundedRectangle(cornerRadius: 5.28 * s, style: .continuous)
-                .fill(.white)
-        )
     }
 }
 

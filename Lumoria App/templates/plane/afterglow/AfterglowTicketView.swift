@@ -27,6 +27,8 @@ struct AfterglowTicket: Codable, Hashable {
 struct AfterglowTicketView: View {
     let ticket: AfterglowTicket
 
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
+
     // Ticket aspect ratio from Figma: 455 × 260
     private let aspectRatio: CGFloat = 455 / 260
 
@@ -105,28 +107,12 @@ struct AfterglowTicketView: View {
 
     // MARK: - Made with Lumoria badge
 
+    @ViewBuilder
     private func madeWithBadge(scale: CGFloat) -> some View {
-        HStack(spacing: 3.5 * scale) {
-            Text("Made with")
-                .font(.system(size: 7.5 * scale, weight: .semibold))
-                .tracking(-0.43 * scale)
-                .foregroundStyle(.black)
-
-            HStack(spacing: 2.5 * scale) {
-                Image("logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 7 * scale, height: 7 * scale)
-
-                Text("Lumoria")
-                    .font(.system(size: 7.5 * scale, weight: .semibold))
-                    .tracking(-0.43 * scale)
-                    .foregroundStyle(.black)
-            }
+        if showsLumoriaWatermark {
+            // 7.5pt local font ÷ 17pt component font ≈ 0.44 scale factor.
+            MadeWithLumoria(style: .white, version: .small, scale: 0.44 * scale)
         }
-        .padding(.horizontal, 5 * scale)
-        .padding(.vertical, 5 * scale)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 5 * scale))
     }
 
     // MARK: - Route row
@@ -157,7 +143,7 @@ struct AfterglowTicketView: View {
                     .scaledToFit()
                     .frame(width: 48 * scale)
 
-                Text("✈")
+                Text(verbatim: "✈")
                     .font(.system(size: 10.6 * scale))
                     .foregroundStyle(Color.white.opacity(0.4))
 

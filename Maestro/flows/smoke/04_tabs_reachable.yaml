@@ -1,0 +1,26 @@
+appId: bearista.Lumoria-App
+name: S04 · All three tabs reachable after login
+tags:
+  - smoke
+  - auth
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- assertVisible: "Memories"
+- assertVisible: "All tickets"
+- assertVisible: "Settings"
+- tapOn: "Memories"
+- extendedWaitUntil:
+    visible: "Memories"
+    timeout: 5000
+- takeScreenshot: tab_memories
+- tapOn: "All tickets"
+- extendedWaitUntil:
+    visible: "All tickets"
+    timeout: 5000
+- takeScreenshot: tab_all_tickets
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 5000
+- takeScreenshot: tab_settings

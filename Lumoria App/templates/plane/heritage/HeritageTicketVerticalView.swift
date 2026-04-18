@@ -11,6 +11,8 @@ import SwiftUI
 struct HeritageTicketVerticalView: View {
     let ticket: HeritageTicket
 
+    @Environment(\.brandSlug) private var brandSlug
+
     private let aspectRatio: CGFloat = 260 / 455
 
     var body: some View {
@@ -90,7 +92,7 @@ struct HeritageTicketVerticalView: View {
             )
 
             HStack(spacing: 8 * s) {
-                Text("↓")
+                Text(verbatim: "↓")
                     .font(.custom("Georgia", size: 12.235 * s))
                     .foregroundStyle(.black)
 
@@ -218,7 +220,7 @@ struct HeritageTicketVerticalView: View {
                 .foregroundStyle(.black)
 
             HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
+                Image("brand/\(brandSlug)/logomark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 7 * s, height: 7 * s)
@@ -230,7 +232,7 @@ struct HeritageTicketVerticalView: View {
                         RoundedRectangle(cornerRadius: 1.24 * s, style: .continuous)
                     )
 
-                Image("brand/default/full")
+                Image("brand/\(brandSlug)/full")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 3 * s)

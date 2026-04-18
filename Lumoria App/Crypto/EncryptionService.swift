@@ -5,7 +5,7 @@
 //  Client-side AES-GCM-256 envelope for user content that must never be
 //  readable server-side. Each user has a single 256-bit data key stored in
 //  the device Keychain (synced across devices via iCloud Keychain). All
-//  ticket payloads and collection names/locations are encrypted with this
+//  ticket payloads and memory names/emojis are encrypted with this
 //  key before leaving the device and decrypted only after fetch.
 //
 
@@ -35,14 +35,21 @@ enum EncryptionServiceError: LocalizedError {
 /// callers; no additional synchronization is required.
 enum EncryptionService {
 
-    /// Loads the key for the currently signed-in Supabase user, generating
-    /// a fresh one if this is the user's first encrypted write on this
-    /// account. Throws if no session is available.
-    static func currentKey() throws -> SymmetricKey {
+    /// Resolves the symmetric key used for the current encrypt/decrypt call.
+    /// Production reads it from the signed-in Supabase user + Keychain; tests
+    /// override this to inject a fixed key and bypass both dependencies.
+    static var keyProvider: () throws -> SymmetricKey = {
         guard let userId = supabase.auth.currentUser?.id else {
             throw EncryptionServiceError.noActiveUser
         }
         return try keyFor(userId: userId)
+    }
+
+    /// Loads the key for the currently signed-in Supabase user, generating
+    /// a fresh one if this is the user's first encrypted write on this
+    /// account. Throws if no session is available.
+    static func currentKey() throws -> SymmetricKey {
+        try keyProvider()
     }
 
     /// Loads or creates the data key for a specific user id. Exposed so

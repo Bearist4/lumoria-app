@@ -1,0 +1,15 @@
+appId: bearista.Lumoria-App
+name: D03 · Invite custom scheme while logged in
+tags:
+  - deeplinks
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- openLink: "lumoria://invite/${TEST_INVITE_TOKEN}"
+
+# App already open and authenticated — claim should occur immediately
+- extendedWaitUntil:
+    visible: "All tickets"
+    timeout: 10000
+- takeScreenshot: after_custom_scheme_claim

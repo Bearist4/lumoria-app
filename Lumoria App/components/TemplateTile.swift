@@ -57,10 +57,10 @@ struct TemplateTile: View {
     private var infoButton: some View {
         Button(action: onInfoTap) {
             Image(systemName: "info.circle")
-                .font(.system(size: 16.67, weight: .semibold))
+                .font(.callout.weight(.semibold))
                 .foregroundStyle(Color.Text.primary)
                 .frame(width: 40, height: 40)
-                .background(Circle().fill(Color.black.opacity(0.05)))
+                .background(Circle().fill(Color.Background.fieldFill))
         }
         .buttonStyle(.plain)
     }

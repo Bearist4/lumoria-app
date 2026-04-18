@@ -1,0 +1,12 @@
+appId: bearista.Lumoria-App
+name: A05 · Login happy path
+tags:
+  - auth
+  - smoke
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- assertVisible: "All tickets"
+- assertVisible: "Memories"
+- assertVisible: "Settings"
+- takeScreenshot: logged_in_home

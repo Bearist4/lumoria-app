@@ -30,6 +30,9 @@ struct StudioTicket: Codable, Hashable {
 
 struct StudioTicketView: View {
     let ticket: StudioTicket
+    var style: TicketStyleVariant = TicketTemplateKind.studio.defaultStyle
+
+    @Environment(\.brandSlug) private var brandSlug
 
     private let aspectRatio: CGFloat = 455 / 260
 
@@ -40,9 +43,11 @@ struct StudioTicketView: View {
             let s = w / 455
 
             ZStack {
-                Image("studio-bg")
-                    .resizable()
-                    .frame(width: w, height: h)
+                if let asset = style.backgroundAsset {
+                    Image(asset)
+                        .resizable()
+                        .frame(width: w, height: h)
+                }
 
                 VStack(spacing: 0) {
                     headerRow(scale: s)
@@ -77,12 +82,12 @@ struct StudioTicketView: View {
             VStack(alignment: .leading, spacing: 4 * s) {
                 Text(ticket.airline.uppercased())
                     .font(.system(size: 8 * s, weight: .bold))
-                    .foregroundStyle(.black.opacity(0.4))
+                    .foregroundStyle(style.textSecondary)
 
                 Text("\(ticket.flightNumber) · Boarding Pass")
                     .font(.system(size: 10 * s, weight: .bold))
                     .tracking(0.44 * s)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(style.textPrimary)
                     .lineLimit(1)
             }
 
@@ -90,12 +95,12 @@ struct StudioTicketView: View {
 
             Text(ticket.cabinClass)
                 .font(.system(size: 8 * s, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(style.onAccent)
                 .padding(.horizontal, 8 * s)
                 .padding(.vertical, 4 * s)
                 .background(
                     RoundedRectangle(cornerRadius: 4 * s, style: .continuous)
-                        .fill(Color(hex: "D94544"))
+                        .fill(style.accent)
                 )
         }
     }
@@ -104,7 +109,7 @@ struct StudioTicketView: View {
 
     private var divider: some View {
         Rectangle()
-            .fill(Color.black.opacity(0.07))
+            .fill(style.divider)
             .frame(height: 1)
     }
 
@@ -124,7 +129,7 @@ struct StudioTicketView: View {
 
             Image(systemName: "airplane")
                 .font(.system(size: 16 * s, weight: .regular))
-                .foregroundStyle(Color(hex: "D94544"))
+                .foregroundStyle(style.accent)
 
             Spacer(minLength: 0)
 
@@ -150,21 +155,21 @@ struct StudioTicketView: View {
         return VStack(alignment: alignment, spacing: 4 * s) {
             Text(code)
                 .font(.system(size: 40.79 * s, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(style.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
 
             Text(name)
                 .font(.system(size: 9.41 * s, weight: .bold))
                 .tracking(0.38 * s)
-                .foregroundStyle(.black)
+                .foregroundStyle(style.textPrimary)
                 .multilineTextAlignment(textAlign)
                 .lineLimit(1)
 
             Text(location.uppercased())
                 .font(.system(size: 6.28 * s, weight: .regular))
                 .tracking(0.75 * s)
-                .foregroundStyle(.black.opacity(0.4))
+                .foregroundStyle(style.textSecondary)
                 .multilineTextAlignment(textAlign)
                 .lineLimit(1)
         }
@@ -196,18 +201,18 @@ struct StudioTicketView: View {
             Text(label.uppercased())
                 .font(.system(size: 5.49 * s, weight: .regular))
                 .tracking(1.1 * s)
-                .foregroundStyle(.black.opacity(0.4))
+                .foregroundStyle(style.textSecondary)
 
             Text(value)
                 .font(.system(size: 10.98 * s, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(style.textPrimary)
                 .lineLimit(1)
         }
     }
 
     private func pillDivider(scale s: CGFloat) -> some View {
         Capsule()
-            .fill(Color.black.opacity(0.1))
+            .fill(style.textPrimary.opacity(0.1))
             .frame(width: 0.78 * s, height: 21.18 * s)
     }
 
@@ -216,10 +221,10 @@ struct StudioTicketView: View {
             Text("Made with")
                 .font(.system(size: 7.48 * s, weight: .semibold))
                 .tracking(-0.43 * s)
-                .foregroundStyle(.white)
+                .foregroundStyle(style.footerText)
 
             HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
+                Image("brand/\(brandSlug)/logomark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 7 * s, height: 7 * s)
@@ -231,39 +236,59 @@ struct StudioTicketView: View {
                         RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
                     )
 
-                Image("brand/default/full")
+                Image("brand/\(brandSlug)/full")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 3 * s)
-                    .environment(\.colorScheme, .dark)
+                    .environment(\.colorScheme, style.footerScheme)
             }
         }
         .padding(5.28 * s)
         .background(
             RoundedRectangle(cornerRadius: 5.28 * s, style: .continuous)
-                .fill(.black)
+                .fill(style.footerFill)
         )
     }
 }
 
 // MARK: - Preview
 
-#Preview {
-    StudioTicketView(ticket: StudioTicket(
-        airline: "Airline",
-        flightNumber: "FlightNumber",
-        cabinClass: "Class",
-        origin: "NRT",
-        originName: "Narita International",
-        originLocation: "Tokyo, Japan",
-        destination: "JFK",
-        destinationName: "John F. Kennedy",
-        destinationLocation: "New York, United States",
-        date: "8 Jun 2026",
-        gate: "74",
-        seat: "1K",
-        departureTime: "11:05"
-    ))
-    .padding(24)
+private let studioPreviewTicket = StudioTicket(
+    airline: "Airline",
+    flightNumber: "FlightNumber",
+    cabinClass: "Class",
+    origin: "NRT",
+    originName: "Narita International",
+    originLocation: "Tokyo, Japan",
+    destination: "JFK",
+    destinationName: "John F. Kennedy",
+    destinationLocation: "New York, United States",
+    date: "8 Jun 2026",
+    gate: "74",
+    seat: "1K",
+    departureTime: "11:05"
+)
+
+#Preview("Default") {
+    StudioTicketView(ticket: studioPreviewTicket)
+        .padding(24)
+        .background(Color.Background.default)
+}
+
+#Preview("All styles") {
+    ScrollView {
+        VStack(spacing: 24) {
+            ForEach(TicketTemplateKind.studio.styles) { style in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(style.label)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.Text.secondary)
+
+                    StudioTicketView(ticket: studioPreviewTicket, style: style)
+                }
+            }
+        }
+        .padding(24)
+    }
     .background(Color.Background.default)
 }

@@ -37,8 +37,7 @@ struct ModeSelect: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 Text(mode.rawValue)
-                    .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
-                    .tracking(-0.43)
+                    .font(.body.weight(isSelected ? .semibold : .regular))
                     .foregroundStyle(Color.Text.primary)
             }
             .padding(.vertical, 12)
@@ -60,64 +59,23 @@ struct ModeSelect: View {
 
     // MARK: - Mini preview
 
-    @ViewBuilder
-    private var preview: some View {
+    /// Image-asset name per mode. Assets live under
+    /// `Assets.xcassets/appearance/` — add a {mode}.imageset with the
+    /// stylized Memories-screen thumbnail. Asset should be a single
+    /// rendered image (for .system, bake the diagonal split into the
+    /// asset itself).
+    private var previewAssetName: String {
         switch mode {
-        case .system:
-            // Split diagonal: light / dark
-            ZStack {
-                Color.white
-                Color.black.mask(
-                    GeometryReader { geo in
-                        Path { p in
-                            p.move(to: CGPoint(x: geo.size.width, y: 0))
-                            p.addLine(to: CGPoint(x: geo.size.width, y: geo.size.height))
-                            p.addLine(to: CGPoint(x: 0, y: geo.size.height))
-                            p.closeSubpath()
-                        }
-                    }
-                )
-                previewContent(onDark: true, split: true)
-            }
-        case .light:
-            ZStack {
-                Color.white
-                previewContent(onDark: false, split: false)
-            }
-        case .dark:
-            ZStack {
-                Color.black
-                previewContent(onDark: true, split: false)
-            }
+        case .system: return "appearance/system"
+        case .light:  return "appearance/light"
+        case .dark:   return "appearance/dark"
         }
     }
 
-    /// Stylized "app preview" content — status bar row, title block,
-    /// two stacked content cards — tinted for light/dark surface.
-    private func previewContent(onDark: Bool, split: Bool) -> some View {
-        let tint: Color = onDark ? .white : .black
-        return VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
-                Capsule().fill(tint.opacity(0.5)).frame(width: 14, height: 3)
-                Spacer()
-                Capsule().fill(tint.opacity(0.5)).frame(width: 20, height: 3)
-            }
-
-            RoundedRectangle(cornerRadius: 2)
-                .fill(tint.opacity(0.7))
-                .frame(width: 40, height: 6)
-
-            Spacer(minLength: 0)
-
-            HStack(spacing: 4) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(tint.opacity(split ? 0.0 : 0.18))
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(tint.opacity(0.18))
-            }
-            .frame(height: 34)
-        }
-        .padding(8)
+    private var preview: some View {
+        Image(previewAssetName)
+            .resizable()
+            .scaledToFill()
     }
 }
 

@@ -10,6 +10,10 @@ import SwiftUI
 
 struct StudioTicketVerticalView: View {
     let ticket: StudioTicket
+    var style: TicketStyleVariant = TicketTemplateKind.studio.defaultStyle
+
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
+    @Environment(\.brandSlug) private var brandSlug
 
     private let aspectRatio: CGFloat = 260 / 455
     private let cornerRadius: CGFloat = 32
@@ -22,11 +26,13 @@ struct StudioTicketVerticalView: View {
 
             ZStack(alignment: .bottom) {
                 // Rotated ticket shape (original is 455x260, rotated 90° cw → 260x455).
-                Image("studio-bg")
-                    .resizable()
-                    .frame(width: h, height: w)
-                    .rotationEffect(.degrees(90))
-                    .frame(width: w, height: h)
+                if let asset = style.backgroundAsset {
+                    Image(asset)
+                        .resizable()
+                        .frame(width: h, height: w)
+                        .rotationEffect(.degrees(90))
+                        .frame(width: w, height: h)
+                }
 
                 // Main content column.
                 VStack(spacing: 0) {
@@ -51,7 +57,7 @@ struct StudioTicketVerticalView: View {
                 .padding(.bottom, 48 * s)
                 .frame(width: w, height: h)
 
-                // Black "Made with Lumoria" strip pinned to the bottom,
+                // Footer "Made with Lumoria" strip pinned to the bottom,
                 // clipped to match the ticket's rounded bottom corners.
                 madeWithStrip(scale: s)
                     .frame(width: w, height: 23 * s)
@@ -74,18 +80,18 @@ struct StudioTicketVerticalView: View {
             HStack {
                 Text(ticket.airline.uppercased())
                     .font(.system(size: 8 * s, weight: .bold))
-                    .foregroundStyle(.black.opacity(0.4))
+                    .foregroundStyle(style.textSecondary)
 
                 Spacer()
 
                 Text(ticket.cabinClass)
                     .font(.system(size: 8 * s, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(style.onAccent)
                     .padding(.horizontal, 8 * s)
                     .padding(.vertical, 4 * s)
                     .background(
                         RoundedRectangle(cornerRadius: 4 * s, style: .continuous)
-                            .fill(Color(hex: "D94544"))
+                            .fill(style.accent)
                     )
             }
 
@@ -93,7 +99,7 @@ struct StudioTicketVerticalView: View {
                 Text("\(ticket.flightNumber) · Boarding Pass")
                     .font(.system(size: 10 * s, weight: .bold))
                     .tracking(0.44 * s)
-                    .foregroundStyle(.black)
+                    .foregroundStyle(style.textPrimary)
                     .lineLimit(1)
 
                 Spacer()
@@ -105,7 +111,7 @@ struct StudioTicketVerticalView: View {
 
     private var divider: some View {
         Rectangle()
-            .fill(Color.black.opacity(0.07))
+            .fill(style.divider)
             .frame(height: 1)
     }
 
@@ -124,7 +130,7 @@ struct StudioTicketVerticalView: View {
 
             Image(systemName: "airplane")
                 .font(.system(size: 16 * s, weight: .regular))
-                .foregroundStyle(Color(hex: "D94544"))
+                .foregroundStyle(style.accent)
 
             Spacer(minLength: 0)
 
@@ -147,7 +153,7 @@ struct StudioTicketVerticalView: View {
         VStack(spacing: 4 * s) {
             Text(code)
                 .font(.system(size: 48 * s, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(style.textPrimary)
                 .frame(maxWidth: .infinity)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
@@ -155,7 +161,7 @@ struct StudioTicketVerticalView: View {
             Text(name)
                 .font(.system(size: 9.41 * s, weight: .bold))
                 .tracking(0.38 * s)
-                .foregroundStyle(.black)
+                .foregroundStyle(style.textPrimary)
                 .frame(maxWidth: .infinity)
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
@@ -163,7 +169,7 @@ struct StudioTicketVerticalView: View {
             Text(location.uppercased())
                 .font(.system(size: 6.28 * s, weight: .regular))
                 .tracking(0.75 * s)
-                .foregroundStyle(.black.opacity(0.4))
+                .foregroundStyle(style.textSecondary)
                 .frame(maxWidth: .infinity)
                 .multilineTextAlignment(.center)
                 .lineLimit(1)
@@ -193,56 +199,65 @@ struct StudioTicketVerticalView: View {
             Text(label.uppercased())
                 .font(.system(size: 5.49 * s, weight: .regular))
                 .tracking(1.1 * s)
-                .foregroundStyle(.black.opacity(0.4))
+                .foregroundStyle(style.textSecondary)
 
             Text(value)
                 .font(.system(size: 10.98 * s, weight: .bold))
-                .foregroundStyle(.black)
+                .foregroundStyle(style.textPrimary)
                 .lineLimit(1)
         }
     }
 
     private func pillDivider(scale s: CGFloat) -> some View {
         Capsule()
-            .fill(Color.black.opacity(0.1))
+            .fill(style.textPrimary.opacity(0.1))
             .frame(width: 0.78 * s, height: 21.18 * s)
     }
 
     // MARK: - Bottom "Made with Lumoria" strip
 
+    /// Bottom "Made with Lumoria" strip — a colored bar that's part of
+    /// Studio's silhouette. The bar stays to keep layout stable; its
+    /// contents are hidden when the user disables the watermark.
+    @ViewBuilder
     private func madeWithStrip(scale s: CGFloat) -> some View {
-        HStack(alignment: .center) {
-            Text("Made with")
-                .font(.system(size: 6.78 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(.white)
+        ZStack {
+            style.footerFill
 
-            Spacer()
+            if showsLumoriaWatermark {
+                HStack(alignment: .center) {
+                    Text("Made with")
+                        .font(.system(size: 6.78 * s, weight: .semibold))
+                        .tracking(-0.43 * s)
+                        .foregroundStyle(style.footerText)
 
-            HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 6.34 * s, height: 6.34 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                    )
+                    Spacer()
 
-                Image("brand/default/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 2.8 * s)
-                    .environment(\.colorScheme, .dark)
+                    HStack(spacing: 2.5 * s) {
+                        Image("brand/\(brandSlug)/logomark")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 6.34 * s, height: 6.34 * s)
+                            .background(
+                                RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
+                                    .fill(Color(hex: "FFFCF0"))
+                            )
+                            .clipShape(
+                                RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
+                            )
+
+                        Image("brand/\(brandSlug)/full")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 2.8 * s)
+                            .environment(\.colorScheme, style.footerScheme)
+                    }
+                }
+                .padding(.horizontal, 27.14 * s)
+                .padding(.vertical, 4.79 * s)
             }
         }
-        .padding(.horizontal, 27.14 * s)
-        .padding(.vertical, 4.79 * s)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black)
     }
 }
 

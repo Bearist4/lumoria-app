@@ -1,0 +1,57 @@
+appId: bearista.Lumoria-App
+name: T05 · Export ticket to Camera Roll as PNG 2x
+tags:
+  - tickets
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "All tickets"
+
+# Open first ticket. Requires seeded ticket.
+- tapOn:
+    id: "ticket-card"
+    optional: true
+
+# Open export
+- tapOn:
+    id: "ticket-menu"
+    optional: true
+- tapOn: "ellipsis"
+    optional: true
+- tapOn: "Export"
+    optional: true
+- tapOn: "Share"
+    optional: true
+
+# Phase A — destinations
+- extendedWaitUntil:
+    visible: "Camera roll"
+    timeout: 5000
+- tapOn: "Camera roll"
+
+# Phase B — configure
+- extendedWaitUntil:
+    visible: "Format"
+    timeout: 5000
+    optional: true
+- tapOn:
+    id: "format-dropdown"
+    optional: true
+- tapOn: "PNG"
+    optional: true
+- tapOn:
+    id: "resolution-dropdown"
+    optional: true
+- tapOn: "2x"
+    optional: true
+- tapOn: "Export"
+
+# First run may trigger Photos permission prompt
+- tapOn:
+    text: "Allow Access to All Photos"
+    optional: true
+- tapOn:
+    text: "Select Photos"
+    optional: true
+- takeScreenshot: T05_exported

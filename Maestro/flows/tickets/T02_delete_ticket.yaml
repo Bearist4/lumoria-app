@@ -1,0 +1,46 @@
+appId: bearista.Lumoria-App
+name: T02 · Delete ticket from detail
+tags:
+  - tickets
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "All tickets"
+
+# Assumes at least one ticket exists on the seeded account. If not, seed via F03 first.
+- tapOn:
+    id: "ticket-card"
+    optional: true
+# Fallback: tap the first card by tapping on a ticket preview (any airport code placeholder)
+# TODO: add stable id once ticket cards expose accessibilityIdentifier.
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 10000
+    optional: true
+
+- tapOn:
+    id: "ticket-menu"
+    optional: true
+- tapOn: "ellipsis"
+    optional: true
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Delete this ticket?"
+    timeout: 5000
+- tapOn: "Cancel"
+- assertVisible: "Delete"
+
+- tapOn:
+    id: "ticket-menu"
+    optional: true
+- tapOn: "ellipsis"
+    optional: true
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Delete this ticket?"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "All tickets"
+    timeout: 5000

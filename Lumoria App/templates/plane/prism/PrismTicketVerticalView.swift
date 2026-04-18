@@ -11,6 +11,9 @@ import SwiftUI
 struct PrismTicketVerticalView: View {
     let ticket: PrismTicket
 
+    @Environment(\.ticketFillsNotchCutouts) private var fillsNotchCutouts
+    @Environment(\.brandSlug) private var brandSlug
+
     private let aspectRatio: CGFloat = 260 / 455
 
     var body: some View {
@@ -22,8 +25,11 @@ struct PrismTicketVerticalView: View {
             let bgMask = Image("prism-bg-vertical").resizable().frame(width: w, height: h)
 
             ZStack(alignment: .top) {
-                // White base (shows through the notches)
-                Color.white
+                // White base shows through the notches. Skipped when the
+                // surface wants true transparent cutouts (IM share card).
+                if fillsNotchCutouts {
+                    Color.white
+                }
 
                 // Aurora clipped to the notched ticket shape
                 PrismAurora(imageName: "prism-gradient-vertical")
@@ -105,7 +111,7 @@ struct PrismTicketVerticalView: View {
                 Spacer(minLength: 30 * s)
             }
 
-            Text("↓")
+            Text(verbatim: "↓")
                 .font(.system(size: 16 * s, weight: .regular))
                 .foregroundStyle(.black.opacity(0.5))
 
@@ -216,7 +222,7 @@ struct PrismTicketVerticalView: View {
             Spacer()
 
             HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
+                Image("brand/\(brandSlug)/logomark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 6.34 * s, height: 6.34 * s)
@@ -228,7 +234,7 @@ struct PrismTicketVerticalView: View {
                         RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
                     )
 
-                Image("brand/default/full")
+                Image("brand/\(brandSlug)/full")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 2.8 * s)

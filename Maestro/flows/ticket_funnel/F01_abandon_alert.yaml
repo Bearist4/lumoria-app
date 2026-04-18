@@ -1,0 +1,37 @@
+appId: bearista.Lumoria-App
+name: F01 · Abandon alert confirms and cancels
+tags:
+  - funnel
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+- tapOn: "Plane"
+- extendedWaitUntil:
+    visible: "Pick a template"
+    timeout: 10000
+# Tap close on funnel chrome — falls back to system image glyph
+- tapOn:
+    id: "funnel-close"
+    optional: true
+- tapOn: "xmark"
+    optional: true
+- extendedWaitUntil:
+    visible: "Discard ticket?"
+    timeout: 5000
+- tapOn: "Keep crafting"
+- assertVisible: "Pick a template"
+- tapOn:
+    id: "funnel-close"
+    optional: true
+- tapOn: "xmark"
+    optional: true
+- extendedWaitUntil:
+    visible: "Discard ticket?"
+    timeout: 5000
+- tapOn: "Discard"
+- extendedWaitUntil:
+    visible: "All tickets"
+    timeout: 5000

@@ -1,0 +1,42 @@
+appId: bearista.Lumoria-App
+name: SET09 · Invite · native share sheet
+tags:
+  - settings
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Settings"
+- tapOn: "Referral"
+    optional: true
+- tapOn: "Invite"
+    optional: true
+- extendedWaitUntil:
+    visible: "Invite"
+    timeout: 5000
+
+- tapOn:
+    id: "share-invite"
+    optional: true
+- tapOn: "Share"
+    optional: true
+- tapOn: "square.and.arrow.up"
+    optional: true
+
+# iOS system share sheet — presence of AirDrop or Copy is our signal
+- extendedWaitUntil:
+    visible: "AirDrop"
+    timeout: 10000
+    optional: true
+- extendedWaitUntil:
+    visible: "Copy"
+    timeout: 5000
+    optional: true
+- takeScreenshot: invite_share_sheet
+
+# Dismiss
+- tapOn: "Close"
+    optional: true
+- tapOn: "Cancel"
+    optional: true
+- back

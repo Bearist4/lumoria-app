@@ -38,8 +38,7 @@ struct IconSelect: View {
                     .clipShape(RoundedRectangle(cornerRadius: 14.144, style: .continuous))
 
                 Text(option.name)
-                    .font(.system(size: 17, weight: isSelected ? .semibold : .regular))
-                    .tracking(-0.43)
+                    .font(.body.weight(isSelected ? .semibold : .regular))
                     .foregroundStyle(Color.Text.primary)
                     .lineLimit(1)
             }
@@ -76,8 +75,8 @@ struct IconSelect: View {
 
         IconSelect(
             option: AppIconOption(
-                alternateIconName: "Transpride",
-                name: "Transpride",
+                alternateIconName: "Noir",
+                name: "Noir",
                 previewAsset: "logomark"
             ),
             isSelected: false

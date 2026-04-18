@@ -4,55 +4,46 @@
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=1016-21315
 //
-//  Surface shown in the ticket-detail view that bundles "About this ticket"
-//  metadata + a Collections section. The metadata row list is driven by an
-//  array of `TicketDetailsCard.Item`; consecutive half-width items pair up
-//  on one row, full-width items get their own row.
+//  Surface shown in the ticket-detail view. Stacks:
+//    • Title ("About this ticket")
+//    • Creation + Last edit — two half-width metadata cards
+//    • Category tile — full-width colored pill for the ticket's category
+//    • Location card (optional) — compact map with a white pill labeling
+//      the primary location at the bottom
+//    • Memories section — header + overflow menu + caller-supplied content
 //
 
+import MapKit
 import SwiftUI
-
-// MARK: - Item
-
-/// A single label + sublabel row inside a `TicketDetailsCard`.
-/// Lives at the top level so callers can build a single `[Item]` array and
-/// pass it to any specialization of the generic card.
-struct TicketDetailsCardItem: Identifiable {
-    let id = UUID()
-    let label: String
-    let sublabel: String
-    /// When `true` the item spans the full card width on its own row.
-    var fullWidth: Bool = false
-}
 
 // MARK: - Card
 
-struct TicketDetailsCard<CollectionsContent: View>: View {
-
-    // MARK: Types
-
-    typealias Item = TicketDetailsCardItem
+struct TicketDetailsCard<MemoriesContent: View>: View {
 
     // MARK: Inputs
 
-    var title: String = "About this ticket"
-    let items: [Item]
-    var collectionsTitle: String = "Collections"
+    var title: LocalizedStringKey = "About this ticket"
+    let creationDate: String
+    let lastEditDate: String
+    let category: TicketCategoryStyle
+    /// Primary location of the ticket. Hidden when nil.
+    let location: TicketLocation?
+    var memoriesTitle: LocalizedStringKey = "Memories"
     let menuItems: [LumoriaMenuItem]
-    @ViewBuilder var collectionsContent: () -> CollectionsContent
+    @ViewBuilder var memoriesContent: () -> MemoriesContent
 
     // MARK: Body
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             Text(title)
-                .font(.system(size: 28, weight: .bold))
-                .tracking(0.38)
+                .font(.title.bold())
                 .foregroundStyle(Color.Text.primary)
 
-            itemsGrid
-
-            collectionsSection
+            metadataRow
+            categoryRow
+            if let location { locationCard(location) }
+            memoriesSection
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -62,82 +53,120 @@ struct TicketDetailsCard<CollectionsContent: View>: View {
         )
     }
 
-    // MARK: Item rows
+    // MARK: Metadata row
 
-    private var itemsGrid: some View {
-        VStack(spacing: 8) {
-            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: 8) {
-                    ForEach(row) { item in
-                        TicketDetailItem(label: item.label, sublabel: item.sublabel)
-                    }
-                }
-            }
+    private var metadataRow: some View {
+        HStack(spacing: 8) {
+            TicketDetailItem(label: "Created on",  sublabel: creationDate)
+            TicketDetailItem(label: "Last edited", sublabel: lastEditDate)
         }
     }
 
-    /// Groups consecutive half-width items into pairs; full-width items get
-    /// their own row.
-    private var rows: [[Item]] {
-        var out: [[Item]] = []
-        var pair: [Item] = []
-        for item in items {
-            if item.fullWidth {
-                if !pair.isEmpty { out.append(pair); pair = [] }
-                out.append([item])
-            } else {
-                pair.append(item)
-                if pair.count == 2 { out.append(pair); pair = [] }
-            }
-        }
-        if !pair.isEmpty { out.append(pair) }
-        return out
+    // MARK: Category tile
+
+    private var categoryRow: some View {
+        TicketDetailsCategoryTile(category: category)
     }
 
-    // MARK: Collections section
+    // MARK: Location card
 
-    private var collectionsSection: some View {
+    private func locationCard(_ location: TicketLocation) -> some View {
+        ZStack(alignment: .bottom) {
+            Map(
+                initialPosition: .region(MKCoordinateRegion(
+                    center: location.coordinate,
+                    span: MKCoordinateSpan(
+                        latitudeDelta: 0.08,
+                        longitudeDelta: 0.08
+                    )
+                )),
+                interactionModes: []
+            )
+            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .all))
+            .allowsHitTesting(false)
+
+            locationNamePill(location)
+                .padding(8)
+        }
+        .frame(height: 141)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func locationNamePill(_ location: TicketLocation) -> some View {
+        HStack(spacing: 6) {
+            Text(verbatim: "📍")
+                .font(.footnote)
+            Text(locationPillLabel(location))
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.Text.primary)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color.Background.elevated)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .shadow(color: Color.black.opacity(0.10), radius: 4, x: 0, y: 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func locationPillLabel(_ location: TicketLocation) -> String {
+        if let subtitle = location.subtitle, !subtitle.isEmpty {
+            return "\(subtitle) · \(location.name)"
+        }
+        return location.name
+    }
+
+    // MARK: Memories section
+
+    private var memoriesSection: some View {
         VStack(alignment: .leading, spacing: 20) {
             HStack {
-                Text(collectionsTitle)
-                    .font(.system(size: 22, weight: .bold))
-                    .tracking(-0.26)
+                Text(memoriesTitle)
+                    .font(.title2.bold())
                     .foregroundStyle(Color.Text.primary)
 
                 Spacer(minLength: 0)
 
                 LumoriaContextualMenuButton(items: menuItems) {
                     Image(systemName: "ellipsis")
-                        .font(.system(size: 16, weight: .semibold))
+                        .font(.callout.weight(.semibold))
                         .foregroundStyle(Color.Text.primary)
                         .frame(width: 40, height: 40)
                         .background(
-                            Circle().fill(Color.black.opacity(0.05))
+                            Circle().fill(Color.Background.fieldFill)
                         )
                 }
             }
 
-            collectionsContent()
+            memoriesContent()
         }
     }
 }
 
 // MARK: - Preview
 
-#Preview("No collection") {
+#Preview("No memory, with location") {
     TicketDetailsCard(
-        items: [
-            .init(label: "Creation",  sublabel: "03 January 2025"),
-            .init(label: "Last edit", sublabel: "15 January 2025"),
-            .init(label: "✈︎", sublabel: "Plane ticket", fullWidth: true),
-        ],
+        creationDate: "03 January 2025",
+        lastEditDate: "15 January 2025",
+        category: .plane,
+        location: TicketLocation(
+            name: "Tokyo Narita",
+            subtitle: "NRT",
+            city: "Tokyo",
+            country: "Japan",
+            countryCode: "JP",
+            lat: 35.7720,
+            lng: 140.3929,
+            kind: .airport
+        ),
         menuItems: [
-            .init(title: "Create collection…", action: {}),
+            .init(title: "Create memory…", action: {}),
         ],
-        collectionsContent: {
-            Text("You have no collection yet. To create a collection, tap the + icon.")
-                .font(.system(size: 15, weight: .regular))
-                .tracking(-0.23)
+        memoriesContent: {
+            Text(verbatim: "You have no memories yet. To create a memory, tap the + icon.")
+                .font(.subheadline)
                 .foregroundStyle(Color.Text.secondary)
         }
     )
@@ -146,31 +175,32 @@ struct TicketDetailsCard<CollectionsContent: View>: View {
     .background(Color.Background.default)
 }
 
-#Preview("With collection cards") {
+#Preview("With memory cards") {
     TicketDetailsCard(
-        items: [
-            .init(label: "Creation",  sublabel: "03 January 2025"),
-            .init(label: "Last edit", sublabel: "15 January 2025"),
-            .init(label: "✈︎", sublabel: "Plane ticket", fullWidth: true),
-        ],
+        creationDate: "03 January 2025",
+        lastEditDate: "15 January 2025",
+        category: .plane,
+        location: nil,
         menuItems: [
-            .init(title: "Create collection…", action: {}),
-            .init(title: "Add to a collection…", action: {}),
-            .init(title: "Remove from collection…", kind: .destructive, action: {}),
+            .init(title: "Create memory…", action: {}),
+            .init(title: "Add to a memory…", action: {}),
+            .init(title: "Remove from memory…", kind: .destructive, action: {}),
         ],
-        collectionsContent: {
+        memoriesContent: {
             HStack(spacing: 16) {
-                CollectionCard(
+                MemoryCard(
                     title: "Japan 2026",
                     subtitle: "2 tickets",
                     state: .normal,
+                    emoji: "🗾",
                     filledCount: 2,
                     colorFamily: "Blue"
                 )
-                CollectionCard(
+                MemoryCard(
                     title: "Family",
                     subtitle: "4 tickets",
                     state: .normal,
+                    emoji: "❤️",
                     filledCount: 3,
                     colorFamily: "Pink"
                 )

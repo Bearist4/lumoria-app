@@ -1,0 +1,27 @@
+appId: bearista.Lumoria-App
+name: M03 · Open memory detail
+tags:
+  - memories
+  - regression
+env:
+  MEMORY_NAME: "Summer 2026"
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Memories"
+- extendedWaitUntil:
+    visible: ${MEMORY_NAME}
+    timeout: 10000
+- tapOn: ${MEMORY_NAME}
+- extendedWaitUntil:
+    visible: ${MEMORY_NAME}
+    timeout: 5000
+- takeScreenshot: memory_detail
+- tapOn:
+    id: "back-button"
+    optional: true
+- tapOn: "chevron.left"
+    optional: true
+- extendedWaitUntil:
+    visible: "Memories"
+    timeout: 5000

@@ -41,6 +41,9 @@ struct PrismAurora: View {
 struct PrismTicketView: View {
     let ticket: PrismTicket
 
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
+    @Environment(\.ticketFillsNotchCutouts) private var fillsNotchCutouts
+
     private let aspectRatio: CGFloat = 455 / 260
 
     var body: some View {
@@ -52,8 +55,11 @@ struct PrismTicketView: View {
             let bgMask = Image("prism-bg").resizable().frame(width: w, height: h)
 
             ZStack(alignment: .topLeading) {
-                // White base (shows through the notches)
-                Color.white
+                // White base shows through the notches. Skipped when the
+                // surface wants true transparent cutouts (IM share card).
+                if fillsNotchCutouts {
+                    Color.white
+                }
 
                 // Aurora clipped to the notched ticket shape
                 PrismAurora()
@@ -129,7 +135,7 @@ struct PrismTicketView: View {
                 scale: s
             )
 
-            Text("→")
+            Text(verbatim: "→")
                 .font(.system(size: 16 * s, weight: .regular))
                 .foregroundStyle(.black.opacity(0.5))
 
@@ -219,37 +225,12 @@ struct PrismTicketView: View {
         }
     }
 
+    @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
-        HStack(spacing: 3.19 * s) {
-            Text("Made with")
-                .font(.system(size: 6.78 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(.black)
-
-            HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 6.34 * s, height: 6.34 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                    )
-
-                Image("brand/default/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 2.8 * s)
-            }
+        if showsLumoriaWatermark {
+            // 6.78pt local font ÷ 17pt component font = ~0.4 scale factor.
+            MadeWithLumoria(style: .white, version: .small, scale: 0.4 * s)
         }
-        .padding(4.79 * s)
-        .background(
-            RoundedRectangle(cornerRadius: 4.79 * s, style: .continuous)
-                .fill(.white)
-        )
     }
 }
 

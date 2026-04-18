@@ -1,0 +1,70 @@
+appId: bearista.Lumoria-App
+name: F05 · Plane · all templates reach success
+tags:
+  - funnel
+  - regression
+---
+# Drives each Plane template through to success. Minimal form fill —
+# asserts step transitions only. Parameterize in Maestro Cloud for speed.
+- runFlow:
+    file: ../../subflows/login.yaml
+
+# --- Terminal ---
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+- tapOn: "Plane"
+- tapOn: "Terminal"
+- tapOn: "Horizontal"
+- extendedWaitUntil:
+    visible: "Departure"
+    timeout: 10000
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "Choose the style of your ticket"
+    timeout: 10000
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "View ticket"
+    timeout: 15000
+- runFlow:
+    file: ../../subflows/discard_funnel.yaml
+    optional: true
+
+# --- Heritage ---
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+- tapOn: "Plane"
+- tapOn: "Heritage"
+- tapOn: "Horizontal"
+- extendedWaitUntil:
+    visible: "Departure"
+    timeout: 10000
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "Choose the style of your ticket"
+    timeout: 10000
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "View ticket"
+    timeout: 15000
+- runFlow:
+    file: ../../subflows/discard_funnel.yaml
+    optional: true
+
+# --- Prism ---
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+- tapOn: "Plane"
+- tapOn: "Prism"
+- tapOn: "Horizontal"
+- extendedWaitUntil:
+    visible: "Departure"
+    timeout: 10000
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "Choose the style of your ticket"
+    timeout: 10000
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "View ticket"
+    timeout: 15000

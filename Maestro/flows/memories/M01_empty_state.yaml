@@ -1,0 +1,15 @@
+appId: bearista.Lumoria-App
+name: M01 · Memories empty state
+tags:
+  - memories
+  - regression
+---
+# Requires a fresh account with no memories. Use A01's freshly signed-up account
+# or a dedicated empty fixture account.
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Memories"
+- extendedWaitUntil:
+    visible: "Your gallery starts here"
+    timeout: 10000
+- takeScreenshot: memories_empty

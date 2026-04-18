@@ -11,6 +11,8 @@ import SwiftUI
 struct AfterglowTicketVerticalView: View {
     let ticket: AfterglowTicket
 
+    @Environment(\.brandSlug) private var brandSlug
+
     private let aspectRatio: CGFloat = 260 / 455
 
     var body: some View {
@@ -96,7 +98,7 @@ struct AfterglowTicketVerticalView: View {
                 .foregroundStyle(.black)
 
             HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
+                Image("brand/\(brandSlug)/logomark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 7 * s, height: 7 * s)
@@ -108,7 +110,7 @@ struct AfterglowTicketVerticalView: View {
                         RoundedRectangle(cornerRadius: 1.24 * s, style: .continuous)
                     )
 
-                Image("brand/default/full")
+                Image("brand/\(brandSlug)/full")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 3 * s)

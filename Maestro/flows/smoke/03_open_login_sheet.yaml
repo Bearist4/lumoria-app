@@ -1,0 +1,23 @@
+appId: bearista.Lumoria-App
+name: S03 · Login sheet opens
+tags:
+  - smoke
+  - auth
+---
+- launchApp:
+    clearState: true
+    arguments:
+      uitest: "YES"
+- extendedWaitUntil:
+    visible: "Tickets that last forever"
+    timeout: 10000
+- tapOn:
+    text: "^Log in$"
+- extendedWaitUntil:
+    visible: "Welcome back!"
+    timeout: 5000
+- assertVisible: "Log in to Lumoria"
+- assertVisible: "Email address"
+- assertVisible: "Password"
+- assertVisible: "Forgot password?"
+- takeScreenshot: login_sheet

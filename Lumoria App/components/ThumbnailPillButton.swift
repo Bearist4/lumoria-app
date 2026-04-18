@@ -33,8 +33,7 @@ struct ThumbnailPillButton<Leading: View>: View {
                     .clipShape(RoundedRectangle(cornerRadius: 20))
 
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .tracking(-0.43)
+                    .font(.headline)
                     .foregroundStyle(Color.Text.primary)
             }
             .padding(.leading, 8)

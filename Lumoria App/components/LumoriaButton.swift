@@ -65,7 +65,6 @@ private struct LumoriaButtonBody: View {
     var body: some View {
         configuration.label
             .font(.system(size: size.fontSize, weight: .semibold))
-            .tracking(-0.43)
             .foregroundStyle(labelColor)
             .opacity(labelOpacity)
             .frame(maxWidth: .infinity)
@@ -75,7 +74,7 @@ private struct LumoriaButtonBody: View {
             .overlay {
                 if showBorder {
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color(hex: "D4D4D4"), lineWidth: 1)
+                        .stroke(Color.Button.Secondary.Border.inactive, lineWidth: 1)
                 }
             }
             .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
@@ -85,10 +84,14 @@ private struct LumoriaButtonBody: View {
 
     private var labelColor: Color {
         switch hierarchy {
-        case .primary, .danger:
-            return .white
-        case .secondary, .tertiary:
-            return isEnabled ? .black : Color(hex: "D4D4D4")
+        case .primary:
+            return Color.Button.Primary.Label.default
+        case .danger:
+            return Color.Button.Danger.Label.default
+        case .secondary:
+            return isEnabled ? Color.Button.Secondary.Label.default : Color.Button.Secondary.Label.inactive
+        case .tertiary:
+            return isEnabled ? Color.Button.Tertiary.Label.default : Color.Button.Tertiary.Label.inactive
         }
     }
 
@@ -105,24 +108,24 @@ private struct LumoriaButtonBody: View {
     private var backgroundColor: Color {
         if !isEnabled {
             switch hierarchy {
-            case .primary:            return Color(hex: "D4D4D4")
+            case .primary:              return Color.Button.Primary.Background.inactive
             case .secondary, .tertiary: return .clear
-            case .danger:             return Color(hex: "360003")
+            case .danger:               return Color.Button.Danger.Background.inactive
             }
         }
         if configuration.isPressed {
             switch hierarchy {
-            case .primary:   return Color(hex: "404040")
-            case .secondary: return Color.black.opacity(0.15)
-            case .tertiary:  return Color.black.opacity(0.05)
-            case .danger:    return Color(hex: "6B000B")
+            case .primary:   return Color.Button.Primary.Background.pressed
+            case .secondary: return Color.Button.Secondary.Background.pressed
+            case .tertiary:  return Color.Button.Secondary.Background.default
+            case .danger:    return Color.Button.Danger.Background.pressed
             }
         }
         switch hierarchy {
-        case .primary:   return .black
-        case .secondary: return Color.black.opacity(0.05)
+        case .primary:   return Color.Button.Primary.Background.default
+        case .secondary: return Color.Button.Secondary.Background.default
         case .tertiary:  return .clear
-        case .danger:    return Color(hex: "D94544")
+        case .danger:    return Color.Button.Danger.Background.default
         }
     }
 

@@ -1,0 +1,16 @@
+appId: bearista.Lumoria-App
+name: S05 · Funnel launches and cancels cleanly
+tags:
+  - smoke
+  - funnel
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+- takeScreenshot: funnel_step_1
+- runFlow:
+    file: ../../subflows/discard_funnel.yaml
+- extendedWaitUntil:
+    visible: "All tickets"
+    timeout: 5000

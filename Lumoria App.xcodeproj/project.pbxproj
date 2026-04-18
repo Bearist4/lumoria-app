@@ -17,6 +17,7 @@
 		69B770872F929AC8003B520F /* Messages.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69B770862F929AC8003B520F /* Messages.framework */; };
 		69B770932F929ACA003B520F /* LumoriaStickers.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 69B770842F929AC8003B520F /* LumoriaStickers.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		69B770A92F93BBBF003B520F /* AmplitudeUnified in Frameworks */ = {isa = PBXBuildFile; productRef = 69B770A82F93BBBF003B520F /* AmplitudeUnified */; };
+		69B770AC2F93BCCE003B520F /* Amplitude.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = 69B770AB2F93BCCE003B520F /* Amplitude.xcconfig */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -63,6 +64,7 @@
 		694D47742F8D0EE0007340A4 /* Lumoria AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Lumoria AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		69B770842F929AC8003B520F /* LumoriaStickers.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LumoriaStickers.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		69B770862F929AC8003B520F /* Messages.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Messages.framework; path = System/Library/Frameworks/Messages.framework; sourceTree = SDKROOT; };
+		69B770AB2F93BCCE003B520F /* Amplitude.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Amplitude.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -151,6 +153,7 @@
 				69B770882F929AC8003B520F /* LumoriaStickers */,
 				69B770852F929AC8003B520F /* Frameworks */,
 				694D475C2F8D0EDE007340A4 /* Products */,
+				69B770AB2F93BCCE003B520F /* Amplitude.xcconfig */,
 			);
 			sourceTree = "<group>";
 		};
@@ -341,6 +344,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69B770AC2F93BCCE003B520F /* Amplitude.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -542,6 +546,7 @@
 		};
 		694D477F2F8D0EE0007340A4 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 69B770AB2F93BCCE003B520F /* Amplitude.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Noir AppIcon Earth AppIcon Outline";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -579,6 +584,7 @@
 		};
 		694D47802F8D0EE0007340A4 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 69B770AB2F93BCCE003B520F /* Amplitude.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Noir AppIcon Earth AppIcon Outline";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;

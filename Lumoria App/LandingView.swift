@@ -9,12 +9,14 @@
 import SwiftUI
 
 struct LandingView: View {
+    @Environment(\.brandSlug) private var brandSlug
+
     @State private var showLogIn = false
     @State private var showSignUp = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
+            Color.Background.default.ignoresSafeArea()
 
             // Scrollable center content
             VStack(spacing: 0) {
@@ -32,9 +34,9 @@ struct LandingView: View {
 
                 Spacer().frame(height: 32)
 
-                Text("By signing up, you agree to our Terms of Service and Privacy Policy. You confirm that your information is accurate and consent to our collection and use of your data as outlined.")
+                Text("By signing up you agree to our Terms and Privacy Policy.")
                     .font(.footnote)
-                    .foregroundStyle(Color(hex: "A3A3A3"))
+                    .foregroundStyle(Color.Text.disabled)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
 
@@ -74,7 +76,7 @@ struct LandingView: View {
     // MARK: - Logogram
 
     private var logogramView: some View {
-        Image("brand/default/logomark")
+        Image("brand/\(brandSlug)/logomark")
             .resizable()
             .scaledToFit()
             .frame(width: 137, height: 137)
@@ -83,7 +85,7 @@ struct LandingView: View {
     // MARK: - Logotype
 
     private var logotypeView: some View {
-        Image("brand/default/logo")
+        Image("brand/\(brandSlug)/logo")
             .resizable()
             .scaledToFit()
     }

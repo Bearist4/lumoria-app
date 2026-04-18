@@ -1,0 +1,36 @@
+appId: bearista.Lumoria-App
+name: D01 · Invite universal link while logged out
+tags:
+  - deeplinks
+  - regression
+---
+- launchApp:
+    clearState: true
+    arguments:
+      uitest: "YES"
+- openLink: "https://getlumoria.app/invite/${TEST_INVITE_TOKEN}"
+
+# Should land on Landing (token stashed in PendingInviteTokenStore)
+- extendedWaitUntil:
+    visible: "Tickets that last forever"
+    timeout: 10000
+- takeScreenshot: deeplink_landed_on_landing
+
+# Log in, then assert the invite gets claimed
+- tapOn:
+    text: "^Log in$"
+- tapOn: "Your email address"
+- inputText: ${TEST_EMAIL}
+- hideKeyboard
+- tapOn: "Your password"
+- inputText: ${TEST_PASSWORD}
+- hideKeyboard
+- tapOn:
+    text: "^Log in$"
+
+- extendedWaitUntil:
+    visible: "All tickets"
+    timeout: 20000
+# TODO: assert on whatever UI signal the app shows on claim success
+# (toast, banner, or memory appearing in Memories tab)
+- takeScreenshot: after_invite_claim

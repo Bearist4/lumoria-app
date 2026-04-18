@@ -16,8 +16,11 @@ enum LumoriaMenuItemKind {
 
 struct LumoriaMenuItem: Identifiable {
     let id = UUID()
-    let title: String
+    let title: LocalizedStringKey
     var kind: LumoriaMenuItemKind = .default
+    /// Renders the row in semibold to indicate this option is already
+    /// applied (e.g. the currently-selected sort).
+    var isActive: Bool = false
     let action: () -> Void
 }
 
@@ -67,8 +70,7 @@ struct LumoriaContextualMenu: View {
         Button(action: item.action) {
             HStack {
                 Text(item.title)
-                    .font(.system(size: 17, weight: .regular))
-                    .tracking(-0.43)
+                    .font(item.isActive ? .body.weight(.semibold) : .body)
                     .foregroundStyle(
                         item.kind == .destructive
                             ? Color.Feedback.Danger.text
@@ -102,7 +104,7 @@ struct LumoriaContextualMenuButton<Label: View>: View {
 
     var body: some View {
         Button {
-            isShowing = true
+            present()
         } label: {
             label()
         }
@@ -120,23 +122,36 @@ struct LumoriaContextualMenuButton<Label: View>: View {
                 anchor: anchor,
                 items: items,
                 onSelect: { handleSelection($0) },
-                onDismiss: { isShowing = false }
+                onDismiss: { dismiss() }
             )
             .presentationBackground(.clear)
         }
     }
 
+    private func present() {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { isShowing = true }
+    }
+
+    private func dismiss() {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { isShowing = false }
+    }
+
     private func handleSelection(_ item: LumoriaMenuItem) {
-        isShowing = false
+        dismiss()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             item.action()
         }
     }
 }
 
+
 // MARK: - Menu presenter (inside the fullScreenCover)
 
-private struct MenuPresenter: View {
+struct MenuPresenter: View {
 
     let anchor: CGRect
     let items: [LumoriaMenuItem]
@@ -150,33 +165,51 @@ private struct MenuPresenter: View {
     @State private var didAppear = false
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Tap-outside dismiss layer. Near-zero opacity so hit-testing works.
-            Color.black.opacity(0.001)
-                .contentShape(Rectangle())
-                .onTapGesture { onDismiss() }
+        // `anchor` is captured in the source view's global window
+        // coord space. Inside the fullScreenCover, the content is
+        // laid out from the window top (thanks to `.ignoresSafeArea`)
+        // but SwiftUI still reports its origin with the top safe-area
+        // inset baked in — so offsets that use raw `anchor.maxY` land
+        // `safeAreaInsets.top` too low. Subtracting it brings the
+        // menu back to a true 8pt gap.
+        GeometryReader { rootProxy in
+            let topInset = rootProxy.safeAreaInsets.top
+            ZStack(alignment: .topLeading) {
+                Color.black.opacity(0.001)
+                    .contentShape(Rectangle())
+                    .onTapGesture { close(then: onDismiss) }
 
-            LumoriaContextualMenu(items: wrapped)
-                .fixedSize()
-                .scaleEffect(didAppear ? 1 : 0.92, anchor: .topTrailing)
-                .opacity(didAppear ? 1 : 0)
-                .offset(
-                    x: anchor.maxX - menuWidth,
-                    y: anchor.maxY + gap
-                )
-                .animation(.easeOut(duration: 0.14), value: didAppear)
+                LumoriaContextualMenu(items: wrapped)
+                    .fixedSize()
+                    .scaleEffect(didAppear ? 1 : 0.92, anchor: .topTrailing)
+                    .opacity(didAppear ? 1 : 0)
+                    .offset(
+                        x: anchor.maxX - menuWidth,
+                        y: anchor.maxY + gap - topInset
+                    )
+                    .animation(.easeOut(duration: 0.14), value: didAppear)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .ignoresSafeArea()
-        .onAppear {
-            withAnimation(.easeOut(duration: 0.14)) { didAppear = true }
+        .onAppear { didAppear = true }
+    }
+
+    private func close(then action: @escaping () -> Void) {
+        didAppear = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+            action()
         }
     }
 
     private var wrapped: [LumoriaMenuItem] {
         items.map { item in
-            LumoriaMenuItem(title: item.title, kind: item.kind) {
-                onSelect(item)
+            LumoriaMenuItem(
+                title: item.title,
+                kind: item.kind,
+                isActive: item.isActive
+            ) {
+                close(then: { onSelect(item) })
             }
         }
     }

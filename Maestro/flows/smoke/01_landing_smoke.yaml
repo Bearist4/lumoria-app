@@ -1,0 +1,12 @@
+appId: bearista.Lumoria-App
+name: Landing screen smoke
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+    arguments:
+      uitest: "YES"
+- assertVisible: "Log in"
+- assertVisible: "Sign up"
+- takeScreenshot: landing

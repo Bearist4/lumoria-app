@@ -1,0 +1,62 @@
+appId: bearista.Lumoria-App
+name: F08 · Train · Night · sleeper berths
+tags:
+  - funnel
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+
+- tapOn: "Train"
+- extendedWaitUntil:
+    visible: "Pick a template"
+    timeout: 10000
+
+- tapOn: "Night"
+- extendedWaitUntil:
+    visible: "Choose an orientation"
+    timeout: 10000
+
+- tapOn: "Horizontal"
+- extendedWaitUntil:
+    visible: "Departure"
+    timeout: 10000
+
+- tapOn:
+    below: "Departure"
+    index: 0
+- inputText: "Venice Santa Lucia"
+- hideKeyboard
+- tapOn:
+    below: "Arrival"
+    index: 0
+- inputText: "Paris Bercy"
+- hideKeyboard
+
+# Assert berth dropdown values exist — the defining feature of Night template.
+- tapOn:
+    id: "cabin-dropdown"
+    optional: true
+- tapOn: "Lower"
+    optional: true
+- tapOn: "Middle"
+    optional: true
+- tapOn: "Upper"
+    optional: true
+- tapOn: "Single"
+    optional: true
+# If dropdown didn't open via id, the taps above are no-ops — rely on assert.
+- assertVisible: "Lower"
+    timeout: 5000
+
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "Choose the style of your ticket"
+    timeout: 10000
+- tapOn: "Next"
+- extendedWaitUntil:
+    visible: "View ticket"
+    timeout: 15000
+- takeScreenshot: F08_success

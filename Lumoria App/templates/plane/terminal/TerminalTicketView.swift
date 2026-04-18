@@ -33,6 +33,8 @@ struct TerminalTicket: Codable, Hashable {
 struct TerminalTicketView: View {
     let ticket: TerminalTicket
 
+    @Environment(\.brandSlug) private var brandSlug
+
     // Ticket aspect ratio from Figma: 455 × 260
     private let aspectRatio: CGFloat = 455 / 260
 
@@ -119,7 +121,7 @@ struct TerminalTicketView: View {
                 .foregroundStyle(.black)
 
             HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
+                Image("brand/\(brandSlug)/logomark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 7 * s, height: 7 * s)
@@ -131,7 +133,7 @@ struct TerminalTicketView: View {
                         RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
                     )
 
-                Image("brand/default/full")
+                Image("brand/\(brandSlug)/full")
                     .resizable()
                     .scaledToFit()
                     .frame(height: 3 * s)

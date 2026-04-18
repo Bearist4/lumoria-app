@@ -16,7 +16,7 @@ import SwiftUI
 /// The body displayed inside a `LumoriaDataCard`.
 enum LumoriaDataCardContent {
     /// A single big value (number or short text) + a small caption.
-    /// Example: "3" / "collections created".
+    /// Example: "3" / "memories created".
     case value(String, caption: String)
 
     /// A big value followed by an inline suffix + a caption below.
@@ -56,8 +56,7 @@ struct LumoriaDataCard: View {
                 Spacer(minLength: 0)
 
                 Text(caption)
-                    .font(.system(size: 15, weight: .regular))
-                    .tracking(-0.23)
+                    .font(.subheadline)
                     .foregroundStyle(Color.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.leading)
@@ -73,7 +72,7 @@ struct LumoriaDataCard: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.03), lineWidth: 1)
+                .strokeBorder(Color.Background.fieldFill, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
@@ -83,15 +82,14 @@ struct LumoriaDataCard: View {
     private var valueRow: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text(primaryValue)
-                .font(.system(size: 34, weight: .bold, design: .rounded))
-                .tracking(0.4)
+                .font(.largeTitle.bold()).fontDesign(.rounded)
                 .foregroundStyle(accentColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
 
             if let suffix = valueSuffix {
                 Text(suffix)
-                    .font(.system(size: 12, weight: .regular))
+                    .font(.caption)
                     .foregroundStyle(Color.Text.tertiary)
             }
 
@@ -152,7 +150,7 @@ struct LumoriaDataCard: View {
             spacing: 16
         ) {
             LumoriaDataCard(
-                content: .value("3", caption: "collections created"),
+                content: .value("3", caption: "memories created"),
                 accentColorFamily: "Orange"
             )
             LumoriaDataCard(

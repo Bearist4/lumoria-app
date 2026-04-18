@@ -17,17 +17,16 @@ struct LumoriaPill: View {
 
     var body: some View {
         Text(label)
-            .font(.system(size: 13, weight: .semibold))
-            .tracking(-0.08)
-            .foregroundStyle(.white)
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(Color.Button.Primary.Label.default)
             .lineLimit(1)
             .padding(.horizontal, 32)
             .frame(height: 40)
             .background(
-                Capsule().fill(Color(hex: "2B2B2B"))
+                Capsule().fill(Color.Button.Primary.Background.default)
             )
             .overlay(
-                Capsule().stroke(Color.white.opacity(0.5), lineWidth: 1)
+                Capsule().stroke(Color.Button.Primary.Label.default.opacity(0.5), lineWidth: 1)
             )
     }
 }

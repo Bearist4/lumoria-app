@@ -128,6 +128,9 @@ extension Color {
         static let `default` = c("Gray/0")
         static let elevated  = c("Gray/50")
         static let subtle    = c("Gray/100")
+        /// Subtle fill used for input fields, pill bgs, and similar ~3% tints.
+        /// Auto-flips black↔white for dark mode.
+        static let fieldFill = c("Opacity/Black/inverse/3")
     }
 
     // MARK: Border
@@ -135,6 +138,10 @@ extension Color {
     enum Border {
         static let `default` = c("Gray/200")
         static let strong    = c("Gray/300")
+        /// ~5% inverse tint — subtle dividers (TicketSlot bottom, etc.).
+        static let subtle    = c("Opacity/Black/inverse/5")
+        /// ~7% inverse tint — thin field strokes. Auto-flips in dark mode.
+        static let hairline  = c("Opacity/Black/inverse/7")
 
         enum OnBG {
             static let `default` = c("Gray/0")

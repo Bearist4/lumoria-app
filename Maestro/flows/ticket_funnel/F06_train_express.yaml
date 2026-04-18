@@ -1,0 +1,48 @@
+appId: bearista.Lumoria-App
+name: F06 · Train · Express · happy path
+tags:
+  - funnel
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+
+- tapOn: "Train"
+- extendedWaitUntil:
+    visible: "Pick a template"
+    timeout: 10000
+
+- tapOn: "Express"
+- extendedWaitUntil:
+    visible: "Choose an orientation"
+    timeout: 10000
+
+- tapOn: "Horizontal"
+- extendedWaitUntil:
+    visible: "Departure"
+    timeout: 10000
+
+# Minimal form fill — stations, date, train number, cabin dropdown.
+- tapOn:
+    below: "Departure"
+    index: 0
+- inputText: "Paris Gare du Nord"
+- hideKeyboard
+- tapOn:
+    below: "Arrival"
+    index: 0
+- inputText: "London St Pancras"
+- hideKeyboard
+- tapOn: "Next"
+
+- extendedWaitUntil:
+    visible: "Choose the style of your ticket"
+    timeout: 10000
+- tapOn: "Next"
+
+- extendedWaitUntil:
+    visible: "View ticket"
+    timeout: 15000
+- takeScreenshot: F06_success

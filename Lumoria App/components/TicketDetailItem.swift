@@ -11,20 +11,18 @@ import SwiftUI
 /// rounded container. Used inside `TicketDetailsCard`.
 struct TicketDetailItem: View {
 
-    let label: String
+    let label: LocalizedStringKey
     let sublabel: String
 
     var body: some View {
         VStack(spacing: 4) {
             Text(label)
-                .font(.system(size: 17, weight: .semibold))
-                .tracking(-0.43)
+                .font(.headline)
                 .foregroundStyle(Color.Text.secondary)
                 .lineLimit(1)
 
             Text(sublabel)
-                .font(.system(size: 13, weight: .semibold))
-                .tracking(-0.08)
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(Color.Text.tertiary)
                 .lineLimit(1)
         }
@@ -43,8 +41,8 @@ struct TicketDetailItem: View {
 #Preview("Ticket detail items") {
     VStack(spacing: 8) {
         HStack(spacing: 8) {
-            TicketDetailItem(label: "Creation",  sublabel: "03 January 2025")
-            TicketDetailItem(label: "Last edit", sublabel: "15 January 2025")
+            TicketDetailItem(label: "Created on",  sublabel: "03 January 2025")
+            TicketDetailItem(label: "Last edited", sublabel: "15 January 2025")
         }
         TicketDetailItem(label: "✈︎", sublabel: "Plane ticket")
     }

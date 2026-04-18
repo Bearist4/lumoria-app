@@ -1,0 +1,49 @@
+appId: bearista.Lumoria-App
+name: M02 · Create memory
+tags:
+  - memories
+  - regression
+env:
+  MEMORY_NAME: "Summer 2026"
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Memories"
+
+# Tap the "new memory" trailing icon in the header
+- tapOn:
+    id: "new-memory-button"
+    optional: true
+- tapOn: "plus"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "New memory"
+    timeout: 10000
+    optional: true
+
+- tapOn:
+    below: "Name"
+    optional: true
+- inputText: ${MEMORY_NAME}
+- hideKeyboard
+
+# Emoji + color pickers — tap first option to proceed. Adjust when IDs exist.
+- tapOn:
+    id: "emoji-picker-first"
+    optional: true
+- tapOn:
+    id: "color-picker-first"
+    optional: true
+
+- tapOn: "Save"
+    optional: true
+- tapOn: "Create"
+    optional: true
+- tapOn: "Done"
+    optional: true
+
+- extendedWaitUntil:
+    visible: ${MEMORY_NAME}
+    timeout: 10000
+- takeScreenshot: memory_created

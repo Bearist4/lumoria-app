@@ -1,0 +1,38 @@
+appId: bearista.Lumoria-App
+name: M04 · Edit memory name
+tags:
+  - memories
+  - regression
+env:
+  MEMORY_NAME: "Summer 2026"
+  MEMORY_NAME_NEW: "Summer 2026 Europe"
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Memories"
+- tapOn: ${MEMORY_NAME}
+- extendedWaitUntil:
+    visible: ${MEMORY_NAME}
+    timeout: 5000
+- tapOn:
+    id: "memory-menu"
+    optional: true
+- tapOn: "ellipsis"
+    optional: true
+- tapOn: "Edit"
+- extendedWaitUntil:
+    visible: "Name"
+    timeout: 5000
+- tapOn:
+    below: "Name"
+# Clear existing text
+- eraseText: 64
+- inputText: ${MEMORY_NAME_NEW}
+- hideKeyboard
+- tapOn: "Save"
+    optional: true
+- tapOn: "Done"
+    optional: true
+- extendedWaitUntil:
+    visible: ${MEMORY_NAME_NEW}
+    timeout: 10000

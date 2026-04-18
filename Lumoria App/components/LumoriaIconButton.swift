@@ -37,10 +37,16 @@ enum LumoriaIconButtonSize {
 // MARK: - Position (surface context)
 
 enum LumoriaIconButtonPosition {
-    /// Button sits on a light/transparent background
+    /// Button sits on a light/transparent background — semi-transparent
+    /// black fill, black icon.
     case onBackground
-    /// Button sits on a white/surface card
+    /// Button sits on a white/surface card — white fill, black icon.
     case onSurface
+    /// Button sits on a dark background (e.g. a full-screen photo sheet)
+    /// — semi-transparent white fill, white icon.
+    case onDark
+    /// Affirmative action button — solid green fill, white icon.
+    case success
 }
 
 // MARK: - Internal button style
@@ -66,16 +72,25 @@ private struct IconButtonStyle: ButtonStyle {
     private func background(isPressed: Bool) -> Color {
         switch position {
         case .onBackground:
-            if isPressed { return Color.black.opacity(0.15) }
-            return Color.black.opacity(0.05)
+            if isPressed { return Color.Button.Secondary.Background.pressed }
+            return Color.Button.Secondary.Background.default
         case .onSurface:
-            if isPressed { return Color.white.opacity(0.85) }  // white + 0.15 overlay
-            return .white
+            if isPressed { return Color.Background.elevated.opacity(0.85) }
+            return Color.Background.default
+        case .onDark:
+            if isPressed { return Color.white.opacity(0.25) }
+            return Color.white.opacity(0.12)
+        case .success:
+            if isPressed { return Color("Colors/Green/600") }
+            return Color("Colors/Green/500")
         }
     }
 
     private func foregroundColor(isPressed: Bool) -> Color {
-        .black
+        switch position {
+        case .onBackground, .onSurface: return Color.Text.primary
+        case .onDark, .success:         return Color.Text.OnColor.white
+        }
     }
 }
 
@@ -87,24 +102,173 @@ struct LumoriaIconButton: View {
     var position: LumoriaIconButtonPosition = .onBackground
     var isActive: Bool = false
     var showBadge: Bool = false
-    let action: () -> Void
+    /// When non-nil and > 0 the badge renders as a pill with the
+    /// count instead of the 10pt dot. Falls back to the dot when
+    /// `showBadge` is true and `badgeCount` is nil or 0.
+    var badgeCount: Int? = nil
+    /// Nil = render visual only (no Button). Useful when the button
+    /// sits inside another tappable container (e.g. a contextual menu
+    /// trigger) and nesting Buttons would swallow the outer tap.
+    let action: (() -> Void)?
+    /// When non-nil the icon button renders as a menu trigger: tap
+    /// opens a Lumoria contextual menu anchored exactly 8pt below
+    /// this button, every time. `action` is ignored when a menu is
+    /// provided.
+    let menuItems: [LumoriaMenuItem]?
+
+    @State private var isMenuShowing: Bool = false
+
+    init(
+        systemImage: String,
+        size: LumoriaIconButtonSize = .large,
+        position: LumoriaIconButtonPosition = .onBackground,
+        isActive: Bool = false,
+        showBadge: Bool = false,
+        badgeCount: Int? = nil,
+        action: (() -> Void)? = nil,
+        menuItems: [LumoriaMenuItem]? = nil
+    ) {
+        self.systemImage = systemImage
+        self.size = size
+        self.position = position
+        self.isActive = isActive
+        self.showBadge = showBadge
+        self.badgeCount = badgeCount
+        self.action = action
+        self.menuItems = menuItems
+    }
 
     var body: some View {
-        Button(action: action) {
+        Group {
+            if let menuItems {
+                menuTrigger(items: menuItems)
+            } else if let action {
+                Button(action: action) {
+                    Image(systemName: systemImage)
+                }
+                .buttonStyle(
+                    isActive
+                        ? AnyButtonStyle(ActiveIconButtonStyle(size: size))
+                        : AnyButtonStyle(IconButtonStyle(size: size, position: position))
+                )
+                .overlay(alignment: .topTrailing) {
+                    if shouldShowBadge { badge }
+                }
+            } else {
+                visualOnly
+            }
+        }
+    }
+
+    // MARK: - Menu trigger
+
+    /// Button-styled trigger that anchors the Lumoria contextual menu
+    /// directly below itself via `.overlay(alignment: .topTrailing)`
+    /// — no popover arrow, no modal cover, no coord-space gymnastics.
+    /// The menu's top-trailing corner sits exactly 8pt below the
+    /// button's bottom edge via an offset of `size.dimension + 8`.
+    /// Dismissal: tapping an item closes the menu; tapping the icon
+    /// again toggles it off.
+    @ViewBuilder
+    private func menuTrigger(items: [LumoriaMenuItem]) -> some View {
+        Button {
+            isMenuShowing.toggle()
+        } label: {
             Image(systemName: systemImage)
         }
         .buttonStyle(
-            isActive
+            (isActive || isMenuShowing)
                 ? AnyButtonStyle(ActiveIconButtonStyle(size: size))
                 : AnyButtonStyle(IconButtonStyle(size: size, position: position))
         )
         .overlay(alignment: .topTrailing) {
-            if showBadge {
-                Circle()
-                    .fill(Color(hex: "D94544"))
-                    .frame(width: 10, height: 10)
-                    .offset(x: 2, y: -2)
+            if shouldShowBadge { badge }
+        }
+        .overlay(alignment: .topTrailing) {
+            if isMenuShowing {
+                LumoriaContextualMenu(items: wrappedItems(items))
+                    .fixedSize()
+                    .offset(y: size.dimension + 8)
+                    .transition(
+                        .scale(scale: 0.92, anchor: .topTrailing)
+                            .combined(with: .opacity)
+                    )
+                    .zIndex(1000)
             }
+        }
+        .animation(.easeOut(duration: 0.14), value: isMenuShowing)
+    }
+
+    /// Wraps each menu item with a dismissal step so selecting any
+    /// option closes the menu before the action runs.
+    private func wrappedItems(_ items: [LumoriaMenuItem]) -> [LumoriaMenuItem] {
+        items.map { item in
+            LumoriaMenuItem(
+                title: item.title,
+                kind: item.kind,
+                isActive: item.isActive
+            ) {
+                isMenuShowing = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                    item.action()
+                }
+            }
+        }
+    }
+
+    // MARK: - Visual-only rendering
+
+    private var visualOnly: some View {
+        Image(systemName: systemImage)
+            .font(.system(size: size.iconSize, weight: .semibold))
+            .foregroundStyle(visualForeground)
+            .frame(width: size.dimension, height: size.dimension)
+            .background(visualBackground)
+            .clipShape(Circle())
+            .overlay(alignment: .topTrailing) {
+                if shouldShowBadge { badge }
+            }
+    }
+
+    // MARK: - Visual-only tokens (mirror IconButtonStyle at rest)
+
+    private var visualBackground: Color {
+        if isActive { return Color.Button.Primary.Background.default }
+        switch position {
+        case .onBackground: return Color.Button.Secondary.Background.default
+        case .onSurface:    return Color.Background.default
+        case .onDark:       return Color.white.opacity(0.12)
+        case .success:      return Color("Colors/Green/500")
+        }
+    }
+
+    private var visualForeground: Color {
+        if isActive { return Color.Button.Primary.Label.default }
+        switch position {
+        case .onBackground, .onSurface: return Color.Text.primary
+        case .onDark, .success:         return Color.Text.OnColor.white
+        }
+    }
+
+    private var shouldShowBadge: Bool {
+        showBadge || (badgeCount ?? 0) > 0
+    }
+
+    @ViewBuilder
+    private var badge: some View {
+        if let count = badgeCount, count > 0 {
+            Text(count > 99 ? "99+" : "\(count)")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 5)
+                .frame(minWidth: 16, minHeight: 16)
+                .background(Capsule().fill(Color.Feedback.Danger.icon))
+                .offset(x: 4, y: -4)
+        } else {
+            Circle()
+                .fill(Color.Feedback.Danger.icon)
+                .frame(width: 10, height: 10)
+                .offset(x: 2, y: -2)
         }
     }
 }
@@ -117,9 +281,13 @@ private struct ActiveIconButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: size.iconSize, weight: .semibold))
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.Button.Primary.Label.default)
             .frame(width: size.dimension, height: size.dimension)
-            .background(configuration.isPressed ? Color(hex: "404040") : .black)
+            .background(
+                configuration.isPressed
+                    ? Color.Button.Primary.Background.pressed
+                    : Color.Button.Primary.Background.default
+            )
             .clipShape(Circle())
             .animation(.easeInOut(duration: 0.12), value: configuration.isPressed)
     }

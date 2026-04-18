@@ -1,0 +1,62 @@
+appId: bearista.Lumoria-App
+name: F03 · Plane · Afterglow · horizontal · happy path
+tags:
+  - funnel
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- runFlow:
+    file: ../../subflows/open_funnel.yaml
+
+# Step 1 — Category
+- tapOn: "Plane"
+- extendedWaitUntil:
+    visible: "Pick a template"
+    timeout: 10000
+- takeScreenshot: F03_step2_templates
+
+# Step 2 — Template
+- tapOn: "Afterglow"
+- extendedWaitUntil:
+    visible: "Choose an orientation"
+    timeout: 10000
+- takeScreenshot: F03_step3_orientation
+
+# Step 3 — Orientation
+- tapOn: "Horizontal"
+- extendedWaitUntil:
+    visible: "Departure"
+    timeout: 10000
+- takeScreenshot: F03_step4_form
+
+# Step 4 — Form. Field labels vary per template; minimal happy path.
+# TODO: tighten selectors after adding accessibilityIdentifier to form fields.
+- tapOn:
+    below: "Departure"
+    index: 0
+- inputText: "JFK"
+- hideKeyboard
+- tapOn:
+    below: "Arrival"
+    index: 0
+- inputText: "LAX"
+- hideKeyboard
+- tapOn: "Next"
+
+# Step 5 — Style
+- extendedWaitUntil:
+    visible: "Choose the style of your ticket"
+    timeout: 10000
+- takeScreenshot: F03_step5_style
+- tapOn: "Next"
+
+# Step 6 — Success
+- extendedWaitUntil:
+    visible: "View ticket"
+    timeout: 15000
+- takeScreenshot: F03_step6_success
+- tapOn: "View ticket"
+- extendedWaitUntil:
+    visible: "JFK"
+    timeout: 10000

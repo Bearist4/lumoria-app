@@ -48,22 +48,19 @@ struct LumoriaCallout: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.s2) {
             Text(title)
-                .font(.system(size: 16, weight: .semibold))
-                .tracking(-0.31)
+                .font(.callout.weight(.semibold))
                 .lineSpacing(21 - 16)
 
             if let description {
                 Text(description)
-                    .font(.system(size: 16, weight: .regular))
-                    .tracking(-0.31)
+                    .font(.callout)
                     .lineSpacing(21 - 16)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
 
             if let subtext {
                 Text(subtext)
-                    .font(.system(size: 13, weight: .regular).italic())
-                    .tracking(-0.08)
+                    .font(.footnote.italic())
                     .lineSpacing(18 - 13)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }

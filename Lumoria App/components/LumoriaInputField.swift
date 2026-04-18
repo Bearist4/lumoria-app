@@ -3,7 +3,7 @@
 //  Lumoria App
 //
 //  Labeled input field matching the Lumoria design system.
-//  Supports: Text, Number, Email, Password, Area (multiline).
+//  Supports: Text, Number, Email, Password, Area (multiline), Emoji.
 //  States:   default, error, warning, disabled.
 //
 
@@ -18,31 +18,101 @@ enum LumoriaInputFieldState {
     case disabled
 }
 
+// MARK: - Type
+
+/// Visual variant of the field. The `.emoji` case renders a 50×50 square
+/// input that holds a single emoji; tapping it opens an emoji picker.
+private enum LumoriaInputFieldKind {
+    case text
+    case emoji(Binding<String?>)
+}
+
 // MARK: - View
 
 struct LumoriaInputField: View {
-    let label: String
-    let placeholder: String
+    let label: LocalizedStringKey
+    let placeholder: LocalizedStringKey
     @Binding var text: String
 
     var isRequired: Bool = true
     var isSecure: Bool = false
     var isMultiline: Bool = false
     var state: LumoriaInputFieldState = .default
-    var assistiveText: String? = nil
+    var assistiveText: LocalizedStringKey? = nil
     var contentType: UITextContentType? = nil
     var keyboardType: UIKeyboardType = .default
 
+    private var kind: LumoriaInputFieldKind = .text
+
     @State private var isRevealed = false
+    @State private var showEmojiPicker = false
+
+    // Nulls contentType under Maestro so iOS autofill / strong-password
+    // takeover doesn't intercept keystrokes on SecureField.
+    // Accepts the signal via any of: launch args (`-uitest`/`--uitest`),
+    // UserDefaults (`-uitest YES`), or env var (`UITEST=1`).
+    private var effectiveContentType: UITextContentType? {
+        let args = CommandLine.arguments
+        let hasArg = args.contains("-uitest") || args.contains("--uitest")
+        let inDefaults = UserDefaults.standard.bool(forKey: "uitest")
+        let inEnv = ProcessInfo.processInfo.environment["UITEST"] == "1"
+        return (hasArg || inDefaults || inEnv) ? nil : contentType
+    }
+
+    // MARK: - Inits
+
+    init(
+        label: LocalizedStringKey,
+        placeholder: LocalizedStringKey,
+        text: Binding<String>,
+        isRequired: Bool = true,
+        isSecure: Bool = false,
+        isMultiline: Bool = false,
+        state: LumoriaInputFieldState = .default,
+        assistiveText: LocalizedStringKey? = nil,
+        contentType: UITextContentType? = nil,
+        keyboardType: UIKeyboardType = .default
+    ) {
+        self.label = label
+        self.placeholder = placeholder
+        self._text = text
+        self.isRequired = isRequired
+        self.isSecure = isSecure
+        self.isMultiline = isMultiline
+        self.state = state
+        self.assistiveText = assistiveText
+        self.contentType = contentType
+        self.keyboardType = keyboardType
+        self.kind = .text
+    }
+
+    /// Emoji variant — a 50×50 square field whose tap opens an emoji picker.
+    /// The label sits above, matching the text variant.
+    init(
+        label: LocalizedStringKey,
+        emoji: Binding<String?>,
+        isRequired: Bool = false,
+        state: LumoriaInputFieldState = .default,
+        assistiveText: LocalizedStringKey? = nil
+    ) {
+        self.label = label
+        self.placeholder = ""
+        self._text = .constant("")
+        self.isRequired = isRequired
+        self.state = state
+        self.assistiveText = assistiveText
+        self.kind = .emoji(emoji)
+    }
+
+    // MARK: - Body
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             labelRow
             inputContainer
-            if let assistive = assistiveText, !assistive.isEmpty {
+            if let assistive = assistiveText {
                 Text(assistive)
-                    .font(.system(size: 11, weight: .regular))
-                    .tracking(0.06)
+                    .font(.caption2)
                     .foregroundStyle(assistiveTextColor)
                     .lineSpacing(2)
             }
@@ -55,14 +125,12 @@ struct LumoriaInputField: View {
     private var labelRow: some View {
         HStack(spacing: 0) {
             Text(label)
-                .font(.system(size: 15, weight: .semibold))
-                .tracking(-0.23)
-                .foregroundStyle(.black)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.Text.primary)
             if isRequired {
-                Text("*")
-                    .font(.system(size: 15, weight: .semibold))
-                    .tracking(-0.23)
-                    .foregroundStyle(Color(hex: "FF867E"))
+                Text(verbatim: "*")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.Feedback.Danger.icon)
             }
         }
         .opacity(state == .disabled ? 0.4 : 1)
@@ -70,7 +138,17 @@ struct LumoriaInputField: View {
 
     // MARK: - Input
 
+    @ViewBuilder
     private var inputContainer: some View {
+        switch kind {
+        case .text:
+            textContainer
+        case .emoji(let binding):
+            emojiSquare(binding: binding)
+        }
+    }
+
+    private var textContainer: some View {
         Group {
             if isMultiline {
                 multilineInput
@@ -100,10 +178,9 @@ struct LumoriaInputField: View {
                         .autocorrectionDisabled()
                 }
             }
-            .font(.system(size: 17, weight: .regular))
-            .tracking(-0.43)
+            .font(.body)
             .foregroundStyle(textColor)
-            .textContentType(contentType)
+            .textContentType(effectiveContentType)
 
             if isSecure {
                 revealButton
@@ -115,10 +192,9 @@ struct LumoriaInputField: View {
     private var multilineInput: some View {
         TextField(placeholder, text: $text, axis: .vertical)
             .lineLimit(3...)
-            .font(.system(size: 17, weight: .regular))
-            .tracking(-0.43)
+            .font(.body)
             .foregroundStyle(textColor)
-            .textContentType(contentType)
+            .textContentType(effectiveContentType)
             .keyboardType(keyboardType)
             .autocapitalization(.none)
             .autocorrectionDisabled()
@@ -132,11 +208,35 @@ struct LumoriaInputField: View {
             isRevealed.toggle()
         } label: {
             Image(systemName: isRevealed ? "eye.slash" : "eye")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.black)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.Text.primary)
                 .frame(width: 32, height: 32)
-                .background(Color.black.opacity(0.05))
+                .background(Color.Background.fieldFill)
                 .clipShape(Circle())
+        }
+    }
+
+    // MARK: - Emoji square
+
+    private func emojiSquare(binding: Binding<String?>) -> some View {
+        Button {
+            showEmojiPicker = true
+        } label: {
+            Text(binding.wrappedValue?.isEmpty == false ? binding.wrappedValue! : "😃")
+                .font(.title2)
+                .opacity(binding.wrappedValue?.isEmpty == false ? 1 : 0.35)
+                .frame(width: 50, height: 50)
+                .background(backgroundColor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(borderColor, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showEmojiPicker) {
+            EmojiPickerSheet(emoji: binding) { showEmojiPicker = false }
+                .presentationDetents([.medium])
         }
     }
 
@@ -146,23 +246,23 @@ struct LumoriaInputField: View {
 
     private var backgroundColor: Color {
         switch state {
-        case .default, .disabled: return Color.black.opacity(0.03)
-        case .error:              return Color(hex: "FFF1EF")
-        case .warning:            return Color(hex: "FFF6D1")
+        case .default, .disabled: return Color.Background.fieldFill
+        case .error:              return Color.Feedback.Danger.subtle
+        case .warning:            return Color.Feedback.Warning.subtle
         }
     }
 
     private var borderColor: Color {
         switch state {
-        case .default, .disabled: return Color.black.opacity(0.07)
-        case .error:              return Color(hex: "FF867E")
-        case .warning:            return Color(hex: "F5934A")
+        case .default, .disabled: return Color.Border.hairline
+        case .error:              return Color.Feedback.Danger.icon
+        case .warning:            return Color.Feedback.Warning.icon
         }
     }
 
     private var textColor: Color {
         switch state {
-        case .disabled: return Color(hex: "A3A3A3")
+        case .disabled: return Color.Text.disabled
         default:        return .black
         }
     }
@@ -176,60 +276,123 @@ struct LumoriaInputField: View {
     }
 }
 
+// MARK: - Emoji picker sheet
+
+private struct EmojiPickerSheet: View {
+    @Binding var emoji: String?
+    let onDone: () -> Void
+
+    @State private var customInput: String = ""
+    @FocusState private var customFocused: Bool
+
+    private static let popular: [String] = [
+        "✈️", "🌴", "🏖️", "🏔️", "🌅", "🎢",
+        "🎵", "🎤", "🎸", "🎟️", "🎭", "🎨",
+        "❤️", "⭐️", "✨", "🎉", "🥂", "🎂",
+        "🏛️", "🌆", "🗺️", "📍", "📸", "🎁",
+    ]
+
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: 8),
+        count: 6
+    )
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Pick an emoji")
+                .font(.title2.bold())
+                .foregroundStyle(Color.Text.primary)
+
+            LazyVGrid(columns: columns, spacing: 8) {
+                ForEach(Self.popular, id: \.self) { e in
+                    Button {
+                        emoji = e
+                        onDone()
+                    } label: {
+                        Text(e)
+                            .font(.title)
+                            .frame(width: 48, height: 48)
+                            .background(
+                                emoji == e
+                                    ? Color.black.opacity(0.08)
+                                    : Color.clear
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+
+            HStack(spacing: 8) {
+                TextField("Or type your own", text: $customInput)
+                    .font(.body)
+                    .padding(.horizontal, 12)
+                    .frame(height: 44)
+                    .background(Color.Background.fieldFill)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .focused($customFocused)
+                    .onChange(of: customInput) { _, new in
+                        if let first = new.first, String(first).isSingleEmoji {
+                            emoji = String(first)
+                            customInput = ""
+                            onDone()
+                        }
+                    }
+
+                if emoji != nil {
+                    Button("Clear") {
+                        emoji = nil
+                        onDone()
+                    }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.Text.primary)
+                }
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 16)
+        .presentationDragIndicator(.visible)
+    }
+}
+
+private extension String {
+    /// True if the string is a single emoji grapheme.
+    var isSingleEmoji: Bool {
+        count == 1 && unicodeScalars.contains(where: {
+            $0.properties.isEmojiPresentation || $0.properties.isEmoji
+        })
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
     @Previewable @State var a = ""
-    @Previewable @State var b = "user@example.com"
-    @Previewable @State var c = "wrong password"
-    @Previewable @State var d = "approaching limit"
-    @Previewable @State var e = "disabled content"
-    @Previewable @State var f = ""
+    @Previewable @State var emoji: String? = nil
 
     return ScrollView {
         VStack(alignment: .leading, spacing: 20) {
             LumoriaInputField(
-                label: "Name",
-                placeholder: "Placeholder",
-                text: $a,
-                assistiveText: "Helper text"
+                label: "Memory title",
+                placeholder: "Name your memory",
+                text: $a
             )
-            LumoriaInputField(
-                label: "Email",
-                placeholder: "name@email.com",
-                text: $b,
-                contentType: .emailAddress,
-                keyboardType: .emailAddress
-            )
-            LumoriaInputField(
-                label: "Password",
-                placeholder: "Password",
-                text: $c,
-                isSecure: true,
-                state: .error,
-                assistiveText: "Password is incorrect"
-            )
-            LumoriaInputField(
-                label: "Username",
-                placeholder: "Username",
-                text: $d,
-                state: .warning,
-                assistiveText: "Username is almost taken"
-            )
-            LumoriaInputField(
-                label: "Disabled",
-                placeholder: "Placeholder",
-                text: $e,
-                state: .disabled
-            )
-            LumoriaInputField(
-                label: "Notes",
-                placeholder: "Type here…",
-                text: $f,
-                isRequired: false,
-                isMultiline: true,
-                assistiveText: "Up to 500 characters"
-            )
+
+            HStack(alignment: .top, spacing: 16) {
+                LumoriaInputField(
+                    label: "Emoji",
+                    emoji: $emoji,
+                    isRequired: false
+                )
+                LumoriaInputField(
+                    label: "Color",
+                    placeholder: "Choose a color",
+                    text: .constant("")
+                )
+            }
         }
         .padding(24)
     }

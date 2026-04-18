@@ -1,0 +1,32 @@
+appId: bearista.Lumoria-App
+name: SET08 · Invite · generate and copy link
+tags:
+  - settings
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Settings"
+- tapOn: "Referral"
+    optional: true
+- tapOn: "Invite"
+    optional: true
+- extendedWaitUntil:
+    visible: "Invite"
+    timeout: 5000
+
+# Generate (first-time only; if already generated, skip)
+- tapOn:
+    id: "generate-invite"
+    optional: true
+- tapOn: "Generate"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "Copy new link"
+    timeout: 10000
+- tapOn: "Copy new link"
+- extendedWaitUntil:
+    visible: "Link copied"
+    timeout: 5000
+- takeScreenshot: invite_copied

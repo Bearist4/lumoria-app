@@ -1,0 +1,38 @@
+appId: bearista.Lumoria-App
+name: SET04 · Notifications toggles persist across relaunch
+tags:
+  - settings
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Settings"
+- tapOn: "Notifications"
+- extendedWaitUntil:
+    visible: "Notifications"
+    timeout: 5000
+
+# Flip "New templates" and "Memory milestones"
+- tapOn:
+    id: "toggle-newTemplates"
+    optional: true
+- tapOn: "New templates"
+- tapOn:
+    id: "toggle-memoryMilestones"
+    optional: true
+- tapOn: "Memory milestones"
+    optional: true
+
+- takeScreenshot: notifications_toggled
+
+# Background and relaunch (without clearState) to verify persistence
+- stopApp
+- launchApp:
+    clearState: false
+    arguments:
+      uitest: "YES"
+- tapOn: "Settings"
+- tapOn: "Notifications"
+- assertVisible: "Notifications"
+# Visual regression catches stuck/wrong toggle states
+- takeScreenshot: notifications_after_relaunch

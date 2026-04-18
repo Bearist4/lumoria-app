@@ -2,7 +2,9 @@
 //  Lumoria_AppUITests.swift
 //  Lumoria AppUITests
 //
-//  Created by Benjamin Caillet on 13/04/2026.
+//  Smoke tests for the signed-out launch path. Anything that requires a
+//  signed-in Supabase session lives outside this file — those flows need
+//  a seeded test user on the dev project.
 //
 
 import XCTest
@@ -10,34 +12,46 @@ import XCTest
 final class Lumoria_AppUITests: XCTestCase {
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
+    func testLaunchShowsLandingCTAs() throws {
         let app = XCUIApplication()
         app.launch()
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // XCUIAutomation Documentation
-        // https://developer.apple.com/documentation/xcuiautomation
+        // Landing view shows both primary CTAs when no session is restored.
+        let logIn = app.buttons["Log in"]
+        let signUp = app.buttons["Sign up"]
+        XCTAssertTrue(logIn.waitForExistence(timeout: 5))
+        XCTAssertTrue(signUp.waitForExistence(timeout: 5))
     }
 
     @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
+    func testLogInSheetOpens() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let logIn = app.buttons["Log in"]
+        XCTAssertTrue(logIn.waitForExistence(timeout: 5))
+        logIn.tap()
+
+        // The log-in sheet presents an email field. Anchor on any text
+        // the user would see in the flow.
+        let anyEmail = app.textFields.firstMatch
+        XCTAssertTrue(anyEmail.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testSignUpSheetOpens() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let signUp = app.buttons["Sign up"]
+        XCTAssertTrue(signUp.waitForExistence(timeout: 5))
+        signUp.tap()
+
+        let anyField = app.textFields.firstMatch
+        XCTAssertTrue(anyField.waitForExistence(timeout: 3))
     }
 }

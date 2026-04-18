@@ -1,64 +1,47 @@
 //
-//  EditCollectionView.swift
+//  EditMemoryView.swift
 //  Lumoria App
 //
-//  Modal sheet for editing an existing collection.
+//  Modal sheet for editing an existing memory.
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=1017-24963
 //
 
 import SwiftUI
-import MapKit
 
-struct EditCollectionView: View {
+struct EditMemoryView: View {
     @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var collectionsStore: CollectionsStore
+    @EnvironmentObject private var memoriesStore: MemoriesStore
 
-    let collection: Collection
+    let memory: Memory
 
     @Binding var previewColorFamily: String?
 
     @State private var title: String
     @State private var selectedColor: ColorOption?
-    @State private var locationEnabled: Bool
-    @State private var selectedLocation: SelectedLocation?
-
-    @State private var showRemoveLocationConfirm = false
+    @State private var emoji: String?
 
     private let originalTitle: String
     private let originalColor: ColorOption?
-    private let originalLocationEnabled: Bool
-    private let originalLocation: SelectedLocation?
+    private let originalEmoji: String?
 
     init(
-        collection: Collection,
+        memory: Memory,
         previewColorFamily: Binding<String?> = .constant(nil)
     ) {
-        self.collection = collection
+        self.memory = memory
         self._previewColorFamily = previewColorFamily
 
-        let title = collection.name
-        let color = collection.colorOption
-        let location: SelectedLocation? = {
-            guard
-                let name = collection.locationName,
-                let lat = collection.locationLat,
-                let lng = collection.locationLng
-            else { return nil }
-            return SelectedLocation(
-                title: name,
-                coordinate: CLLocationCoordinate2D(latitude: lat, longitude: lng)
-            )
-        }()
+        let title = memory.name
+        let color = memory.colorOption
+        let emoji = memory.emoji
 
         _title = State(initialValue: title)
         _selectedColor = State(initialValue: color)
-        _locationEnabled = State(initialValue: location != nil)
-        _selectedLocation = State(initialValue: location)
+        _emoji = State(initialValue: emoji)
 
         self.originalTitle = title
         self.originalColor = color
-        self.originalLocationEnabled = location != nil
-        self.originalLocation = location
+        self.originalEmoji = emoji
     }
 
     var body: some View {
@@ -66,11 +49,7 @@ struct EditCollectionView: View {
             VStack(alignment: .leading, spacing: Spacing.s8) {
                 intro
                 titleField
-                colorField
-                locationCard
-                if locationEnabled {
-                    LumoriaLocationField(selected: $selectedLocation)
-                }
+                emojiColorRow
             }
             .padding(.horizontal, Spacing.s6)
             .padding(.top, 72)
@@ -97,29 +76,18 @@ struct EditCollectionView: View {
         .onChange(of: selectedColor) { _, newValue in
             previewColorFamily = newValue?.family
         }
-        .alert(
-            "Remove location?",
-            isPresented: $showRemoveLocationConfirm
-        ) {
-            Button("Remove location", role: .destructive) { performSave() }
-            Button("Keep location", role: .cancel) { }
-        } message: {
-            Text("The location attached to this collection will be removed and lost. Do you want to continue?")
-        }
     }
 
     // MARK: - Intro
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: Spacing.s3) {
-            Text("Edit Collection Name")
-                .font(.system(size: 34, weight: .bold))
-                .tracking(0.4)
+            Text("Edit Memory Name")
+                .font(.largeTitle.bold())
                 .foregroundStyle(Color.Text.primary)
 
-            Text("Collections are where your tickets come together. Group them by trip, theme, or memory to keep everything organized.")
-                .font(.system(size: 17, weight: .regular))
-                .tracking(-0.43)
+            Text("Memories are where your tickets come together. Group them by trip, event, or place — whatever you want to remember.")
+                .font(.body)
                 .foregroundStyle(Color.Text.secondary)
         }
     }
@@ -128,8 +96,8 @@ struct EditCollectionView: View {
 
     private var titleField: some View {
         LumoriaInputField(
-            label: "Collection title",
-            placeholder: "Name your collection",
+            label: "Memory title",
+            placeholder: "Name your memory",
             text: $title,
             isRequired: true,
             state: titleDirty ? .warning : .default,
@@ -139,66 +107,62 @@ struct EditCollectionView: View {
         )
     }
 
-    // MARK: - Color dropdown
+    // MARK: - Emoji + Color row
 
-    private var colorField: some View {
-        LumoriaDropdown(
-            label: "Color",
-            placeholder: "Choose a color",
-            isRequired: true,
-            assistiveText: colorDirty
-                ? "You edited this field but your changes have not been saved yet."
-                : "The color will be displayed in the background of the Collection’s preview.",
-            options: ColorOption.all,
-            selection: $selectedColor,
-            selectedLabel: { $0.name }
-        ) { option in
-            HStack(spacing: 8) {
-                ColorWell(color: option.swatchColor)
-                Text(option.name)
-                    .font(.system(size: 17, weight: .regular))
-                    .tracking(-0.43)
-                    .foregroundStyle(Color.Text.primary)
+    private var emojiColorRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 16) {
+                LumoriaInputField(
+                    label: "Emoji",
+                    emoji: $emoji,
+                    isRequired: false,
+                    state: emojiDirty ? .warning : .default
+                )
+
+                LumoriaDropdown(
+                    label: "Color",
+                    placeholder: "Choose a color",
+                    isRequired: true,
+                    state: colorDirty ? .warning : .default,
+                    options: ColorOption.all,
+                    selection: $selectedColor,
+                    selectedLabel: { $0.name }
+                ) { option in
+                    HStack(spacing: 8) {
+                        ColorWell(color: option.swatchColor)
+                        Text(option.name)
+                            .font(.body)
+                            .foregroundStyle(Color.Text.primary)
+                    }
+                }
             }
+
+            Text(assistiveCopy)
+                .font(.caption2)
+                .foregroundStyle(assistiveColor)
         }
     }
 
-    // MARK: - Location toggle card
-
-    private var locationCard: some View {
-        HStack(alignment: .top, spacing: Spacing.s4) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Location")
-                    .font(.system(size: 17, weight: .semibold))
-                    .tracking(-0.43)
-                    .foregroundStyle(Color.Text.primary)
-
-                Text("You can associate this collection to a location of your choice.")
-                    .font(.system(size: 13, weight: .regular))
-                    .tracking(-0.08)
-                    .foregroundStyle(Color.Text.primary)
-            }
-
-            Spacer(minLength: 0)
-
-            Toggle("", isOn: $locationEnabled.animation(.easeInOut(duration: 0.2)))
-                .labelsHidden()
-                .tint(Color("Colors/Green/500"))
+    private var assistiveCopy: String {
+        switch (emojiDirty, colorDirty) {
+        case (true, true):
+            return String(localized: "You edited these fields but your changes have not been saved yet.")
+        case (true, false), (false, true):
+            return String(localized: "You edited this field but your changes have not been saved yet.")
+        case (false, false):
+            return String(localized: "Add an emoji and a color to personalize your memory.")
         }
-        .padding(Spacing.s4)
-        .background(Color.Background.elevated)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var assistiveColor: Color {
+        (emojiDirty || colorDirty) ? Color(hex: "8A4500") : Color(hex: "525252")
     }
 
     // MARK: - Primary CTA
 
     private var saveButton: some View {
         Button {
-            if isRemovingLocation {
-                showRemoveLocationConfirm = true
-            } else {
-                performSave()
-            }
+            performSave()
         } label: {
             Text("Save changes")
         }
@@ -209,11 +173,11 @@ struct EditCollectionView: View {
     private func performSave() {
         guard let color = selectedColor else { return }
         Task {
-            await collectionsStore.update(
-                collection,
+            await memoriesStore.update(
+                memory,
                 name: title.trimmingCharacters(in: .whitespaces),
                 colorFamily: color.family,
-                location: locationEnabled ? selectedLocation : nil
+                emoji: emoji
             )
             dismiss()
         }
@@ -230,19 +194,12 @@ struct EditCollectionView: View {
         selectedColor?.family != originalColor?.family
     }
 
-    private var locationDirty: Bool {
-        if locationEnabled != originalLocationEnabled { return true }
-        return selectedLocation != originalLocation
+    private var emojiDirty: Bool {
+        emoji != originalEmoji
     }
 
     private var hasChanges: Bool {
-        titleDirty || colorDirty || locationDirty
-    }
-
-    /// True when the user had a location attached and is saving with the
-    /// toggle off — we warn before dropping the coordinates permanently.
-    private var isRemovingLocation: Bool {
-        originalLocation != nil && !locationEnabled
+        titleDirty || colorDirty || emojiDirty
     }
 
     private var canSave: Bool {
@@ -261,20 +218,18 @@ struct EditCollectionView: View {
             Color.Background.subtle
                 .ignoresSafeArea()
                 .sheet(isPresented: $show) {
-                    EditCollectionView(
-                        collection: Collection(
+                    EditMemoryView(
+                        memory: Memory(
                             id: UUID(),
                             userId: UUID(),
                             name: "Holidays 2026",
                             colorFamily: "Blue",
-                            locationName: nil,
-                            locationLat: nil,
-                            locationLng: nil,
+                            emoji: "🌴",
                             createdAt: .now,
                             updatedAt: .now
                         )
                     )
-                    .environmentObject(CollectionsStore())
+                    .environmentObject(MemoriesStore())
                 }
         }
     }

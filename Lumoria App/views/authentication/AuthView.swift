@@ -27,8 +27,8 @@ struct AuthView: View {
             Spacer()
 
             // Logo / wordmark
-            Text("Lumoria")
-                .font(.system(size: 28, weight: .semibold))
+            Text(verbatim: "Lumoria")
+                .font(.title.weight(.semibold))
                 .padding(.bottom, 48)
 
             // Fields
@@ -60,9 +60,9 @@ struct AuthView: View {
             // Primary action
             Button(action: submit) {
                 if isLoading {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(Color.Text.OnColor.white)
                 } else {
-                    Text(mode == .signIn ? "Sign in" : "Create account")
+                    Text(mode == .signIn ? "Log in" : "Create account")
                 }
             }
             .lumoriaButtonStyle(.primary, size: .large)
@@ -71,7 +71,7 @@ struct AuthView: View {
 
             // Toggle mode
             Button(action: toggleMode) {
-                Text(mode == .signIn ? "No account? Sign up" : "Have an account? Sign in")
+                Text(mode == .signIn ? "No account? Sign up" : "Have an account? Log in")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }

@@ -13,13 +13,19 @@
 
 import SwiftUI
 
+/// Max height the open dropdown list grows to before it starts
+/// scrolling. ~5 rows at 56pt. Defined at module scope because Swift
+/// forbids static stored properties on generic types.
+private let lumoriaDropdownListMaxHeight: CGFloat = 280
+
 struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
 
     // Label / copy
-    let label: String
-    let placeholder: String
+    let label: LocalizedStringKey
+    let placeholder: LocalizedStringKey
     var isRequired: Bool = true
-    var assistiveText: String? = nil
+    var assistiveText: LocalizedStringKey? = nil
+    var state: LumoriaInputFieldState = .default
 
     // Data
     let options: [Item]
@@ -37,7 +43,7 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
             field
             if isOpen {
                 list
-            } else if let assistiveText, !assistiveText.isEmpty {
+            } else if let assistiveText {
                 assistive(assistiveText)
             }
         }
@@ -48,13 +54,11 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
     private var labelRow: some View {
         HStack(spacing: 0) {
             Text(label)
-                .font(.system(size: 15, weight: .semibold))
-                .tracking(-0.23)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.Text.primary)
             if isRequired {
-                Text("*")
-                    .font(.system(size: 15, weight: .semibold))
-                    .tracking(-0.23)
+                Text(verbatim: "*")
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color("Colors/Red/400"))
             }
         }
@@ -67,45 +71,74 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
             withAnimation(.easeInOut(duration: 0.15)) { isOpen.toggle() }
         } label: {
             HStack(spacing: 8) {
-                Text(selection.map(selectedLabel) ?? placeholder)
-                    .foregroundStyle(selection == nil
-                                     ? Color.Text.tertiary
-                                     : Color.Text.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                Group {
+                    if let item = selection {
+                        Text(verbatim: selectedLabel(item))
+                    } else {
+                        Text(placeholder)
+                    }
+                }
+                .foregroundStyle(selection == nil
+                                 ? Color.Text.tertiary
+                                 : Color.Text.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
                 Image(systemName: isOpen ? "chevron.up" : "chevron.down")
-                    .font(.system(size: 13, weight: .regular))
+                    .font(.footnote)
                     .foregroundStyle(Color.Text.secondary)
             }
-            .font(.system(size: 17, weight: .regular))
-            .tracking(-0.43)
+            .font(.body)
             .padding(.horizontal, 8)
             .frame(height: 50)
             .frame(maxWidth: .infinity)
-            .background(Color.black.opacity(0.03))
+            .background(backgroundColor)
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.black.opacity(0.07), lineWidth: 1)
+                    .stroke(borderColor, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: 16))
         }
         .buttonStyle(.plain)
     }
 
+    // MARK: - Derived style
+
+    private var backgroundColor: Color {
+        switch state {
+        case .default, .disabled: return Color.Background.fieldFill
+        case .error:              return Color.Feedback.Danger.subtle
+        case .warning:            return Color.Feedback.Warning.subtle
+        }
+    }
+
+    private var borderColor: Color {
+        switch state {
+        case .default, .disabled: return Color.Border.hairline
+        case .error:              return Color.Feedback.Danger.icon
+        case .warning:            return Color.Feedback.Warning.icon
+        }
+    }
+
     // MARK: List
 
     private var list: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
-                Button {
-                    selection = option
-                    withAnimation(.easeInOut(duration: 0.15)) { isOpen = false }
-                } label: {
-                    row(for: option, isLast: index == options.count - 1)
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(options.enumerated()), id: \.element.id) { index, option in
+                    Button {
+                        selection = option
+                        withAnimation(.easeInOut(duration: 0.15)) { isOpen = false }
+                    } label: {
+                        row(for: option, isLast: index == options.count - 1)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
         }
+        // Constrain height only once the intrinsic content exceeds it,
+        // so short lists still size to content (no trailing whitespace).
+        .frame(maxHeight: lumoriaDropdownListMaxHeight)
+        .fixedSize(horizontal: false, vertical: true)
         .background(Color.Background.elevated)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
@@ -124,7 +157,10 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                 .padding(4)
         }
         .padding(8)
-        .frame(height: 56)
+        .frame(maxWidth: .infinity, minHeight: 56)
+        // Make the entire row's bounds the hit area — without this,
+        // only the `rowContent`'s intrinsic text width is tappable.
+        .contentShape(Rectangle())
         .background(
             isSelected
                 ? Color.Background.subtle.clipShape(RoundedRectangle(cornerRadius: 8))
@@ -133,7 +169,7 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
         .overlay(alignment: .bottom) {
             if !isLast {
                 Rectangle()
-                    .fill(Color.black.opacity(0.03))
+                    .fill(Color.Background.fieldFill)
                     .frame(height: 1)
             }
         }
@@ -141,10 +177,9 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
 
     // MARK: Assistive text
 
-    private func assistive(_ text: String) -> some View {
+    private func assistive(_ text: LocalizedStringKey) -> some View {
         Text(text)
-            .font(.system(size: 11, weight: .regular))
-            .tracking(0.06)
+            .font(.caption2)
             .foregroundStyle(Color.Feedback.Neutral.text)
             .lineSpacing(2)
             .padding(.top, 2)
@@ -161,7 +196,7 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                 LumoriaDropdown(
                     label: "Color",
                     placeholder: "Choose a color",
-                    assistiveText: "The color will be displayed in the background of the Collection’s preview.",
+                    assistiveText: "The color will be displayed in the background of the memory’s preview.",
                     options: ColorOption.all,
                     selection: $selection,
                     selectedLabel: { $0.name }
@@ -169,8 +204,7 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                     HStack(spacing: 8) {
                         ColorWell(color: opt.swatchColor)
                         Text(opt.name)
-                            .font(.system(size: 17, weight: .regular))
-                            .tracking(-0.43)
+                            .font(.body)
                             .foregroundStyle(Color.Text.primary)
                     }
                 }

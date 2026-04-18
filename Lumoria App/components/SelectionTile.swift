@@ -47,8 +47,7 @@ struct SelectionTileLabel: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
-            .tracking(-0.45)
+            .font(.title3.weight(isSelected ? .semibold : .regular))
             .foregroundStyle(Color.Text.primary)
             .lineLimit(1)
     }

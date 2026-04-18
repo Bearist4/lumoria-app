@@ -2,7 +2,7 @@
 //  ColorWell.swift
 //  Lumoria App
 //
-//  Small rounded swatch used inside dropdown rows, collection previews, etc.
+//  Small rounded swatch used inside dropdown rows, memory previews, etc.
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=982-28058
 //
 

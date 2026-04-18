@@ -1,0 +1,32 @@
+appId: bearista.Lumoria-App
+name: SET02 · Edit profile name
+tags:
+  - settings
+  - regression
+env:
+  NEW_NAME: "Lumoria QA"
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Settings"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 5000
+- tapOn:
+    id: "profile-card"
+    optional: true
+- tapOn: "Profile"
+    optional: true
+- extendedWaitUntil:
+    visible: "Profile"
+    timeout: 5000
+- tapOn:
+    below: "Name"
+- eraseText: 64
+- inputText: ${NEW_NAME}
+- hideKeyboard
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Settings"
+    timeout: 10000
+- assertVisible: ${NEW_NAME}

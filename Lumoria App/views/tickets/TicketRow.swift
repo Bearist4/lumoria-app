@@ -2,7 +2,7 @@
 //  TicketRow.swift
 //  Lumoria App
 //
-//  Row shapes that mirror the `public.tickets` + `public.collection_tickets`
+//  Row shapes that mirror the `public.tickets` + `public.memory_tickets`
 //  Supabase tables, plus helpers to convert between those rows and the
 //  app-facing `Ticket` struct.
 //
@@ -17,37 +17,43 @@ import Supabase
 
 // MARK: - Row read from Supabase
 
-/// A decoded row from `public.tickets`. The `collectionTickets` array is
+/// A decoded row from `public.tickets`. The `memoryTickets` array is
 /// populated when the query embeds the junction table with
-/// `.select("*, collection_tickets(collection_id)")`.
+/// `.select("*, memory_tickets(memory_id)")`.
 struct TicketRow: Decodable {
     let id: UUID
     let userId: UUID
     let templateKind: String
     let orientation: String
     let payload: AnyJSON
+    let locationPrimaryEnc: String?
+    let locationSecondaryEnc: String?
+    let styleId: String?
     let createdAt: Date
     let updatedAt: Date
-    let collectionTickets: [CollectionTicketLink]?
+    let memoryTickets: [MemoryTicketLink]?
 
     enum CodingKeys: String, CodingKey {
         case id, payload, orientation
-        case userId            = "user_id"
-        case templateKind      = "template_kind"
-        case createdAt         = "created_at"
-        case updatedAt         = "updated_at"
-        case collectionTickets = "collection_tickets"
+        case userId               = "user_id"
+        case templateKind         = "template_kind"
+        case locationPrimaryEnc   = "location_primary_enc"
+        case locationSecondaryEnc = "location_secondary_enc"
+        case styleId              = "style_id"
+        case createdAt            = "created_at"
+        case updatedAt            = "updated_at"
+        case memoryTickets        = "memory_tickets"
     }
 }
 
-/// Single row of the `collection_tickets` junction, embedded when reading a
-/// ticket. Only `collection_id` is kept — the rest (ticket id, added_at) is
+/// Single row of the `memory_tickets` junction, embedded when reading a
+/// ticket. Only `memory_id` is kept — the rest (ticket id, added_at) is
 /// redundant on the ticket side.
-struct CollectionTicketLink: Decodable {
-    let collectionId: UUID
+struct MemoryTicketLink: Decodable {
+    let memoryId: UUID
 
     enum CodingKeys: String, CodingKey {
-        case collectionId = "collection_id"
+        case memoryId = "memory_id"
     }
 }
 
@@ -59,35 +65,59 @@ struct NewTicketRow: Encodable {
     let templateKind: String
     let orientation: String
     let payload: AnyJSON
+    let locationPrimaryEnc: String?
+    let locationSecondaryEnc: String?
+    let styleId: String?
 
     enum CodingKeys: String, CodingKey {
-        case userId       = "user_id"
-        case templateKind = "template_kind"
+        case userId               = "user_id"
+        case templateKind         = "template_kind"
+        case locationPrimaryEnc   = "location_primary_enc"
+        case locationSecondaryEnc = "location_secondary_enc"
+        case styleId              = "style_id"
         case orientation, payload
     }
 }
 
-/// Shape sent when updating a ticket's payload / orientation.
+/// Shape sent when updating a ticket's payload / orientation / locations.
+/// Locations are always emitted (as `null` when clearing) so PostgREST
+/// overwrites any stale ciphertext.
 struct TicketUpdateRow: Encodable {
     let templateKind: String
     let orientation: String
     let payload: AnyJSON
+    let locationPrimaryEnc: String?
+    let locationSecondaryEnc: String?
+    let styleId: String?
 
     enum CodingKeys: String, CodingKey {
-        case templateKind = "template_kind"
+        case templateKind         = "template_kind"
+        case locationPrimaryEnc   = "location_primary_enc"
+        case locationSecondaryEnc = "location_secondary_enc"
+        case styleId              = "style_id"
         case orientation, payload
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(templateKind, forKey: .templateKind)
+        try c.encode(orientation, forKey: .orientation)
+        try c.encode(payload, forKey: .payload)
+        try c.encode(locationPrimaryEnc, forKey: .locationPrimaryEnc)
+        try c.encode(locationSecondaryEnc, forKey: .locationSecondaryEnc)
+        try c.encode(styleId, forKey: .styleId)
     }
 }
 
 // MARK: - Junction payload
 
-struct CollectionTicketRow: Encodable {
-    let collectionId: UUID
+struct MemoryTicketRow: Encodable {
+    let memoryId: UUID
     let ticketId: UUID
 
     enum CodingKeys: String, CodingKey {
-        case collectionId = "collection_id"
-        case ticketId     = "ticket_id"
+        case memoryId = "memory_id"
+        case ticketId = "ticket_id"
     }
 }
 
@@ -132,6 +162,9 @@ enum TicketCodec {
         case .heritage(let t):  return try payloadEncoder.encode(t)
         case .terminal(let t):  return try payloadEncoder.encode(t)
         case .prism(let t):     return try payloadEncoder.encode(t)
+        case .express(let t):   return try payloadEncoder.encode(t)
+        case .orient(let t):    return try payloadEncoder.encode(t)
+        case .night(let t):     return try payloadEncoder.encode(t)
         }
     }
 
@@ -156,6 +189,9 @@ enum TicketCodec {
         case .heritage:  return .heritage( try payloadDecoder.decode(HeritageTicket.self,  from: cleartext))
         case .terminal:  return .terminal( try payloadDecoder.decode(TerminalTicket.self,  from: cleartext))
         case .prism:     return .prism(    try payloadDecoder.decode(PrismTicket.self,     from: cleartext))
+        case .express:   return .express(  try payloadDecoder.decode(ExpressTicket.self,   from: cleartext))
+        case .orient:    return .orient(   try payloadDecoder.decode(OrientTicket.self,    from: cleartext))
+        case .night:     return .night(    try payloadDecoder.decode(NightTicket.self,     from: cleartext))
         }
     }
 }
@@ -173,14 +209,19 @@ extension TicketRow {
             throw TicketRowError.unknownOrientation(orientation)
         }
         let payload = try TicketCodec.decodePayload(kind: kind, from: payload)
-        let collectionIds = (collectionTickets ?? []).map(\.collectionId)
+        let memoryIds = (memoryTickets ?? []).map(\.memoryId)
+        let origin      = try TicketLocation.decrypt(locationPrimaryEnc)
+        let destination = try TicketLocation.decrypt(locationSecondaryEnc)
         return Ticket(
             id: id,
             createdAt: createdAt,
             updatedAt: updatedAt,
             orientation: orient,
             payload: payload,
-            collectionIds: collectionIds
+            memoryIds: memoryIds,
+            originLocation: origin,
+            destinationLocation: destination,
+            styleId: styleId
         )
     }
 }

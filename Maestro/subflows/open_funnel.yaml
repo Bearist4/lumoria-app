@@ -1,0 +1,14 @@
+appId: ${APP_ID}
+name: Subflow · Open funnel
+---
+# Assumes user is logged in.
+- tapOn: "All tickets"
+- tapOn:
+    id: "new-ticket-button"
+    optional: true
+- tapOn: "plus"
+    optional: true
+- extendedWaitUntil:
+    visible: "New ticket"
+    timeout: 10000
+- assertVisible: "Select a category"

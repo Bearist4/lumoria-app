@@ -11,6 +11,8 @@ import SwiftUI
 struct TerminalTicketVerticalView: View {
     let ticket: TerminalTicket
 
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
+
     private let aspectRatio: CGFloat = 260 / 455
 
     var body: some View {
@@ -210,38 +212,13 @@ struct TerminalTicketVerticalView: View {
         .padding(.vertical, 12 * s)
     }
 
+    @ViewBuilder
     private func stubBadge(scale s: CGFloat) -> some View {
-        HStack(spacing: 3.5 * s) {
-            Text("Made with")
-                .font(.system(size: 7.48 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(.white)
-
-            HStack(spacing: 2.5 * s) {
-                Image("brand/default/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 7 * s, height: 7 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
-                    )
-
-                Image("brand/default/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 3 * s)
-                    .environment(\.colorScheme, .dark)
-            }
+        if showsLumoriaWatermark {
+            // Black-style badge on Terminal's dark stub.
+            // 7.48pt local font ÷ 17pt component font ≈ 0.44 scale factor.
+            MadeWithLumoria(style: .black, version: .small, scale: 0.44 * s)
         }
-        .padding(5.28 * s)
-        .background(
-            RoundedRectangle(cornerRadius: 5.28 * s, style: .continuous)
-                .fill(.black)
-        )
     }
 }
 

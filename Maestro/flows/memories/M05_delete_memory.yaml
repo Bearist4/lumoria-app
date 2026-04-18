@@ -1,0 +1,37 @@
+appId: bearista.Lumoria-App
+name: M05 · Delete memory with confirmation
+tags:
+  - memories
+  - regression
+env:
+  MEMORY_NAME: "Summer 2026 Europe"
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Memories"
+- extendedWaitUntil:
+    visible: ${MEMORY_NAME}
+    timeout: 10000
+- longPressOn: ${MEMORY_NAME}
+- extendedWaitUntil:
+    visible: "Delete"
+    timeout: 5000
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Delete this memory?"
+    timeout: 5000
+    optional: true
+- tapOn: "Cancel"
+    optional: true
+- assertVisible: ${MEMORY_NAME}
+
+- longPressOn: ${MEMORY_NAME}
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Delete this memory?"
+    timeout: 5000
+    optional: true
+- tapOn: "Delete"
+- extendedWaitUntil:
+    notVisible: ${MEMORY_NAME}
+    timeout: 5000

@@ -2,7 +2,8 @@
 //  LumoriaLocationField.swift
 //  Lumoria App
 //
-//  "Associated location" field used in the new-collection sheet.
+//  "Associated location" field — currently unused after memories dropped
+//  their location property; reserved for upcoming ticket-level location.
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=1016-20355
 //
 //  The field is a labeled text input that autocompletes place names through
@@ -71,11 +72,11 @@ final class LocationSearchModel: NSObject, ObservableObject, MKLocalSearchComple
 // MARK: - Field
 
 struct LumoriaLocationField: View {
-    var label: String = "Associated location"
+    var label: LocalizedStringKey = "Associated location"
     var isRequired: Bool = false
-    var placeholder: String = "Search a place"
-    var assistiveText: String? =
-        "Associate a collection to a place to display it on a map."
+    var placeholder: LocalizedStringKey = "Search a place"
+    var assistiveText: LocalizedStringKey? =
+        "Attach a place so you can revisit it on the map."
 
     @Binding var selected: SelectedLocation?
 
@@ -89,10 +90,9 @@ struct LumoriaLocationField: View {
                 inputField
                 if isFocused && !model.suggestions.isEmpty {
                     suggestionsList
-                } else if let assistiveText, !assistiveText.isEmpty {
+                } else if let assistiveText {
                     Text(assistiveText)
-                        .font(.system(size: 11, weight: .regular))
-                        .tracking(0.06)
+                        .font(.caption2)
                         .foregroundStyle(Color.Feedback.Neutral.text)
                         .lineSpacing(2)
                         .padding(.top, 2)
@@ -107,13 +107,11 @@ struct LumoriaLocationField: View {
     private var labelRow: some View {
         HStack(spacing: 0) {
             Text(label)
-                .font(.system(size: 15, weight: .semibold))
-                .tracking(-0.23)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.Text.primary)
             if isRequired {
-                Text("*")
-                    .font(.system(size: 15, weight: .semibold))
-                    .tracking(-0.23)
+                Text(verbatim: "*")
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color("Colors/Red/400"))
             }
         }
@@ -124,13 +122,12 @@ struct LumoriaLocationField: View {
     private var inputField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 15, weight: .regular))
+                .font(.subheadline)
                 .foregroundStyle(Color.Text.tertiary)
 
             TextField(placeholder, text: $model.query)
                 .focused($isFocused)
-                .font(.system(size: 17, weight: .regular))
-                .tracking(-0.43)
+                .font(.body)
                 .foregroundStyle(Color.Text.primary)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.words)
@@ -143,7 +140,7 @@ struct LumoriaLocationField: View {
                     selected = nil
                 } label: {
                     Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: 16))
+                        .font(.callout)
                         .foregroundStyle(Color.Text.tertiary)
                 }
                 .buttonStyle(.plain)
@@ -151,10 +148,10 @@ struct LumoriaLocationField: View {
         }
         .padding(.horizontal, 12)
         .frame(height: 50)
-        .background(Color.black.opacity(0.03))
+        .background(Color.Background.fieldFill)
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.black.opacity(0.07), lineWidth: 1)
+                .stroke(Color.Border.hairline, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
@@ -169,15 +166,15 @@ struct LumoriaLocationField: View {
                 } label: {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "mappin.circle.fill")
-                            .font(.system(size: 20))
+                            .font(.title3)
                             .foregroundStyle(Color.Text.secondary)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(s.title)
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(Color.Text.primary)
                             if !s.subtitle.isEmpty {
                                 Text(s.subtitle)
-                                    .font(.system(size: 13, weight: .regular))
+                                    .font(.footnote)
                                     .foregroundStyle(Color.Text.secondary)
                             }
                         }
@@ -188,7 +185,7 @@ struct LumoriaLocationField: View {
                     .overlay(alignment: .bottom) {
                         if idx != min(model.suggestions.count, 5) - 1 {
                             Rectangle()
-                                .fill(Color.black.opacity(0.03))
+                                .fill(Color.Background.fieldFill)
                                 .frame(height: 1)
                         }
                     }
@@ -266,16 +263,16 @@ private struct MapPin: View {
                     .fill(Color.Button.Primary.Background.default)
                     .frame(width: 48, height: 48)
                     .overlay(
-                        Circle().stroke(.white, lineWidth: 4)
+                        Circle().stroke(Color.Button.Primary.Label.default, lineWidth: 4)
                     )
 
                 Image(systemName: "figure.walk")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(.title3)
+                    .foregroundStyle(Color.Button.Primary.Label.default)
             }
 
             Triangle()
-                .fill(.white)
+                .fill(Color.Button.Primary.Label.default)
                 .frame(width: 10, height: 6)
                 .offset(y: -1)
         }

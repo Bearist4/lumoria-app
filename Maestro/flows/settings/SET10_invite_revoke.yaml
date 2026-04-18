@@ -1,0 +1,32 @@
+appId: bearista.Lumoria-App
+name: SET10 · Invite · revoke with confirmation
+tags:
+  - settings
+  - regression
+---
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Settings"
+- tapOn: "Referral"
+    optional: true
+- tapOn: "Invite"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "Revoke invite"
+    timeout: 10000
+
+- tapOn: "Revoke invite"
+- extendedWaitUntil:
+    visible: "Revoke"
+    timeout: 5000
+- tapOn: "Cancel"
+- assertVisible: "Revoke invite"
+
+- tapOn: "Revoke invite"
+- tapOn: "Revoke"
+- extendedWaitUntil:
+    visible: "Generate"
+    timeout: 10000
+    optional: true
+- takeScreenshot: invite_revoked

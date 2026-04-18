@@ -1,0 +1,12 @@
+appId: bearista.Lumoria-App
+name: Tap Sign up opens sheet
+tags:
+  - smoke
+---
+- launchApp:
+    clearState: true
+    arguments:
+      uitest: "YES"
+- assertVisible: "Sign up"
+- tapOn: "Sign up"
+- takeScreenshot: signup_sheet

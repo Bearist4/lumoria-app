@@ -1,0 +1,13 @@
+appId: ${APP_ID}
+name: Subflow · Discard funnel
+---
+# Assumes NewTicketFunnelView is currently presented.
+- tapOn:
+    id: "funnel-close"
+    optional: true
+- tapOn: "xmark"
+    optional: true
+- extendedWaitUntil:
+    visible: "Discard ticket?"
+    timeout: 5000
+- tapOn: "Discard"

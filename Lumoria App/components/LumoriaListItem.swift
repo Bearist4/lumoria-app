@@ -26,15 +26,13 @@ struct LumoriaListItem<Left: View, Right: View>: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 17, weight: .regular))
-                    .tracking(-0.43)
+                    .font(.body)
                     .foregroundStyle(Color.Text.primary)
                     .lineLimit(1)
 
                 if let subtitle {
                     Text(subtitle)
-                        .font(.system(size: 15, weight: .regular))
-                        .tracking(-0.23)
+                        .font(.subheadline)
                         .foregroundStyle(Color.Text.secondary)
                         .lineLimit(1)
                 }

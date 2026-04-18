@@ -1,0 +1,33 @@
+appId: bearista.Lumoria-App
+name: M08 · Remove ticket from memory
+tags:
+  - memories
+  - regression
+---
+# Prereq: a memory exists containing at least one ticket. Seed via M02 + M07 first.
+- runFlow:
+    file: ../../subflows/login.yaml
+- tapOn: "Memories"
+- tapOn:
+    id: "memory-card"
+    optional: true
+
+# Open a ticket within the memory
+- tapOn:
+    id: "ticket-card"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "Remove from memory"
+    timeout: 10000
+- tapOn: "Remove from memory"
+
+# Confirmation may present as alert or inline confirm
+- tapOn: "Remove"
+    optional: true
+- tapOn: "Confirm"
+    optional: true
+
+- extendedWaitUntil:
+    notVisible: "Remove from memory"
+    timeout: 5000

@@ -1,5 +1,5 @@
 //
-//  CollectionCard.swift
+//  MemoryCard.swift
 //  Lumoria App
 //
 //  Centerpiece "folder" card that holds up to 5 ticket previews stacked
@@ -9,10 +9,40 @@
 
 import SwiftUI
 
+// MARK: - Slot sizing
+
+/// Sizing helpers for tickets rendered inside a `MemoryCard` slot.
+enum MemoryCardSlot {
+    /// Horizontal ticket aspect (455 × 260 in template space).
+    private static let horizontalAspect: CGFloat = 455.0 / 260.0
+
+    /// Applies the right frame for a ticket preview inside a memory card
+    /// slot. Horizontal tickets get `.frame(width: 160)` and let the slot's
+    /// 70pt height-limit the aspect-fit render. Vertical tickets are given
+    /// an explicit width AND height (≈91.43 × 160) so their
+    /// `aspectRatio(.fit)` is not shrunk by the slot's 70pt height — the
+    /// overflowing bottom is clipped by the slot mask. Result: vertical
+    /// ticket width matches horizontal ticket's natural height.
+    @ViewBuilder
+    static func frameForSlot<V: View>(
+        _ content: V,
+        orientation: TicketOrientation
+    ) -> some View {
+        switch orientation {
+        case .horizontal:
+            content.frame(width: 160)
+        case .vertical:
+            let w: CGFloat = 160 / horizontalAspect   // ≈ 91.43
+            let h: CGFloat = 160
+            content.frame(width: w, height: h)
+        }
+    }
+}
+
 // MARK: - State
 
-/// Display state of a collection card.
-enum CollectionCardState {
+/// Display state of a memory card.
+enum MemoryCardState {
     /// Normal — labels shown, soft bottom glow.
     case normal
     /// Empty (no labels, bare frame).
@@ -31,20 +61,22 @@ enum CollectionCardState {
 
 // MARK: - View
 
-/// A collection thumbnail card.
+/// A memory thumbnail card.
 ///
 /// The card renders 5 stacked ticket "slots." Each slot is a soft gradient
 /// strip with a bottom rounded edge; successive slots overlap the previous
 /// by ~42pt so the top of each slot peeks out — creating the stacked deck
 /// effect. Filled slots (index < filledCount) show a caller-supplied
 /// preview view on top of the slot; unfilled slots render just the gradient.
-struct CollectionCard<SlotContent: View>: View {
+struct MemoryCard<SlotContent: View>: View {
 
     // MARK: Content
 
     let title: String?
     let subtitle: String?
-    let state: CollectionCardState
+    let state: MemoryCardState
+    /// Optional emoji shown to the left of the title under the card.
+    let emoji: String?
     /// How many slots (0...5) should render a preview view. Top-down.
     let filledCount: Int
     /// Palette family (e.g. "Blue", "Green") used for the bottom glow.
@@ -54,21 +86,31 @@ struct CollectionCard<SlotContent: View>: View {
 
     // MARK: Sizes (from Figma)
 
+    // Card frame.
     private let cardWidth:   CGFloat = 184
     private let cardHeight:  CGFloat = 260
-    private let slotWidth:   CGFloat = 160
-    private let slotHeight:  CGFloat = 69.565
-    private let slotOverlap: CGFloat = 41.739
-    private let slotCorner:  CGFloat = 10.435
     private let cardCorner:  CGFloat = 20
     private let pad:         CGFloat = 12
+
+    // Atomic `_TicketSlot` component in Figma is 184 × 80 with 12pt bottom
+    // corners. Here the slot is inset by `pad` on each side so it fits
+    // inside the card with breathing room — that yields a ~0.87 scale,
+    // which is applied uniformly to height / overlap / corner to preserve
+    // Figma proportions.
+    private var slotWidth:   CGFloat { cardWidth - pad * 2 }          // 160
+    private var slotHeight:  CGFloat { 80  * slotScale }              // ≈ 69.6
+    private var slotOverlap: CGFloat { 48  * slotScale }              // ≈ 41.7
+    private var slotCorner:  CGFloat { 12  * slotScale }              // ≈ 10.4
+    private var slotBorder:  CGFloat { 1   * slotScale }              // ≈ 0.87
+    private var slotScale:   CGFloat { slotWidth / 184 }
 
     // MARK: Init
 
     init(
         title: String? = nil,
         subtitle: String? = nil,
-        state: CollectionCardState = .normal,
+        state: MemoryCardState = .normal,
+        emoji: String? = nil,
         filledCount: Int = 0,
         colorFamily: String? = nil,
         @ViewBuilder slotPreview: @escaping (Int) -> SlotContent
@@ -76,6 +118,7 @@ struct CollectionCard<SlotContent: View>: View {
         self.title = title
         self.subtitle = subtitle
         self.state = state
+        self.emoji = emoji
         self.filledCount = max(0, min(5, filledCount))
         self.colorFamily = colorFamily
         self.slotPreview = slotPreview
@@ -83,14 +126,29 @@ struct CollectionCard<SlotContent: View>: View {
 
     // MARK: Body
 
+    /// Intrinsic height of the card + labels at reference width (184pt).
+    /// Used with `aspectRatio` so the card scales to fit whatever width the
+    /// parent allocates while keeping its Figma proportions.
+    private var referenceHeight: CGFloat {
+        state == .empty ? cardHeight : cardHeight + Spacing.s3 + 44
+    }
+
     var body: some View {
-        VStack(spacing: state == .empty ? 0 : Spacing.s3) {
-            cardView
-            if state != .empty {
-                labelsView
+        GeometryReader { proxy in
+            let scale = max(0, proxy.size.width / cardWidth)
+            ZStack(alignment: .topLeading) {
+                Color.clear
+                VStack(spacing: state == .empty ? 0 : Spacing.s3) {
+                    cardView
+                    if state != .empty {
+                        labelsView
+                    }
+                }
+                .frame(width: cardWidth)
+                .scaleEffect(scale, anchor: .topLeading)
             }
         }
-        .frame(width: cardWidth)
+        .aspectRatio(cardWidth / referenceHeight, contentMode: .fit)
     }
 
     // MARK: - Card
@@ -99,6 +157,8 @@ struct CollectionCard<SlotContent: View>: View {
         ZStack(alignment: .top) {
             RoundedRectangle(cornerRadius: cardCorner)
                 .fill(Color.Background.elevated)
+
+            if showsGlow { glow }
 
             ticketStack
                 .padding(.top, pad)
@@ -109,29 +169,46 @@ struct CollectionCard<SlotContent: View>: View {
         .clipShape(RoundedRectangle(cornerRadius: cardCorner))
     }
 
+    /// States that show the palette-colored bottom aura behind the tickets.
+    private var showsGlow: Bool {
+        switch state {
+        case .normal, .locked, .added, .removable: return true
+        case .empty, .new, .deleting:              return false
+        }
+    }
+
     // MARK: Ticket deck
 
     private var ticketStack: some View {
-        // Manual ZStack so we can interleave slot gradients with their ticket
-        // previews and control z-order precisely: gradient(0), preview(0),
-        // gradient(1), preview(1), ..., each offset to the right y.
-        // Later children render on top, so slot N+1 covers preview N's overflow.
+        // Each slot is its own clipped container: gradient + ticket preview
+        // composed inside the slot's shape, so the ticket is masked by the
+        // slot (rounded bottom corners, flat top) rather than bleeding past
+        // its bounds. Slot N+1 is drawn on top of slot N and covers the
+        // lower part of slot N's gradient.
         ZStack(alignment: .top) {
             ForEach(0..<5, id: \.self) { idx in
-                slotGradient
-                    .offset(y: slotY(idx))
-
-                if idx < filledCount {
-                    slotPreview(idx)
-                        // Scale each ticket down ~15% so it reads as "inserted"
-                        // into the slot with breathing room on the sides.
-                        .scaleEffect(previewScale, anchor: .top)
-                        .allowsHitTesting(false)
-                        .offset(y: slotY(idx) + previewInset)
+                ZStack(alignment: .top) {
+                    slotGradient
+                    if idx < filledCount {
+                        slotPreview(idx)
+                            .scaleEffect(previewScale, anchor: .top)
+                            .allowsHitTesting(false)
+                            .offset(y: previewInset)
+                    }
                 }
+                .frame(width: slotWidth, height: slotHeight, alignment: .top)
+                .clipShape(slotShape)
+                .offset(y: slotY(idx))
             }
         }
         .frame(width: slotWidth, height: totalStackHeight, alignment: .top)
+    }
+
+    private var slotShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            bottomLeadingRadius: slotCorner,
+            bottomTrailingRadius: slotCorner
+        )
     }
 
     // Vertical offset (within the stack) for slot `idx`'s top edge.
@@ -143,9 +220,10 @@ struct CollectionCard<SlotContent: View>: View {
     /// the Figma mini-ticket's `top: 8.7pt` positioning.
     private var previewInset: CGFloat { 8 }
 
-    /// Scale applied to each preview so the ticket looks "inserted" into the
-    /// slot with a small margin. 0.85 ≈ 15% smaller.
-    private var previewScale: CGFloat { 0.85 }
+    /// Ticket preview scale inside the slot. 1.1 = 10% larger than the
+    /// caller-provided size so the ticket fills the slot with a bit of
+    /// bleed clipped by the slot mask.
+    private var previewScale: CGFloat { 1.1 }
 
     /// Total layout height of the 5-slot stack with overlap.
     private var totalStackHeight: CGFloat {
@@ -156,27 +234,20 @@ struct CollectionCard<SlotContent: View>: View {
         // Opaque card-bg under the translucent gradient — turns the slot into
         // a "pocket": whatever sits beneath it in z-order (i.e. the bottom of
         // the previous slot's ticket) is hidden cleanly instead of ghosting
-        // through the gradient.
+        // through the gradient. The enclosing slot clipShape masks the shape.
         Color.Background.elevated
             .overlay {
                 LinearGradient(
-                    colors: [Color.white.opacity(0), Color.black.opacity(0.03)],
+                    colors: [Color.clear, Color.Background.fieldFill],
                     startPoint: .top,
                     endPoint: .bottom
                 )
             }
-            .frame(width: slotWidth, height: slotHeight)
             .overlay(alignment: .bottom) {
                 Rectangle()
-                    .fill(Color.black.opacity(0.05))
-                    .frame(height: 0.87)
+                    .fill(Color.Border.subtle)
+                    .frame(height: slotBorder)
             }
-            .clipShape(
-                UnevenRoundedRectangle(
-                    bottomLeadingRadius: slotCorner,
-                    bottomTrailingRadius: slotCorner
-                )
-            )
     }
 
     // MARK: - State overlay
@@ -185,22 +256,17 @@ struct CollectionCard<SlotContent: View>: View {
     private var stateOverlay: some View {
         switch state {
 
-        case .normal:
-            glow
-
-        case .empty:
+        case .normal, .empty:
             EmptyView()
 
         case .locked:
-            ZStack(alignment: .topTrailing) {
-                glow
-                iconBadge(
-                    system: "lock.fill",
-                    bg: Color.Button.Primary.Background.default,
-                    fg: Color.Button.Primary.Label.default
-                )
-                .padding(pad)
-            }
+            iconBadge(
+                system: "lock.fill",
+                bg: Color.Button.Primary.Background.default,
+                fg: Color.Button.Primary.Label.default
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(pad)
 
         case .new:
             iconBadge(
@@ -212,26 +278,22 @@ struct CollectionCard<SlotContent: View>: View {
             .padding(.bottom, 36)
 
         case .added:
-            ZStack(alignment: .topTrailing) {
-                glow
-                iconBadge(
-                    system: "checkmark",
-                    bg: Color("Colors/Green/500"),
-                    fg: Color.Text.OnColor.white
-                )
-                .padding(pad)
-            }
+            iconBadge(
+                system: "checkmark",
+                bg: Color("Colors/Green/500"),
+                fg: Color.Text.OnColor.white
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .padding(pad)
 
         case .removable:
-            ZStack(alignment: .bottom) {
-                glow
-                iconBadge(
-                    system: "folder.badge.minus",
-                    bg: Color.Button.Danger.Background.default,
-                    fg: Color.Button.Danger.Label.default
-                )
-                .padding(.bottom, 36)
-            }
+            iconBadge(
+                system: "folder.badge.minus",
+                bg: Color.Button.Danger.Background.default,
+                fg: Color.Button.Danger.Label.default
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .padding(.bottom, 36)
 
         case .deleting:
             ZStack {
@@ -243,7 +305,7 @@ struct CollectionCard<SlotContent: View>: View {
                     .frame(width: 48, height: 48)
                     .overlay {
                         Image(systemName: "folder.badge.minus")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(.title3)
                             .foregroundStyle(Color.Button.Danger.Label.default)
                     }
             }
@@ -277,7 +339,7 @@ struct CollectionCard<SlotContent: View>: View {
             .frame(width: 32, height: 32)
             .overlay {
                 Image(systemName: system)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(.footnote.weight(.semibold))
                     .foregroundStyle(fg)
             }
     }
@@ -286,14 +348,18 @@ struct CollectionCard<SlotContent: View>: View {
 
     private var labelsView: some View {
         VStack(spacing: 4) {
-            Text(resolvedTitle)
-                .font(.system(size: 17, weight: .regular))
-                .tracking(-0.43)
-                .foregroundStyle(Color.Text.secondary)
-                .lineLimit(1)
+            HStack(spacing: 6) {
+                if let emoji = emoji, !emoji.isEmpty {
+                    Text(emoji)
+                        .font(.body)
+                }
+                Text(resolvedTitle)
+                    .font(.body)
+                    .foregroundStyle(Color.Text.secondary)
+                    .lineLimit(1)
+            }
             Text(resolvedSubtitle)
-                .font(.system(size: 13, weight: .regular))
-                .tracking(-0.08)
+                .font(.footnote)
                 .foregroundStyle(Color.Text.tertiary)
                 .lineLimit(1)
         }
@@ -305,16 +371,16 @@ struct CollectionCard<SlotContent: View>: View {
         if let title = title { return title }
         switch state {
         case .new:    return "Create"
-        case .locked: return "New collection"
-        default:      return "Collection Name"
+        case .locked: return "New memory"
+        default:      return "Memory name"
         }
     }
 
     private var resolvedSubtitle: String {
         if let subtitle = subtitle { return subtitle }
         switch state {
-        case .new:    return "New collection"
-        case .locked: return "Invite pending"
+        case .new:    return String(localized: "New memory")
+        case .locked: return String(localized: "Invite pending")
         default:      return "0 tickets"
         }
     }
@@ -322,11 +388,12 @@ struct CollectionCard<SlotContent: View>: View {
 
 // MARK: - No-preview convenience
 
-extension CollectionCard where SlotContent == EmptyView {
+extension MemoryCard where SlotContent == EmptyView {
     init(
         title: String? = nil,
         subtitle: String? = nil,
-        state: CollectionCardState = .normal,
+        state: MemoryCardState = .normal,
+        emoji: String? = nil,
         filledCount: Int = 0,
         colorFamily: String? = nil
     ) {
@@ -334,6 +401,7 @@ extension CollectionCard where SlotContent == EmptyView {
             title: title,
             subtitle: subtitle,
             state: state,
+            emoji: emoji,
             filledCount: filledCount,
             colorFamily: colorFamily,
             slotPreview: { _ in EmptyView() }
@@ -343,38 +411,40 @@ extension CollectionCard where SlotContent == EmptyView {
 
 // MARK: - Preview
 
-#Preview("Collection states") {
+#Preview("Memory states") {
     ScrollView {
         LazyVGrid(
             columns: [GridItem(.flexible()), GridItem(.flexible())],
             spacing: 24
         ) {
-            CollectionCard(
-                title: "Collection Name",
+            MemoryCard(
+                title: "Japan 2026",
                 subtitle: "2 tickets",
                 state: .normal,
+                emoji: "🗾",
                 filledCount: 2
             )
 
-            CollectionCard(state: .empty)
+            MemoryCard(state: .empty)
 
-            CollectionCard(
-                title: "New collection",
+            MemoryCard(
+                title: "New memory",
                 subtitle: "Invite pending",
                 state: .locked
             )
 
-            CollectionCard(state: .new)
+            MemoryCard(state: .new)
 
-            CollectionCard(
-                title: "Collection Name",
+            MemoryCard(
+                title: "Summer trip",
                 subtitle: "2 tickets",
                 state: .added,
+                emoji: "🌴",
                 filledCount: 1
             )
 
-            CollectionCard(
-                title: "Collection Name",
+            MemoryCard(
+                title: "Old memory",
                 subtitle: "2 tickets",
                 state: .deleting,
                 filledCount: 2
@@ -386,10 +456,11 @@ extension CollectionCard where SlotContent == EmptyView {
 }
 
 #Preview("With Afterglow ticket previews") {
-    CollectionCard(
+    MemoryCard(
         title: "Summer trips",
         subtitle: "1 ticket",
         state: .normal,
+        emoji: "🌴",
         filledCount: 1
     ) { _ in
         AfterglowTicketView(ticket: AfterglowTicket(
