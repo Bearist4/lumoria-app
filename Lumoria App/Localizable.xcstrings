@@ -1136,49 +1136,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Füge ein Emoji und eine Farbe hinzu, um deine Erinnerung zu gestalten."
+            "value": "Gib deiner Erinnerung eine Farbe und ein Emoji, die ihr gehören."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Add an emoji and a color to personalize your memory."
+            "value": "Give your memory a color and an emoji to call its own."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Añade un emoji y un color para personalizar tu recuerdo."
+            "value": "Dale a tu memoria un color y un emoji propios."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ajoutez un emoji et une couleur pour personnaliser votre souvenir."
+            "value": "Donnez à votre souvenir une couleur et un emoji qui lui appartiennent."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aggiungi un'emoji e un colore per personalizzare il tuo ricordo."
+            "value": "Dai al tuo ricordo un colore e un’emoji tutte sue."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "絵文字と色を選んで、思い出を自分らしく。"
+            "value": "このメモリーだけの色と絵文字を選びましょう。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이모지와 색상으로 추억을 나만의 것으로 꾸며 보세요."
+            "value": "이 추억만의 색과 이모지를 골라 보세요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "添加表情和颜色,让你的回忆更有个性。"
+            "value": "给这段回忆配上一个专属的颜色和表情。"
           }
         }
       }
@@ -1774,49 +1774,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hänge einen Ort an, damit du ihn auf der Karte wiederfindest."
+            "value": "Verknüpfe einen Ort — er erscheint auf deiner Erinnerungskarte."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Attach a place so you can revisit it on the map."
+            "value": "Attach a place — it’ll pin itself to your memory map."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Asocia un lugar para volver a verlo en el mapa."
+            "value": "Vincula un lugar — se fijará en el mapa de tu memoria."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Attachez un lieu pour le retrouver sur la carte."
+            "value": "Associez un lieu — il s’épinglera sur la carte de votre souvenir."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aggiungi un luogo per ritrovarlo sulla mappa."
+            "value": "Collega un luogo — comparirà sulla mappa del tuo ricordo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "場所を追加して、地図で再訪できるようにしましょう。"
+            "value": "場所を紐づけると、メモリーの地図にピンが立ちます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "장소를 연결하면 지도에서 다시 찾아볼 수 있어요."
+            "value": "장소를 연결하면 추억의 지도에 자동으로 핀이 꽂힙니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "关联地点以便在地图上重温。"
+            "value": "关联一个地点 — 它会自动出现在您的回忆地图上。"
           }
         }
       }
@@ -2836,49 +2836,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wähle die Art des Tickets, das du erstellen möchtest."
+            "value": "Was für ein Ticket machen wir?"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choose the type of ticket you want to create."
+            "value": "What kind of ticket are we making?"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elige el tipo de billete que quieres crear."
+            "value": "¿Qué tipo de ticket vamos a hacer?"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisissez le type de billet que vous voulez créer."
+            "value": "Quel type de billet fait-on ?"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scegli il tipo di biglietto che vuoi creare."
+            "value": "Che tipo di biglietto stiamo creando?"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "作成したいチケットの種類を選んでください。"
+            "value": "どんなチケットを作りましょう？"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "만들려는 티켓 유형을 선택하세요."
+            "value": "어떤 종류의 티켓을 만들까요?"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择你想要创建的车票类型。"
+            "value": "我们要做哪种门票？"
           }
         }
       }
@@ -3419,49 +3419,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erstelle zuerst eine Erinnerung und füge dieses Ticket dann hinzu."
+            "value": "Starte zuerst eine Erinnerung — komm dann zurück und lege dieses Ticket hinein."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Create a memory first, then come back to add this ticket."
+            "value": "Start a memory first — then come back and drop this ticket in."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Crea primero un recuerdo y luego vuelve para añadir este billete."
+            "value": "Empieza una memoria primero — luego vuelve y deja caer este ticket en ella."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Créez d'abord un souvenir, puis revenez ajouter ce billet."
+            "value": "Commencez par créer un souvenir — puis revenez glisser ce billet dedans."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Crea prima un ricordo, poi torna per aggiungere questo biglietto."
+            "value": "Prima crea un ricordo — poi torna qui e infila dentro questo biglietto."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "先に思い出を作ってから、このチケットを追加してください。"
+            "value": "まずメモリーを作ってから、この画面に戻ってチケットを加えましょう。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "먼저 추억을 만든 다음 이 티켓을 추가하세요."
+            "value": "먼저 추억을 만드신 다음, 여기로 돌아와 이 티켓을 넣어 보세요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "先创建一个回忆,再回来添加这张车票。"
+            "value": "先创建一段回忆 — 然后回来把这张门票放进去。"
           }
         }
       }
@@ -4211,49 +4211,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ticket verwerfen?"
+            "value": "Dieses Ticket verwerfen?"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Discard ticket?"
+            "value": "Discard this ticket?"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¿Descartar el billete?"
+            "value": "¿Descartar este ticket?"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ignorer ce billet ?"
+            "value": "Abandonner ce billet ?"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scartare il biglietto?"
+            "value": "Scartare questo biglietto?"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このチケットを破棄しますか?"
+            "value": "このチケットを破棄しますか？"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓 작성을 취소할까요?"
+            "value": "이 티켓을 폐기하시겠어요?"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "舍弃这张车票?"
+            "value": "放弃这张门票？"
           }
         }
       }
@@ -4318,31 +4318,31 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ziehen zum Verschieben · Pinch zum Zoomen"
+            "value": "Ziehen zum Bewegen · Zwei Finger zum Zoomen"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Drag to reposition · pinch to zoom"
+            "value": "Drag to move · pinch to zoom"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Arrastra para mover · pellizca para acercar"
+            "value": "Arrastra para mover · pellizca para hacer zoom"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Glissez pour repositionner · pincez pour zoomer"
+            "value": "Glissez pour déplacer · pincez pour zoomer"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Trascina per riposizionare · pizzica per ingrandire"
+            "value": "Trascina per spostare · pizzica per ingrandire"
           }
         },
         "ja": {
@@ -4360,7 +4360,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "拖动调整位置 · 双指缩放"
+            "value": "拖动可移动 · 双指缩放"
           }
         }
       }
@@ -4689,49 +4689,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alle deine Tickets sind bereits in dieser Erinnerung."
+            "value": "Jedes Ticket, das du erstellt hast, lebt bereits hier."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Every ticket you've made is already in this memory."
+            "value": "Every ticket you’ve made already lives here."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Todos tus billetes ya están en este recuerdo."
+            "value": "Todos los tickets que has creado ya viven aquí."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tous les billets que vous avez créés sont déjà dans ce souvenir."
+            "value": "Tous les billets que vous avez créés vivent déjà ici."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tutti i biglietti che hai creato sono già in questo ricordo."
+            "value": "Ogni biglietto che hai creato abita già qui."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "作成したすべてのチケットが、この思い出にすでに入っています。"
+            "value": "あなたが作ったチケットは、すべてここにあります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "만든 티켓이 모두 이 추억에 들어 있어요."
+            "value": "만드신 모든 티켓이 이미 여기 있습니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你创建的所有车票都已在此回忆中。"
+            "value": "您做过的每一张门票都已经住在这里了。"
           }
         }
       }
@@ -5483,49 +5483,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Bündle Tickets nach Reise oder Thema."
+            "value": "Eine Reise, ein Wochenende, eine Nacht zum Festhalten."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gather tickets by trip or theme."
+            "value": "A trip, a weekend, a night worth holding onto."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Agrupa billetes por viaje o por tema."
+            "value": "Un viaje, un fin de semana, una noche que merece quedarse."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Regroupez vos billets par voyage ou par thème."
+            "value": "Un voyage, un week-end, une soirée qui mérite d’être gardée."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Raggruppa i biglietti per viaggio o tema."
+            "value": "Un viaggio, un weekend, una serata che vale la pena ricordare."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "旅行やテーマでチケットをまとめましょう。"
+            "value": "旅、週末、忘れたくない夜を。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "여행이나 테마별로 티켓을 모아 보세요."
+            "value": "여행, 주말, 잊고 싶지 않은 어느 밤."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "按行程或主题归集车票。"
+            "value": "一次旅行、一个周末、一个值得珍藏的夜晚。"
           }
         }
       }
@@ -5854,49 +5854,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Falls %@ ein Konto hat, ist ein Link zum Zurücksetzen unterwegs."
+            "value": "Falls %@ ein Konto hat, ist der Reset-Link unterwegs."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "If %@ has an account, we've sent a reset link."
+            "value": "If %@ has an account, the reset link is on its way."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si %@ tiene una cuenta, te hemos enviado un enlace para restablecerla."
+            "value": "Si %@ tiene una cuenta, el enlace de restablecimiento ya va en camino."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Si %@ a un compte, nous vous avons envoyé un lien de réinitialisation."
+            "value": "Si %@ a un compte, le lien de réinitialisation est en route."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Se %@ ha un account, ti abbiamo inviato un link per reimpostarla."
+            "value": "Se %@ ha un account, il link di reset è in arrivo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ のアカウントがあれば、再設定リンクをお送りしました。"
+            "value": "%@ のアカウントがあれば、リセットリンクをお送りしています。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ 계정이 있다면 재설정 링크를 보내드렸어요."
+            "value": "%@ 계정이 있다면, 재설정 링크가 곧 도착해요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "如果 %@ 已注册,重置链接已发送。"
+            "value": "如果 %@ 已注册，重置链接已经在路上。"
           }
         }
       }
@@ -5960,49 +5960,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Verstärkt Rahmen- und Textkontrast in der gesamten App."
+            "value": "Kräftigere Ränder und Texte für bessere Lesbarkeit."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Increases border and text contrast throughout the app."
+            "value": "Stronger borders and text for easier reading."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aumenta el contraste de bordes y texto en toda la app."
+            "value": "Bordes y texto más marcados para leer con más facilidad."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Renforce le contraste des bordures et du texte dans toute l'app."
+            "value": "Bordures et texte plus marqués pour une lecture plus facile."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aumenta il contrasto di bordi e testo in tutta l'app."
+            "value": "Bordi e testo più marcati per leggere meglio."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "アプリ全体の枠線と文字のコントラストを高めます。"
+            "value": "枠と文字をくっきり表示して、読みやすくします。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "앱 전체의 테두리와 글자 대비를 높입니다."
+            "value": "테두리와 글자를 더 또렷하게 표시해 읽기 쉽게 만듭니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "提升整个 App 的边框和文字对比度。"
+            "value": "边框和文字更清晰，阅读更轻松。"
           }
         }
       }
@@ -6065,49 +6065,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Einladung angenommen."
+            "value": "Deine Einladung wurde eingelöst."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Invitation accepted."
+            "value": "Your invite was claimed."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Invitación aceptada."
+            "value": "Tu invitación fue aceptada."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Invitation acceptée."
+            "value": "Votre invitation a été acceptée."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Invito accettato."
+            "value": "Il tuo invito è stato accettato."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "招待が受理されました。"
+            "value": "招待が受け取られました。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "초대가 수락되었어요."
+            "value": "초대가 수락되었습니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "邀请已接受。"
+            "value": "邀请已被接受。"
           }
         }
       }
@@ -6591,49 +6591,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Jetzt verlassen? Dein Ticket wird nicht gespeichert."
+            "value": "Wenn du jetzt gehst, wird dieses Ticket nicht gespeichert. Du hast schon eine Weile daran gearbeitet."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Leave now? Your ticket won't be saved."
+            "value": "Leave now and this ticket won’t be saved. You’ve been crafting it for a while."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¿Salir ahora? Tu billete no se guardará."
+            "value": "Si sales ahora, este ticket no se guardará. Llevas un rato creándolo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quitter maintenant ? Votre billet ne sera pas enregistré."
+            "value": "Si vous partez maintenant, ce billet ne sera pas enregistré. Vous le façonnez depuis un moment."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Uscire ora? Il biglietto non verrà salvato."
+            "value": "Se esci ora, il biglietto non verrà salvato. Ci stai lavorando da un po’."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ここで中断しますか? チケットは保存されません。"
+            "value": "今ここで閉じるとこのチケットは保存されません。せっかく作り込んでいるのに。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "지금 나가시겠어요? 티켓은 저장되지 않아요."
+            "value": "지금 나가면 이 티켓은 저장되지 않습니다. 한참 만들고 계셨잖아요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "现在离开吗?车票不会被保存。"
+            "value": "现在离开，这张门票就不会被保存。您已经花了不少心思。"
           }
         }
       }
@@ -7066,49 +7066,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "In Erinnerungen sammeln sich deine Tickets. Gruppiere sie nach Reise, Ereignis oder Ort — was immer du festhalten willst."
+            "value": "Erinnerungen sammeln deine Tickets an einem Ort — eine Reise, eine Saison, eine Nacht. Alles, was du bewahren möchtest."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Memories are where your tickets come together. Group them by trip, event, or place — whatever you want to remember."
+            "value": "Memories gather tickets into one place — a trip, a season, a night out. Whatever you want to hold onto."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "En los recuerdos se reúnen tus billetes. Agrúpalos por viaje, evento o lugar — lo que quieras guardar."
+            "value": "Las memorias reúnen tus tickets en un solo lugar — un viaje, una temporada, una noche. Lo que quieras guardar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les souvenirs regroupent vos billets. Organisez-les par voyage, événement ou lieu — tout ce que vous voulez garder en mémoire."
+            "value": "Les souvenirs regroupent vos billets en un seul endroit — un voyage, une saison, une soirée. Tout ce que vous voulez garder."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nei ricordi i tuoi biglietti si uniscono. Raggruppali per viaggio, evento o luogo — tutto ciò che vuoi ricordare."
+            "value": "I ricordi riuniscono i biglietti in un unico posto — un viaggio, una stagione, una serata. Quello che vuoi tenere stretto."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "思い出はチケットを集める場所。旅行・イベント・場所など、残したいテーマでグループにしよう。"
+            "value": "メモリーはチケットを一箇所にまとめます — 旅、季節、夜。心に残したいものを。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추억은 티켓이 모이는 곳이에요. 여행, 이벤트, 장소 — 간직하고 싶은 무엇이든 묶어 보세요."
+            "value": "추억은 티켓을 한 곳에 모읍니다 — 여행, 계절, 어느 밤. 간직하고 싶은 모든 것을."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "回忆将你的车票汇集在一起。按行程、活动或地点归类——任何你想纪念的瞬间。"
+            "value": "回忆把您的门票聚在一处——一次旅行、一个季节、一个夜晚。任何想珍藏的瞬间。"
           }
         }
       }
@@ -7864,49 +7864,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Alles schon hinzugefügt"
+            "value": "Jedes Ticket, das du hast, ist schon hier."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nothing left to add"
+            "value": "Every ticket you have is already here."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nada más que añadir"
+            "value": "Todos tus tickets ya están aquí."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rien de plus à ajouter"
+            "value": "Tous vos billets sont déjà là."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Niente altro da aggiungere"
+            "value": "Ogni biglietto che hai è già qui."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "追加できるものはありません"
+            "value": "手元のチケットはすべてここにあります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추가할 항목이 없어요"
+            "value": "가지고 있는 모든 티켓이 이미 여기 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "没有可添加的内容"
+            "value": "您的每一张门票都已经在这里了。"
           }
         }
       }
@@ -8449,49 +8449,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das Passwort muss mindestens 8 Zeichen umfassen und enthalten:"
+            "value": "Mindestens 8 Zeichen, mit:"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Password must be at least 8 characters and include:"
+            "value": "At least 8 characters, with:"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La contraseña debe tener al menos 8 caracteres e incluir:"
+            "value": "Al menos 8 caracteres, con:"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le mot de passe doit contenir au moins 8 caractères et inclure :"
+            "value": "Au moins 8 caractères, avec :"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La password deve avere almeno 8 caratteri e includere:"
+            "value": "Almeno 8 caratteri, con:"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "パスワードは8文字以上で、次を含む必要があります:"
+            "value": "8 文字以上、以下を含めてください："
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "비밀번호는 8자 이상이어야 하며 다음을 포함해야 합니다:"
+            "value": "최소 8자, 다음을 포함해야 합니다:"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "密码至少 8 位,并包含:"
+            "value": "至少 8 个字符，且包含："
           }
         }
       }
@@ -8555,49 +8555,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wähle einen Bahnhof — den Stadtnamen übersetzen wir automatisch ins Japanische."
+            "value": "Wähle einen Bahnhof — wir fügen die japanische Schreibweise hinzu."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pick a station — we’ll translate the city name to Japanese automatically."
+            "value": "Pick a station — we’ll add the Japanese spelling for you."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Elige una estación — traduciremos automáticamente el nombre de la ciudad al japonés."
+            "value": "Elige una estación — añadiremos la grafía japonesa por ti."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Choisissez une gare — nous traduirons automatiquement la ville en japonais."
+            "value": "Choisissez une gare — nous ajoutons l’écriture japonaise pour vous."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scegli una stazione — tradurremo il nome della città in giapponese."
+            "value": "Scegli una stazione — aggiungeremo la grafia giapponese per te."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "駅を選んでください — 都市名は自動的に日本語に変換します。"
+            "value": "駅を選ぶと、日本語表記を自動で追加します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "역을 선택하면 도시 이름을 일본어로 자동 변환해 드릴게요."
+            "value": "역을 선택하면 일본어 표기를 자동으로 추가합니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "选择一个车站——我们会自动将城市名翻译为日文。"
+            "value": "选择一个车站 — 我们会自动补上日文写法。"
           }
         }
       }
@@ -9460,49 +9460,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieses Ticket aus der Erinnerung entfernen? Du kannst es später wieder hinzufügen."
+            "value": "Das Ticket wird aus dieser Erinnerung entfernt. Du kannst es jederzeit wieder hinzufügen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove this ticket from the memory? You can add it back later."
+            "value": "This takes it out of the memory. You can add it back anytime."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¿Quitar este billete del recuerdo? Podrás añadirlo de nuevo más tarde."
+            "value": "Lo sacaremos de esta memoria. Puedes volver a añadirlo cuando quieras."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Retirer ce billet du souvenir ? Vous pourrez le remettre plus tard."
+            "value": "Ce billet sort de ce souvenir. Vous pouvez le remettre à tout moment."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rimuovere questo biglietto dal ricordo? Potrai aggiungerlo più tardi."
+            "value": "Lo toglieremo da questo ricordo. Puoi rimetterlo quando vuoi."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このチケットを思い出から外しますか? あとで戻せます。"
+            "value": "このメモリーからチケットを外します。いつでも戻せます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 티켓을 추억에서 뺄까요? 나중에 다시 추가할 수 있어요."
+            "value": "이 추억에서 티켓을 뺍니다. 언제든 다시 추가할 수 있습니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "将这张车票从回忆中移除?之后可以再加回。"
+            "value": "门票将从这段回忆中移出。您随时可以再加回来。"
           }
         }
       }
@@ -9616,49 +9616,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Einladung widerrufen?"
+            "value": "Diese Einladung widerrufen?"
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Revoke invite?"
+            "value": "Revoke this invite?"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "¿Revocar invitación?"
+            "value": "¿Revocar esta invitación?"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Annuler l'invitation ?"
+            "value": "Révoquer cette invitation ?"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Revocare l'invito?"
+            "value": "Revocare questo invito?"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "招待を取り消しますか?"
+            "value": "この招待を取り消しますか？"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "초대를 취소할까요?"
+            "value": "이 초대를 철회하시겠어요?"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "撤销邀请?"
+            "value": "撤销这个邀请？"
           }
         }
       }
@@ -10945,49 +10945,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diese Angaben werden benötigt, um das Ticket zu erstellen."
+            "value": "Das braucht jede Vorlage, um zum Leben zu erwachen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The following information is needed in order to generate the ticket."
+            "value": "Here’s what each template needs to come to life."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Necesitamos estos datos para generar el billete."
+            "value": "Esto es lo que cada plantilla necesita para cobrar vida."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ces informations sont nécessaires pour générer le billet."
+            "value": "Voici ce dont chaque modèle a besoin pour prendre vie."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Queste informazioni servono per generare il biglietto."
+            "value": "Ecco cosa serve a ogni modello per prendere vita."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "チケットを作成するには、以下の情報が必要です。"
+            "value": "テンプレートが形になるために必要な情報です。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓을 만들려면 아래 정보가 필요해요."
+            "value": "각 템플릿이 살아나는 데 필요한 정보예요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要以下信息才能生成车票。"
+            "value": "这是每种模板需要的信息，让它成真。"
           }
         }
       }
@@ -10999,49 +10999,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Schalter unten werden erst wirksam, wenn du Benachrichtigungen für Lumoria in den iOS-Einstellungen aktivierst. Zum Öffnen tippen."
+            "value": "Aktiviere zuerst Benachrichtigungen für Lumoria in den Einstellungen — danach greifen die Schalter unten. Tippe, um zu öffnen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The toggles below won't take effect until you enable notifications for Lumoria in iOS Settings. Tap to open."
+            "value": "Turn notifications on for Lumoria in Settings first — the toggles below will take effect after that. Tap to open."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los ajustes de abajo no tendrán efecto hasta que actives las notificaciones de Lumoria en los Ajustes de iOS. Toca para abrir."
+            "value": "Primero activa las notificaciones para Lumoria en Ajustes — después los interruptores de abajo surtirán efecto. Toca para abrir."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les réglages ci-dessous n'auront aucun effet tant que les notifications de Lumoria ne sont pas activées dans les Réglages iOS. Appuyez pour ouvrir."
+            "value": "Activez d’abord les notifications pour Lumoria dans les Réglages — ensuite, les interrupteurs ci-dessous prendront effet. Touchez pour ouvrir."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le opzioni qui sotto non avranno effetto finché non attivi le notifiche di Lumoria in Impostazioni iOS. Tocca per aprire."
+            "value": "Prima attiva le notifiche per Lumoria in Impostazioni — dopo gli interruttori qui sotto avranno effetto. Tocca per aprire."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "以下の設定は、iOSの設定でLumoriaの通知を有効にするまで反映されません。タップして開く。"
+            "value": "まず iOS の設定で Lumoria の通知をオンにしてください。下のスイッチはそのあと有効になります。タップして開きます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "iOS 설정에서 Lumoria의 알림을 켤 때까지 아래 설정은 적용되지 않아요. 탭하여 열기."
+            "value": "먼저 설정에서 Lumoria 알림을 켜 주세요. 아래 토글은 그 뒤에 적용됩니다. 탭하여 열기."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "需先在 iOS“设置”中开启 Lumoria 的通知,以下开关才会生效。点击打开。"
+            "value": "先在 iOS 设置中为 Lumoria 打开通知 — 下方开关才会生效。点按即可前往。"
           }
         }
       }
@@ -11051,49 +11051,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Angaben müssen nicht exakt sein — du erstellst kein echtes Ticket. Nur die Flughafencodes müssen stimmen, damit die Route gezeichnet werden kann."
+            "value": "Nichts davon muss echt sein — es geht bei diesen Tickets um das Gefühl, nicht um den Flug. Verwende nur echte Flughafencodes, damit wir die Route auf der Karte anzeigen können."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This info doesn't need to be accurate — you're not making a real ticket. Only airport codes must be real, to draw the path."
+            "value": "None of this needs to be real — these tickets are about the feeling, not the flight. Just use real airport codes so we can place the route on the map."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estos datos no tienen que ser exactos — no estás creando un billete real. Solo los códigos de aeropuerto deben ser reales, para dibujar la ruta."
+            "value": "Nada de esto tiene que ser real — estos tickets son sobre la sensación, no sobre el vuelo. Usa códigos de aeropuerto reales para que podamos colocar la ruta en el mapa."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ces infos n'ont pas besoin d'être exactes — vous ne créez pas un vrai billet. Seuls les codes aéroports doivent l'être, pour tracer le trajet."
+            "value": "Rien de tout cela n’a besoin d’être réel — ces billets, c’est l’émotion qui compte, pas le vol. Utilisez simplement de vrais codes d’aéroport pour que nous puissions placer le trajet sur la carte."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Queste informazioni non devono essere esatte — non stai creando un biglietto reale. Solo i codici aeroportuali devono essere veri, per tracciare il percorso."
+            "value": "Nulla di tutto questo deve essere reale — questi biglietti parlano della sensazione, non del volo. Usa solo codici aeroportuali reali così possiamo tracciare il tragitto sulla mappa."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "情報は正確でなくても構いません — 本物のチケットを作るわけではないからです。経路を描くために、空港コードだけは正しく入力してください。"
+            "value": "どれも実際のものでなくて大丈夫 — このチケットは「フライト」ではなく「気分」のためのもの。空港コードだけは本物を使ってください、地図上にルートを表示できるように。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "정확하지 않아도 괜찮아요 — 실제 티켓을 만드는 게 아니에요. 경로를 그리려면 공항 코드만 정확하면 돼요."
+            "value": "전부 실제일 필요는 없어요 — 이 티켓은 비행 그 자체가 아니라 그 순간의 느낌에 관한 것입니다. 공항 코드만 실제 값을 사용해 주세요, 그래야 지도에 경로를 표시할 수 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这些信息无需准确——你并非在创建真实车票。只有机场代码需真实,用于绘制航线。"
+            "value": "这些信息不必真实 — 这些门票是关于那份心情，而不是那趟航班。只需填入真实的机场代码，我们就能把航线标在地图上。"
           }
         }
       }
@@ -11105,49 +11105,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Diese Erinnerung ist leer. Füge ein Ticket hinzu, um zu starten."
+            "value": "Diese Erinnerung wartet auf ihr erstes Ticket."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This memory is empty. Add a ticket to begin."
+            "value": "This memory is waiting for its first ticket."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este recuerdo está vacío. Añade un billete para empezar."
+            "value": "Esta memoria espera su primer ticket."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce souvenir est vide. Ajoutez un billet pour commencer."
+            "value": "Ce souvenir attend son premier billet."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Questo ricordo è vuoto. Aggiungi un biglietto per iniziare."
+            "value": "Questo ricordo attende il suo primo biglietto."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この思い出はまだ空です。チケットを追加してはじめよう。"
+            "value": "このメモリーは最初のチケットを待っています。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "아직 비어 있어요. 티켓을 추가해 시작하세요."
+            "value": "이 추억은 첫 티켓을 기다리고 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "回忆还是空的。添加一张车票开始吧。"
+            "value": "这段回忆在等它的第一张门票。"
           }
         }
       }
@@ -11212,49 +11212,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Dieses Ticket ist Teil keiner Erinnerung. Mit Erinnerungen gruppierst du Tickets nach Reise, Ereignis oder Ort."
+            "value": "Dieses Ticket gehört noch zu keiner Erinnerung. Verbinde es mit einer, damit die Reise beisammen bleibt."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This ticket is not part of a memory. Memories help you group tickets by trip, event, or place."
+            "value": "This ticket isn’t part of any memory yet. Pair it with one to keep the trip together."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Este billete no forma parte de ningún recuerdo. Los recuerdos te permiten agrupar billetes por viaje, evento o lugar."
+            "value": "Este ticket aún no forma parte de ninguna memoria. Vincúlalo con una para mantener el viaje unido."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ce billet ne fait partie d'aucun souvenir. Les souvenirs vous permettent de regrouper vos billets par voyage, événement ou lieu."
+            "value": "Ce billet n’appartient encore à aucun souvenir. Associez-le pour garder le voyage ensemble."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Questo biglietto non fa parte di alcun ricordo. I ricordi ti aiutano a raggruppare i biglietti per viaggio, evento o luogo."
+            "value": "Questo biglietto non fa ancora parte di nessun ricordo. Abbinalo a uno per tenere il viaggio unito."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このチケットはまだ思い出に入っていません。思い出は、旅行・イベント・場所などでチケットを整理するのに役立ちます。"
+            "value": "このチケットはまだどのメモリーにも属していません。ひとつに加えて、旅をひとまとめにしましょう。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 티켓은 아직 어떤 추억에도 속해 있지 않아요. 추억은 여행·이벤트·장소별로 티켓을 묶어 주세요."
+            "value": "이 티켓은 아직 어떤 추억에도 속해 있지 않아요. 하나에 담아 여행을 한자리에 모아보세요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这张车票尚未归入任何回忆。回忆可将车票按行程、活动或地点整理。"
+            "value": "这张门票还不属于任何回忆。把它归入一段回忆，让整段旅程聚在一起。"
           }
         }
       }
@@ -11318,49 +11318,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Das Ticket wird dauerhaft aus deiner Galerie und allen Erinnerungen entfernt. Diese Aktion kann nicht rückgängig gemacht werden."
+            "value": "Dies entfernt das Ticket aus deiner Galerie und aus jeder Erinnerung, zu der es gehört. Es lässt sich nicht wiederherstellen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This will permanently remove the ticket from your gallery and any memories it’s in. This can’t be undone."
+            "value": "This removes it from your gallery, and from every memory it’s part of. It can’t be brought back."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "El billete se eliminará de forma permanente de tu galería y de los recuerdos en los que esté. Esta acción no se puede deshacer."
+            "value": "Lo quitará de tu galería y de cada memoria de la que forma parte. No podrás recuperarlo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Le billet sera retiré définitivement de votre galerie et des souvenirs qui le contiennent. Cette action est irréversible."
+            "value": "Ce billet disparaît de votre galerie et de chaque souvenir auquel il appartient. Impossible de le récupérer."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Il biglietto verrà rimosso definitivamente dalla galleria e da tutti i ricordi a cui appartiene. L'operazione non è reversibile."
+            "value": "Verrà rimosso dalla tua galleria e da ogni ricordo di cui fa parte. Non potrai recuperarlo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このチケットはギャラリーと関連するすべての思い出から完全に削除されます。元に戻せません。"
+            "value": "ギャラリーと、このチケットが含まれているすべてのメモリーから削除されます。元には戻せません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓은 갤러리와 속해 있던 모든 추억에서 영구 삭제돼요. 되돌릴 수 없어요."
+            "value": "갤러리에서 제거되고, 이 티켓이 포함된 모든 추억에서도 삭제됩니다. 되돌릴 수 없습니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "车票将从图库和所有相关回忆中永久移除。此操作无法撤销。"
+            "value": "门票将从您的图库中移除，并从其所属的所有回忆中消失。无法恢复。"
           }
         }
       }
@@ -11478,49 +11478,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Tickets bleiben in deiner Galerie. Nicht rückgängig zu machen."
+            "value": "Deine Tickets bleiben in der Galerie. Die Erinnerung selbst lässt sich jedoch nicht wiederherstellen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tickets stay in your gallery. Can’t be undone."
+            "value": "Your tickets stay in your gallery. The memory itself, though, can’t be brought back."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Los billetes permanecen en tu galería. Esta acción no se puede deshacer."
+            "value": "Tus tickets quedan en la galería. La memoria en sí, sin embargo, no podrá recuperarse."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les billets restent dans votre galerie. Action irréversible."
+            "value": "Vos billets restent dans votre galerie. Le souvenir lui-même, en revanche, ne peut pas être récupéré."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "I biglietti restano nella galleria. Operazione non reversibile."
+            "value": "I tuoi biglietti restano nella galleria. Il ricordo invece non si può recuperare."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "チケットはギャラリーに残ります。元に戻せません。"
+            "value": "チケットはギャラリーに残りますが、メモリー自体は元に戻せません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓은 갤러리에 남아 있어요. 되돌릴 수 없어요."
+            "value": "티켓은 갤러리에 남습니다. 하지만 추억 자체는 되돌릴 수 없습니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "车票仍保留在图库中。此操作无法撤销。"
+            "value": "门票会留在您的图库中，但回忆本身无法恢复。"
           }
         }
       }
@@ -12174,49 +12174,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wir haben einen Bestätigungslink an %@ gesendet. Öffne ihn, um dein Konto zu aktivieren, und melde dich dann hier an."
+            "value": "Schau in %@ — wir haben dir einen Bestätigungslink gesendet. Öffne ihn, komm zurück und melde dich an."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "We sent a confirmation link to %@. Open it to activate your account, then sign in here."
+            "value": "Check %@ — we’ve sent a link to confirm your account. Open it, then come back and sign in."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hemos enviado un enlace de confirmación a %@. Ábrelo para activar tu cuenta y luego inicia sesión aquí."
+            "value": "Revisa %@ — te hemos enviado un enlace para confirmar tu cuenta. Ábrelo, vuelve y inicia sesión."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un lien de confirmation a été envoyé à %@. Ouvrez-le pour activer votre compte, puis connectez-vous ici."
+            "value": "Consultez %@ — nous vous avons envoyé un lien pour confirmer votre compte. Ouvrez-le, revenez ici et connectez-vous."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abbiamo inviato un link di conferma a %@. Aprilo per attivare il tuo account, poi accedi qui."
+            "value": "Controlla %@ — ti abbiamo inviato un link per confermare il tuo account. Aprilo, torna qui e accedi."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ に確認リンクをお送りしました。リンクを開いてアカウントを有効化し、ここでログインしてください。"
+            "value": "%@ をご確認ください — アカウント確認用のリンクをお送りしました。リンクを開いたあと、ここに戻ってサインインしてください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ 로 확인 링크를 보냈어요. 링크를 열어 계정을 활성화한 뒤 여기에서 로그인하세요."
+            "value": "%@ 메일함을 확인해 주세요 — 계정 확인 링크를 보내드렸어요. 링크를 연 뒤 이 화면으로 돌아와 로그인해 주세요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "确认链接已发送至 %@。打开链接激活账户后,在此处登录。"
+            "value": "查收 %@ — 我们发送了一封账户确认邮件。打开链接后回到这里登录。"
           }
         }
       }
@@ -12227,49 +12227,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wir haben einen Bestätigungslink an %@ gesendet. Öffne ihn, um dein Konto zu aktivieren, und melde dich dann an."
+            "value": "Schau in %@ — wir haben dir einen Bestätigungslink gesendet. Öffne ihn und melde dich dann an."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "We sent a confirmation link to %@. Open it to activate your account, then sign in."
+            "value": "Check %@ — we’ve sent a link to confirm your account. Open it, then sign in."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hemos enviado un enlace de confirmación a %@. Ábrelo para activar tu cuenta y luego inicia sesión."
+            "value": "Revisa %@ — te hemos enviado un enlace para confirmar tu cuenta. Ábrelo y luego inicia sesión."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Un lien de confirmation a été envoyé à %@. Ouvrez-le pour activer votre compte, puis connectez-vous."
+            "value": "Consultez %@ — nous vous avons envoyé un lien pour confirmer votre compte. Ouvrez-le, puis connectez-vous."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abbiamo inviato un link di conferma a %@. Aprilo per attivare il tuo account, poi accedi."
+            "value": "Controlla %@ — ti abbiamo inviato un link per confermare il tuo account. Aprilo, poi accedi."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ に確認リンクをお送りしました。リンクを開いてアカウントを有効化し、ログインしてください。"
+            "value": "%@ をご確認ください — アカウント確認用のリンクをお送りしました。そこから開いてサインインしてください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ 로 확인 링크를 보냈어요. 링크를 열어 계정을 활성화한 뒤 로그인하세요."
+            "value": "%@ 메일함을 확인해 주세요 — 계정 확인 링크를 보내드렸어요. 열어 보고 로그인하세요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "确认链接已发送至 %@。打开链接激活账户后登录。"
+            "value": "查收 %@ — 我们发送了一封账户确认邮件。打开链接后再回来登录。"
           }
         }
       }
@@ -12280,49 +12280,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Stadt füllen wir automatisch für dich aus."
+            "value": "Wir übernehmen die Stadt aus deiner Auswahl."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "We’ll auto-fill the city for you."
+            "value": "We’ll fill in the city from your pick."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rellenaremos la ciudad por ti."
+            "value": "Rellenaremos la ciudad a partir de tu selección."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nous remplirons la ville automatiquement."
+            "value": "Nous remplissons la ville à partir de votre choix."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Riempiremo noi la città per te."
+            "value": "Completeremo la città dalla tua scelta."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "都市は自動で入力します。"
+            "value": "選んだ内容から都市名を入力します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "도시는 자동으로 채워 드릴게요."
+            "value": "선택하신 값에서 도시를 채워 드립니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "我们会为你自动填入城市。"
+            "value": "城市我们会根据您的选择自动填好。"
           }
         }
       }
@@ -12333,49 +12333,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Code, Name und Stadt füllen wir automatisch für dich aus."
+            "value": "Wir übernehmen Code, Name und Stadt aus deiner Auswahl."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "We’ll auto-fill the code, name, and city from your pick."
+            "value": "We’ll fill in the code, name, and city from your pick."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Rellenaremos automáticamente el código, el nombre y la ciudad según tu elección."
+            "value": "Rellenaremos el código, el nombre y la ciudad a partir de tu selección."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Nous remplirons automatiquement le code, le nom et la ville selon votre choix."
+            "value": "Nous remplissons le code, le nom et la ville à partir de votre choix."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Riempiremo in automatico codice, nome e città in base alla tua scelta."
+            "value": "Completeremo codice, nome e città dalla tua scelta."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "選択内容からコード・名称・都市を自動で入力します。"
+            "value": "選んだ内容からコード・名前・都市名を入力します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "선택한 항목의 코드·이름·도시를 자동으로 채워 드릴게요."
+            "value": "선택하신 값에서 코드·이름·도시를 자동으로 채워 드립니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "我们会根据你的选择自动填入代码、名称和城市。"
+            "value": "代码、名称和城市我们会根据您的选择自动填好。"
           }
         }
       }
@@ -12599,49 +12599,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ihr beide bekommt einen zusätzlichen Erinnerungs-Slot. Mehr gefällig? Wechsle zu Lumoria Premium für unbegrenzte Erinnerungen."
+            "value": "Ihr habt beide einen zusätzlichen Erinnerungsplatz bekommen. Willst du mehr? Mit Lumoria Premium gibt’s unbegrenzte Erinnerungen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You both benefit from an extra memory slot. Need more? Upgrade to Lumoria Premium and create unlimited memories."
+            "value": "You both got an extra memory slot. Want more? Lumoria Premium unlocks unlimited memories."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ambos obtenéis un hueco extra para recuerdos. ¿Quieres más? Pásate a Lumoria Premium y crea recuerdos sin límite."
+            "value": "Ambos conseguisteis una memoria extra. ¿Quieres más? Lumoria Premium desbloquea memorias ilimitadas."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous gagnez chacun un emplacement de souvenir supplémentaire. Vous en voulez plus ? Passez à Lumoria Premium pour créer des souvenirs sans limite."
+            "value": "Vous avez tous les deux gagné un souvenir de plus. Vous en voulez davantage ? Lumoria Premium débloque des souvenirs illimités."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ricevete entrambi uno slot ricordo in più. Ne vuoi altri? Passa a Lumoria Premium per ricordi illimitati."
+            "value": "Avete ottenuto entrambi un ricordo in più. Ne vuoi altri? Lumoria Premium sblocca ricordi illimitati."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "おふたりそれぞれに思い出の枠がひとつ増えます。もっと必要ですか? Lumoria Premium にアップグレードすれば思い出は無制限に。"
+            "value": "おふたりにメモリー枠がひとつ追加されました。もっと増やしたい方は、Lumoria Premium で無制限に。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "두 분 모두 추억 공간이 하나씩 늘어나요. 더 필요하세요? Lumoria Premium으로 업그레이드하고 추억을 무제한으로 만들어 보세요."
+            "value": "두 분 모두 추억 슬롯이 하나 늘었어요. 더 원하신다면 Lumoria Premium에서 무제한으로 풀립니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你们双方都会多获得一个回忆位。想要更多?升级到 Lumoria Premium,畅享无限回忆。"
+            "value": "你们俩都多获得了一个回忆位。想要更多？Lumoria Premium 解锁无限回忆。"
           }
         }
       }
@@ -12652,49 +12652,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Du hast diese Felder geändert, deine Änderungen sind aber noch nicht gespeichert."
+            "value": "Ungespeicherte Änderungen."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You edited these fields but your changes have not been saved yet."
+            "value": "Unsaved changes."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Has editado estos campos pero los cambios aún no se han guardado."
+            "value": "Cambios sin guardar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous avez modifié ces champs mais vos changements ne sont pas encore enregistrés."
+            "value": "Modifications non enregistrées."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hai modificato questi campi ma le modifiche non sono ancora state salvate."
+            "value": "Modifiche non salvate."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "これらのフィールドを編集しましたが、変更はまだ保存されていません。"
+            "value": "保存されていない変更があります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 항목들을 수정했지만 아직 저장되지 않았어요."
+            "value": "저장되지 않은 변경 사항이 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你修改了这些字段,但更改尚未保存。"
+            "value": "有未保存的更改。"
           }
         }
       }
@@ -12705,49 +12705,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You edited this field but it has not been saved yet."
+            "value": "Unsaved edit."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sie haben dieses Feld bearbeitet, es wurde aber noch nicht gespeichert."
+            "value": "Ungespeicherte Änderung."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Has editado este campo pero aún no se ha guardado."
+            "value": "Edición sin guardar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous avez modifié ce champ mais il n’a pas encore été enregistré."
+            "value": "Modification non enregistrée."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hai modificato questo campo ma non è ancora stato salvato."
+            "value": "Modifica non salvata."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このフィールドを編集しましたが、まだ保存されていません。"
+            "value": "保存されていない編集があります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 필드를 편집했지만 아직 저장되지 않았습니다."
+            "value": "저장되지 않은 편집이 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "您已编辑此字段但尚未保存。"
+            "value": "有未保存的修改。"
           }
         }
       }
@@ -12758,49 +12758,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Du hast dieses Feld geändert, deine Änderungen sind aber noch nicht gespeichert."
+            "value": "Ungespeicherte Änderung."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You edited this field but your changes have not been saved yet."
+            "value": "Unsaved edit."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Has editado este campo pero los cambios aún no se han guardado."
+            "value": "Edición sin guardar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous avez modifié ce champ mais vos changements ne sont pas encore enregistrés."
+            "value": "Modification non enregistrée."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hai modificato questo campo ma le modifiche non sono ancora state salvate."
+            "value": "Modifica non salvata."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このフィールドを編集しましたが、変更はまだ保存されていません。"
+            "value": "保存されていない編集があります。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이 항목을 수정했지만 아직 저장되지 않았어요."
+            "value": "저장되지 않은 편집이 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你修改了此字段,但更改尚未保存。"
+            "value": "有未保存的修改。"
           }
         }
       }
@@ -12811,49 +12811,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Du hast noch keine Erinnerungen. Tippe auf das +-Symbol, um eine zu erstellen."
+            "value": "Noch keine Erinnerungen. Starte deine erste mit dem + oben."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You have no memories yet. To create a memory, tap the + icon."
+            "value": "No memories yet. Start your first one with the + above."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Aún no tienes recuerdos. Para crear uno, toca el ícono +."
+            "value": "Aún no tienes memorias. Empieza la primera con el + de arriba."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous n'avez pas encore de souvenirs. Pour en créer un, appuyez sur l'icône +."
+            "value": "Aucun souvenir pour l’instant. Commencez le premier avec le + ci-dessus."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Non hai ancora ricordi. Per crearne uno, tocca l'icona +."
+            "value": "Ancora nessun ricordo. Inizia il tuo primo con il + qui sopra."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "まだ思い出がありません。+アイコンをタップして作成しましょう。"
+            "value": "まだメモリーがありません。上の + から最初のひとつを始めましょう。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "아직 추억이 없어요. + 아이콘을 눌러 만들어 보세요."
+            "value": "아직 추억이 없어요. 위의 + 버튼으로 첫 추억을 만들어 보세요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你还没有回忆。点击 + 图标创建一个。"
+            "value": "还没有回忆。用上方的 + 开始第一段吧。"
           }
         }
       }
@@ -12864,49 +12864,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Du warst in %@. Wirf einen Blick zurück."
+            "value": "Erinnerst du dich an %@? Wirf einen Blick zurück."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You were in %@. Take a look back."
+            "value": "Remember %@? Take a look back."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Estuviste en %@. Echa un vistazo atrás."
+            "value": "¿Recuerdas %@? Echa un vistazo."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous étiez à %@. Jetez un œil en arrière."
+            "value": "Vous vous souvenez de %@ ? Jetez un œil en arrière."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sei stato a %@. Dai un'occhiata al passato."
+            "value": "Ti ricordi %@? Dai un’occhiata."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ にいましたね。振り返ってみましょう。"
+            "value": "%@ を覚えていますか？もう一度見てみましょう。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@에 있었죠. 잠깐 돌아볼까요."
+            "value": "%@ 기억나세요? 다시 한번 들여다볼까요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你去过 %@。回头看看吧。"
+            "value": "还记得 %@ 吗？再回头看看吧。"
           }
         }
       }
@@ -12916,49 +12916,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Du bekommst eine neue Einladung zum Teilen. Der aktuelle Link wird ungültig."
+            "value": "Der aktuelle Link funktioniert nicht mehr. Eine neue Einladung tritt an seine Stelle."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You'll get a new invite to share. The current link will stop working."
+            "value": "Your current link will stop working. A fresh invite takes its place."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recibirás una nueva invitación para compartir. El enlace actual dejará de funcionar."
+            "value": "Tu enlace actual dejará de funcionar. Una invitación nueva ocupará su lugar."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous recevrez une nouvelle invitation à partager. Le lien actuel cessera de fonctionner."
+            "value": "Votre lien actuel cessera de fonctionner. Une nouvelle invitation prend le relais."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Riceverai un nuovo invito da condividere. Il link attuale smetterà di funzionare."
+            "value": "Il tuo link attuale smetterà di funzionare. Al suo posto arriva un nuovo invito."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "共有できる新しい招待を受け取れます。現在のリンクは無効になります。"
+            "value": "現在のリンクは無効になります。代わりに新しい招待が発行されます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "공유할 새 초대를 받게 돼요. 현재 링크는 더 이상 작동하지 않아요."
+            "value": "현재 링크는 더 이상 작동하지 않습니다. 대신 새 초대가 발급됩니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "你将获得一个新的邀请链接,当前链接将失效。"
+            "value": "当前链接将失效，一份新的邀请会取而代之。"
           }
         }
       }
@@ -13287,31 +13287,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t load tickets. %@"
+            "value": "We couldn’t load your tickets. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tickets konnten nicht geladen werden. %@"
+            "value": "Deine Tickets konnten nicht geladen werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudieron cargar los tickets. %@"
+            "value": "No pudimos cargar tus tickets. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de charger les billets. %@"
+            "value": "Nous n’avons pas pu charger vos billets. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile caricare i biglietti. %@"
+            "value": "Non siamo riusciti a caricare i tuoi biglietti. %@"
           }
         },
         "ja": {
@@ -13323,13 +13323,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓을 불러올 수 없습니다. %@"
+            "value": "티켓을 불러오지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法加载门票。%@"
+            "value": "未能加载您的门票。%@"
           }
         }
       }
@@ -13340,49 +13340,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You need to be signed in to save a ticket."
+            "value": "Sign in to save a ticket."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sie müssen angemeldet sein, um ein Ticket zu speichern."
+            "value": "Melde dich an, um ein Ticket zu speichern."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Debes iniciar sesión para guardar un ticket."
+            "value": "Inicia sesión para guardar un ticket."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous devez être connecté pour enregistrer un billet."
+            "value": "Connectez-vous pour enregistrer un billet."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devi accedere per salvare un biglietto."
+            "value": "Accedi per salvare un biglietto."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "チケットを保存するにはサインインが必要です。"
+            "value": "サインインするとチケットを保存できます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓을 저장하려면 로그인이 필요합니다."
+            "value": "로그인하면 티켓을 저장할 수 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要登录才能保存门票。"
+            "value": "登录即可保存门票。"
           }
         }
       }
@@ -13393,49 +13393,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t save ticket. %@"
+            "value": "We couldn’t save this ticket. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ticket konnte nicht gespeichert werden. %@"
+            "value": "Dieses Ticket konnte nicht gespeichert werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo guardar el ticket. %@"
+            "value": "No pudimos guardar este ticket. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d’enregistrer le billet. %@"
+            "value": "Nous n’avons pas pu enregistrer ce billet. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile salvare il biglietto. %@"
+            "value": "Non siamo riusciti a salvare questo biglietto. %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "チケットを保存できませんでした。%@"
+            "value": "このチケットを保存できませんでした。%@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓을 저장할 수 없습니다. %@"
+            "value": "이 티켓을 저장하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法保存门票。%@"
+            "value": "未能保存这张门票。%@"
           }
         }
       }
@@ -13446,31 +13446,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t save changes. %@"
+            "value": "We couldn’t save your changes. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Änderungen konnten nicht gespeichert werden. %@"
+            "value": "Deine Änderungen konnten nicht gespeichert werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudieron guardar los cambios. %@"
+            "value": "No pudimos guardar tus cambios. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d’enregistrer les modifications. %@"
+            "value": "Nous n’avons pas pu enregistrer vos modifications. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile salvare le modifiche. %@"
+            "value": "Non siamo riusciti a salvare le tue modifiche. %@"
           }
         },
         "ja": {
@@ -13482,13 +13482,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "변경 사항을 저장할 수 없습니다. %@"
+            "value": "변경 사항을 저장하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法保存更改。%@"
+            "value": "未能保存您的更改。%@"
           }
         }
       }
@@ -13499,49 +13499,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t delete ticket. %@"
+            "value": "We couldn’t delete this ticket. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ticket konnte nicht gelöscht werden. %@"
+            "value": "Dieses Ticket konnte nicht gelöscht werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo eliminar el ticket. %@"
+            "value": "No pudimos eliminar este ticket. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de supprimer le billet. %@"
+            "value": "Nous n’avons pas pu supprimer ce billet. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile eliminare il biglietto. %@"
+            "value": "Non siamo riusciti a eliminare questo biglietto. %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "チケットを削除できませんでした。%@"
+            "value": "このチケットを削除できませんでした。%@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓을 삭제할 수 없습니다. %@"
+            "value": "이 티켓을 삭제하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法删除门票。%@"
+            "value": "未能删除这张门票。%@"
           }
         }
       }
@@ -13552,49 +13552,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t update memories. %@"
+            "value": "We couldn’t update the memories for this ticket. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erinnerungen konnten nicht aktualisiert werden. %@"
+            "value": "Die Erinnerungen für dieses Ticket konnten nicht aktualisiert werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudieron actualizar las memorias. %@"
+            "value": "No pudimos actualizar las memorias de este ticket. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de mettre à jour les souvenirs. %@"
+            "value": "Nous n’avons pas pu mettre à jour les souvenirs de ce billet. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile aggiornare i ricordi. %@"
+            "value": "Non siamo riusciti ad aggiornare i ricordi di questo biglietto. %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "メモリーを更新できませんでした。%@"
+            "value": "このチケットのメモリーを更新できませんでした。%@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추억을 업데이트할 수 없습니다. %@"
+            "value": "이 티켓의 추억을 업데이트하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法更新回忆。%@"
+            "value": "未能更新这张门票的回忆。%@"
           }
         }
       }
@@ -13605,31 +13605,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t load memories. %@"
+            "value": "We couldn’t load your memories. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erinnerungen konnten nicht geladen werden. %@"
+            "value": "Deine Erinnerungen konnten nicht geladen werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudieron cargar las memorias. %@"
+            "value": "No pudimos cargar tus memorias. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de charger les souvenirs. %@"
+            "value": "Nous n’avons pas pu charger vos souvenirs. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile caricare i ricordi. %@"
+            "value": "Non siamo riusciti a caricare i tuoi ricordi. %@"
           }
         },
         "ja": {
@@ -13641,13 +13641,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추억을 불러올 수 없습니다. %@"
+            "value": "추억을 불러오지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法加载回忆。%@"
+            "value": "未能加载您的回忆。%@"
           }
         }
       }
@@ -13658,49 +13658,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You need to be signed in to create a memory."
+            "value": "Sign in to start a memory."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sie müssen angemeldet sein, um eine Erinnerung zu erstellen."
+            "value": "Melde dich an, um eine Erinnerung zu starten."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Debes iniciar sesión para crear una memoria."
+            "value": "Inicia sesión para empezar una memoria."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous devez être connecté pour créer un souvenir."
+            "value": "Connectez-vous pour commencer un souvenir."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devi accedere per creare un ricordo."
+            "value": "Accedi per iniziare un ricordo."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "メモリーを作成するにはサインインが必要です。"
+            "value": "サインインするとメモリーを始められます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추억을 만들려면 로그인이 필요합니다."
+            "value": "로그인하면 추억을 시작할 수 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要登录才能创建回忆。"
+            "value": "登录即可开始一段回忆。"
           }
         }
       }
@@ -13711,49 +13711,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t save memory. %@"
+            "value": "We couldn’t save this memory. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erinnerung konnte nicht gespeichert werden. %@"
+            "value": "Diese Erinnerung konnte nicht gespeichert werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo guardar la memoria. %@"
+            "value": "No pudimos guardar esta memoria. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d’enregistrer le souvenir. %@"
+            "value": "Nous n’avons pas pu enregistrer ce souvenir. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile salvare il ricordo. %@"
+            "value": "Non siamo riusciti a salvare questo ricordo. %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "メモリーを保存できませんでした。%@"
+            "value": "このメモリーを保存できませんでした。%@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추억을 저장할 수 없습니다. %@"
+            "value": "이 추억을 저장하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法保存回忆。%@"
+            "value": "未能保存这段回忆。%@"
           }
         }
       }
@@ -13764,49 +13764,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t update memory. %@"
+            "value": "We couldn’t update this memory. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erinnerung konnte nicht aktualisiert werden. %@"
+            "value": "Diese Erinnerung konnte nicht aktualisiert werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo actualizar la memoria. %@"
+            "value": "No pudimos actualizar esta memoria. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de mettre à jour le souvenir. %@"
+            "value": "Nous n’avons pas pu mettre à jour ce souvenir. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile aggiornare il ricordo. %@"
+            "value": "Non siamo riusciti ad aggiornare questo ricordo. %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "メモリーを更新できませんでした。%@"
+            "value": "このメモリーを更新できませんでした。%@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추억을 업데이트할 수 없습니다. %@"
+            "value": "이 추억을 업데이트하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法更新回忆。%@"
+            "value": "未能更新这段回忆。%@"
           }
         }
       }
@@ -13817,49 +13817,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t delete memory. %@"
+            "value": "We couldn’t delete this memory. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Erinnerung konnte nicht gelöscht werden. %@"
+            "value": "Diese Erinnerung konnte nicht gelöscht werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo eliminar la memoria. %@"
+            "value": "No pudimos eliminar esta memoria. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de supprimer le souvenir. %@"
+            "value": "Nous n’avons pas pu supprimer ce souvenir. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile eliminare il ricordo. %@"
+            "value": "Non siamo riusciti a eliminare questo ricordo. %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "メモリーを削除できませんでした。%@"
+            "value": "このメモリーを削除できませんでした。%@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "추억을 삭제할 수 없습니다. %@"
+            "value": "이 추억을 삭제하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法删除回忆。%@"
+            "value": "未能删除这段回忆。%@"
           }
         }
       }
@@ -13870,31 +13870,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t load notifications. %@"
+            "value": "We couldn’t load your notifications. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Benachrichtigungen konnten nicht geladen werden. %@"
+            "value": "Deine Benachrichtigungen konnten nicht geladen werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudieron cargar las notificaciones. %@"
+            "value": "No pudimos cargar tus notificaciones. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de charger les notifications. %@"
+            "value": "Nous n’avons pas pu charger vos notifications. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile caricare le notifiche. %@"
+            "value": "Non siamo riusciti a caricare le tue notifiche. %@"
           }
         },
         "ja": {
@@ -13906,13 +13906,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "알림을 불러올 수 없습니다. %@"
+            "value": "알림을 불러오지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法加载通知。%@"
+            "value": "未能加载您的通知。%@"
           }
         }
       }
@@ -13923,31 +13923,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't load notification preferences. %@"
+            "value": "We couldn’t load your notification settings. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Benachrichtigungseinstellungen konnten nicht geladen werden. %@"
+            "value": "Deine Benachrichtigungseinstellungen konnten nicht geladen werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudieron cargar las preferencias de notificación. %@"
+            "value": "No pudimos cargar tus ajustes de notificación. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de charger les préférences de notification. %@"
+            "value": "Nous n’avons pas pu charger vos réglages de notification. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile caricare le preferenze di notifica. %@"
+            "value": "Non siamo riusciti a caricare le tue impostazioni di notifica. %@"
           }
         },
         "ja": {
@@ -13959,13 +13959,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "알림 환경설정을 불러올 수 없습니다. %@"
+            "value": "알림 설정을 불러오지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法加载通知偏好设置。%@"
+            "value": "未能加载您的通知设置。%@"
           }
         }
       }
@@ -13976,31 +13976,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't save notification preferences. %@"
+            "value": "We couldn’t save your notification settings. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Benachrichtigungseinstellungen konnten nicht gespeichert werden. %@"
+            "value": "Deine Benachrichtigungseinstellungen konnten nicht gespeichert werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudieron guardar las preferencias de notificación. %@"
+            "value": "No pudimos guardar tus ajustes de notificación. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d’enregistrer les préférences de notification. %@"
+            "value": "Nous n’avons pas pu enregistrer vos réglages de notification. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile salvare le preferenze di notifica. %@"
+            "value": "Non siamo riusciti a salvare le tue impostazioni di notifica. %@"
           }
         },
         "ja": {
@@ -14012,13 +14012,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "알림 환경설정을 저장할 수 없습니다. %@"
+            "value": "알림 설정을 저장하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法保存通知偏好设置。%@"
+            "value": "未能保存您的通知设置。%@"
           }
         }
       }
@@ -14029,31 +14029,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t load your invite. %@"
+            "value": "We couldn’t load your invite. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ihre Einladung konnte nicht geladen werden. %@"
+            "value": "Deine Einladung konnte nicht geladen werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo cargar tu invitación. %@"
+            "value": "No pudimos cargar tu invitación. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de charger votre invitation. %@"
+            "value": "Nous n’avons pas pu charger votre invitation. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile caricare il tuo invito. %@"
+            "value": "Non siamo riusciti a caricare il tuo invito. %@"
           }
         },
         "ja": {
@@ -14065,13 +14065,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "초대를 불러올 수 없습니다. %@"
+            "value": "초대를 불러오지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法加载您的邀请。%@"
+            "value": "未能加载您的邀请。%@"
           }
         }
       }
@@ -14082,49 +14082,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "You need to be signed in to send an invite."
+            "value": "Sign in to send an invite."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sie müssen angemeldet sein, um eine Einladung zu senden."
+            "value": "Melde dich an, um eine Einladung zu senden."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Debes iniciar sesión para enviar una invitación."
+            "value": "Inicia sesión para enviar una invitación."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vous devez être connecté pour envoyer une invitation."
+            "value": "Connectez-vous pour envoyer une invitation."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Devi accedere per inviare un invito."
+            "value": "Accedi per inviare un invito."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "招待を送信するにはサインインが必要です。"
+            "value": "サインインすると招待を送れます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "초대를 보내려면 로그인이 필요합니다."
+            "value": "로그인하면 초대를 보낼 수 있어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "需要登录才能发送邀请。"
+            "value": "登录即可发送邀请。"
           }
         }
       }
@@ -14135,31 +14135,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t send your invite. %@"
+            "value": "We couldn’t send your invite. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Einladung konnte nicht gesendet werden. %@"
+            "value": "Deine Einladung konnte nicht gesendet werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo enviar tu invitación. %@"
+            "value": "No pudimos enviar tu invitación. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible d’envoyer votre invitation. %@"
+            "value": "Nous n’avons pas pu envoyer votre invitation. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile inviare il tuo invito. %@"
+            "value": "Non siamo riusciti a inviare il tuo invito. %@"
           }
         },
         "ja": {
@@ -14171,13 +14171,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "초대를 보낼 수 없습니다. %@"
+            "value": "초대를 보내지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法发送您的邀请。%@"
+            "value": "未能发送您的邀请。%@"
           }
         }
       }
@@ -14188,31 +14188,31 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn’t revoke the invite. %@"
+            "value": "We couldn’t revoke your invite. %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Einladung konnte nicht widerrufen werden. %@"
+            "value": "Deine Einladung konnte nicht widerrufen werden. %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo revocar la invitación. %@"
+            "value": "No pudimos revocar tu invitación. %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de révoquer l’invitation. %@"
+            "value": "Nous n’avons pas pu révoquer votre invitation. %@"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile revocare l’invito. %@"
+            "value": "Non siamo riusciti a revocare il tuo invito. %@"
           }
         },
         "ja": {
@@ -14224,13 +14224,13 @@
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "초대를 철회할 수 없습니다. %@"
+            "value": "초대를 철회하지 못했어요. %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法撤销邀请。%@"
+            "value": "未能撤销您的邀请。%@"
           }
         }
       }
@@ -14241,49 +14241,49 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't render ticket."
+            "value": "We couldn’t generate this ticket."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ticket konnte nicht gerendert werden."
+            "value": "Dieses Ticket konnte nicht erstellt werden."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "No se pudo generar el ticket."
+            "value": "No pudimos generar este ticket."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossible de générer le billet."
+            "value": "Nous n’avons pas pu générer ce billet."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Impossibile generare il biglietto."
+            "value": "Non siamo riusciti a generare questo biglietto."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "チケットを生成できませんでした。"
+            "value": "このチケットを作成できませんでした。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "티켓을 생성할 수 없습니다."
+            "value": "이 티켓을 만들지 못했어요."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "无法生成门票。"
+            "value": "未能生成这张门票。"
           }
         }
       }
