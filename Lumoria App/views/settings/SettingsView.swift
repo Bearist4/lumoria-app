@@ -29,6 +29,8 @@ struct SettingsView: View {
     #endif
     @Environment(\.brandSlug) private var brandSlug
     @State private var path: [SettingsDestination] = []
+    @State private var showLogoutConfirm = false
+    @State private var isSigningOut = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -87,6 +89,10 @@ struct SettingsView: View {
                     }
                     #endif
 
+                    sectionCard {
+                        logoutRow
+                    }
+
                     footer
                         .padding(.top, 24)
                 }
@@ -100,6 +106,18 @@ struct SettingsView: View {
             #if DEBUG
             .lumoriaToast($marketingSeedToast)
             #endif
+            .confirmationDialog(
+                "Log out of Lumoria?",
+                isPresented: $showLogoutConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Log out", role: .destructive) {
+                    Task { await signOut() }
+                }
+                Button("Stay signed in", role: .cancel) { }
+            } message: {
+                Text("You can log back in anytime with the same email.")
+            }
             .navigationDestination(for: SettingsDestination.self) { dest in
                 switch dest {
                 case .profile:       ProfileView()
@@ -278,6 +296,50 @@ struct SettingsView: View {
     private var appVersion: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         return v
+    }
+
+    // MARK: - Log out
+
+    private var logoutRow: some View {
+        Button {
+            showLogoutConfirm = true
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "rectangle.portrait.and.arrow.right")
+                    .font(.headline)
+                    .foregroundStyle(Color.Feedback.Danger.icon)
+                    .frame(width: 32, height: 32)
+
+                Text("Log out")
+                    .font(.body)
+                    .foregroundStyle(Color.Feedback.Danger.text)
+
+                Spacer(minLength: 0)
+
+                if isSigningOut {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(Color.Feedback.Danger.icon)
+                        .padding(.trailing, 8)
+                }
+            }
+            .padding(8)
+            .frame(height: 64)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isSigningOut)
+    }
+
+    private func signOut() async {
+        guard !isSigningOut else { return }
+        isSigningOut = true
+        defer { isSigningOut = false }
+        do {
+            try await supabase.auth.signOut()
+        } catch {
+            print("[SettingsView] signOut failed:", error)
+        }
     }
 
     // MARK: - Marketing seed (Debug only)
