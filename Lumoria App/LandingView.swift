@@ -36,7 +36,8 @@ struct LandingView: View {
 
                 Text("By signing up you agree to our Terms and Privacy Policy.")
                     .font(.footnote)
-                    .foregroundStyle(Color.Text.disabled)
+                    .foregroundStyle(Color.Text.secondary)
+                    .tint(Color.Text.primary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
 
@@ -93,10 +94,11 @@ struct LandingView: View {
     // MARK: - Headline
 
     private var headlineView: some View {
-        // "Tickets that last" black + "forever" with brand rainbow gradient
+        // "Tickets that last" in primary text (adapts to dark mode) +
+        // "forever" with brand rainbow gradient.
         // Gradient L→R: blue #57B7F5 · orange #FFA96C · yellow #FDDC51 · pink #FF9CCC
         (Text("Tickets that last ")
-            .foregroundStyle(Color.black)
+            .foregroundStyle(Color.Text.primary)
         + Text("forever")
             .foregroundStyle(
                 LinearGradient(

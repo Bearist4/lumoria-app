@@ -55,9 +55,6 @@ struct SettingsView: View {
                         settingsRow(icon: "gift",           title: "Referral / Invite", right: .chevron) {
                             path.append(.referral)
                         }
-                        settingsRow(icon: "rosette",        title: "Plan",             right: .chevron) {
-                            path.append(.plan)
-                        }
                     }
 
                     sectionCard {
@@ -106,15 +103,14 @@ struct SettingsView: View {
             #if DEBUG
             .lumoriaToast($marketingSeedToast)
             #endif
-            .confirmationDialog(
+            .alert(
                 "Log out of Lumoria?",
-                isPresented: $showLogoutConfirm,
-                titleVisibility: .visible
+                isPresented: $showLogoutConfirm
             ) {
+                Button("Stay signed in", role: .cancel) { }
                 Button("Log out", role: .destructive) {
                     Task { await signOut() }
                 }
-                Button("Stay signed in", role: .cancel) { }
             } message: {
                 Text("You can log back in anytime with the same email.")
             }
@@ -307,7 +303,7 @@ struct SettingsView: View {
             HStack(spacing: 12) {
                 Image(systemName: "rectangle.portrait.and.arrow.right")
                     .font(.headline)
-                    .foregroundStyle(Color.Feedback.Danger.icon)
+                    .foregroundStyle(Color.Feedback.Danger.text)
                     .frame(width: 32, height: 32)
 
                 Text("Log out")

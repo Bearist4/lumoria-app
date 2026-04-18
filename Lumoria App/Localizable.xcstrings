@@ -2198,49 +2198,49 @@
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mit der Registrierung akzeptierst du unsere AGB und Datenschutzerklärung."
+            "value": "Mit der Anmeldung stimmst du unseren [Nutzungsbedingungen](https://getlumoria.app/terms) und unserer [Datenschutzerklärung](https://getlumoria.app/privacy) zu."
           }
         },
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "By signing up you agree to our Terms and Privacy Policy."
+            "value": "By signing up you agree to our [Terms](https://getlumoria.app/terms) and [Privacy Policy](https://getlumoria.app/privacy)."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Al registrarte aceptas nuestras Condiciones y Política de privacidad."
+            "value": "Al registrarte aceptas nuestros [Términos](https://getlumoria.app/terms) y nuestra [Política de privacidad](https://getlumoria.app/privacy)."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "En vous inscrivant, vous acceptez nos Conditions et notre Politique de confidentialité."
+            "value": "En vous inscrivant, vous acceptez nos [Conditions d’utilisation](https://getlumoria.app/terms) et notre [Politique de confidentialité](https://getlumoria.app/privacy)."
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Registrandoti accetti i nostri Termini e l'Informativa sulla privacy."
+            "value": "Registrandoti accetti i nostri [Termini](https://getlumoria.app/terms) e la nostra [Privacy policy](https://getlumoria.app/privacy)."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "登録すると、利用規約とプライバシーポリシーに同意したことになります。"
+            "value": "登録することで、[利用規約](https://getlumoria.app/terms)と[プライバシーポリシー](https://getlumoria.app/privacy)に同意したものとみなされます。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "가입하면 이용약관 및 개인정보처리방침에 동의하게 됩니다."
+            "value": "가입함으로써 [이용 약관](https://getlumoria.app/terms)과 [개인정보 처리방침](https://getlumoria.app/privacy)에 동의하게 됩니다."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "注册即表示你同意我们的条款和隐私政策。"
+            "value": "注册即表示您同意我们的[服务条款](https://getlumoria.app/terms)和[隐私政策](https://getlumoria.app/privacy)。"
           }
         }
       }

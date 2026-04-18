@@ -55,13 +55,8 @@ struct PrismTicketView: View {
             let bgMask = Image("prism-bg").resizable().frame(width: w, height: h)
 
             ZStack(alignment: .topLeading) {
-                // White base shows through the notches. Skipped when the
-                // surface wants true transparent cutouts (IM share card).
-                if fillsNotchCutouts {
-                    Color.white
-                }
-
-                // Aurora clipped to the notched ticket shape
+                // Aurora clipped to the notched ticket shape — notches
+                // stay transparent so the parent surface shows through.
                 PrismAurora()
                     .frame(width: w, height: h)
                     .mask(bgMask)

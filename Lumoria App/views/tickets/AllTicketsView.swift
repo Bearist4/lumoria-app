@@ -242,28 +242,29 @@ struct AllTicketsView: View {
         case verticalSingle(Ticket)
     }
 
+    /// Packs vertical tickets into side-by-side pairs regardless of
+    /// horizontal tickets interleaved between them. Preserves each
+    /// ticket's original creation order: the first vertical stays
+    /// in place and pulls the next available vertical forward to
+    /// pair with it. Horizontals keep their absolute position.
     private func rows(for tickets: [Ticket]) -> [GridRow] {
         var out: [GridRow] = []
-        var pending: Ticket?
+        var remaining = tickets
 
-        for ticket in tickets {
-            switch ticket.orientation {
+        while !remaining.isEmpty {
+            let first = remaining.removeFirst()
+            switch first.orientation {
             case .horizontal:
-                if let p = pending {
-                    out.append(.verticalSingle(p))
-                    pending = nil
-                }
-                out.append(.horizontal(ticket))
+                out.append(.horizontal(first))
             case .vertical:
-                if let p = pending {
-                    out.append(.verticalPair(p, ticket))
-                    pending = nil
+                if let pairIdx = remaining.firstIndex(where: { $0.orientation == .vertical }) {
+                    let partner = remaining.remove(at: pairIdx)
+                    out.append(.verticalPair(first, partner))
                 } else {
-                    pending = ticket
+                    out.append(.verticalSingle(first))
                 }
             }
         }
-        if let p = pending { out.append(.verticalSingle(p)) }
         return out
     }
 }
