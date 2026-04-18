@@ -1,7 +1,7 @@
 {
   "images" : [
     {
-      "filename" : "AppIcon.pdf",
+      "filename" : "logo.pdf",
       "idiom" : "universal"
     },
     {
@@ -11,7 +11,7 @@
           "value" : "dark"
         }
       ],
-      "filename" : "dark.pdf",
+      "filename" : "logo_dark.pdf",
       "idiom" : "universal"
     }
   ],
