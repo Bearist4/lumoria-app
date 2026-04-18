@@ -30,14 +30,12 @@ struct TemplateDetailsSheet: View {
                         .padding(.top, 8)
 
                     Text("In this template")
-                        .font(.system(size: 22, weight: .bold))
-                        .tracking(-0.26)
+                        .font(.title2.bold())
                         .foregroundStyle(Color.Text.primary)
                         .padding(.top, 24)
 
                     Text("The following information is needed in order to generate the ticket.")
-                        .font(.system(size: 17, weight: .regular))
-                        .tracking(-0.43)
+                        .font(.body)
                         .foregroundStyle(Color.Text.secondary)
 
                     LazyVGrid(columns: columns, spacing: 12) {
@@ -47,9 +45,8 @@ struct TemplateDetailsSheet: View {
                     }
                     .padding(.top, 4)
 
-                    Text("These information does not need to be accurate as you are not creating a real, usable ticket. Only the airport codes need to be accurate to generate a path between them.")
-                        .font(.system(size: 13, weight: .regular))
-                        .tracking(-0.08)
+                    Text("This info doesn't need to be accurate — you're not making a real ticket. Only airport codes must be real, to draw the path.")
+                        .font(.footnote)
                         .foregroundStyle(Color.Text.secondary)
                         .padding(.top, 4)
                 }
@@ -59,6 +56,12 @@ struct TemplateDetailsSheet: View {
         }
         .background(Color.Background.default)
         .presentationDragIndicator(.visible)
+        .onAppear {
+            Analytics.track(.templateDetailsViewed(
+                category: kind.analyticsCategory,
+                template: kind.analyticsTemplate
+            ))
+        }
     }
 
     // MARK: - Close row
@@ -94,13 +97,12 @@ struct TemplateDetailsSheet: View {
     private func requirementPill(_ item: TemplateRequirement) -> some View {
         VStack(spacing: 4) {
             Image(systemName: item.systemImage)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.headline)
                 .foregroundStyle(Color.Text.primary)
                 .frame(width: 32, height: 32)
 
             Text(item.label)
-                .font(.system(size: 15, weight: .regular))
-                .tracking(-0.23)
+                .font(.subheadline)
                 .foregroundStyle(Color.Text.primary)
                 .lineLimit(1)
         }

@@ -118,6 +118,10 @@ enum AppErrorDomainProp: String, CaseIterable {
     case auth, ticket, memory, invite, export, notification, network, supabase, unknown
 }
 
+enum MapPinTypeProp: String, CaseIterable {
+    case origin, destination
+}
+
 /// Environment tag applied to every event as a universal property.
 enum AnalyticsEnvironment: String {
     case dev, prod

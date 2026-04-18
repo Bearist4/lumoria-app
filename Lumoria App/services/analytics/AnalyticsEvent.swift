@@ -64,6 +64,9 @@ enum AnalyticsEvent {
     case gallerySortApplied(sortType: GallerySortProp)
     case galleryRefreshed(ticketCount: Int)
     case memoryOpened(source: TicketSourceProp, ticketCount: Int, memoryIdHash: String)
+    case mapOpened(memoryIdHash: String, pinCount: Int, ticketCount: Int)
+    case mapPinTapped(category: TicketCategoryProp, template: TicketTemplateProp, pinType: MapPinTypeProp)
+    case templateDetailsViewed(category: TicketCategoryProp, template: TicketTemplateProp)
     case memoryEdited(nameChanged: Bool, emojiChanged: Bool, colorChanged: Bool,
                       memoryIdHash: String)
     case memoryDeleted(ticketCount: Int, memoryIdHash: String)
@@ -177,6 +180,9 @@ extension AnalyticsEvent {
         case .gallerySortApplied: return "Gallery Sort Applied"
         case .galleryRefreshed: return "Gallery Refreshed"
         case .memoryOpened: return "Memory Opened"
+        case .mapOpened: return "Map Opened"
+        case .mapPinTapped: return "Map Pin Tapped"
+        case .templateDetailsViewed: return "Template Details Viewed"
         case .memoryEdited: return "Memory Edited"
         case .memoryDeleted: return "Memory Deleted"
         case .ticketAddedToMemory: return "Ticket Added To Memory"
@@ -341,6 +347,17 @@ extension AnalyticsEvent {
             return ["source": source.rawValue,
                     "ticket_count": count,
                     "memory_id_hash": hash]
+        case .mapOpened(let hash, let pins, let tickets):
+            return ["memory_id_hash": hash,
+                    "pin_count": pins,
+                    "ticket_count": tickets]
+        case .mapPinTapped(let cat, let tmpl, let pinType):
+            return ["ticket_category": cat.rawValue,
+                    "ticket_template": tmpl.rawValue,
+                    "pin_type": pinType.rawValue]
+        case .templateDetailsViewed(let cat, let tmpl):
+            return ["ticket_category": cat.rawValue,
+                    "ticket_template": tmpl.rawValue]
         case .memoryEdited(let nameChanged, let emojiChanged, let colorChanged, let hash):
             return ["name_changed": nameChanged,
                     "emoji_changed": emojiChanged,
