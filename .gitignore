@@ -50,3 +50,6 @@ fastlane/test_output
 .idea/
 *.swp
 *.swo
+
+# Secrets
+Amplitude.xcconfig

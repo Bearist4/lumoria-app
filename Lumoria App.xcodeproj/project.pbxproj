@@ -14,6 +14,9 @@
 		694D47952F8E2DD0007340A4 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47942F8E2DD0007340A4 /* Realtime */; };
 		694D47972F8E2DD0007340A4 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47962F8E2DD0007340A4 /* Storage */; };
 		694D47992F8E2DD0007340A4 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 694D47982F8E2DD0007340A4 /* Supabase */; };
+		69B770872F929AC8003B520F /* Messages.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69B770862F929AC8003B520F /* Messages.framework */; };
+		69B770932F929ACA003B520F /* LumoriaStickers.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 69B770842F929AC8003B520F /* LumoriaStickers.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		69B770A92F93BBBF003B520F /* AmplitudeUnified in Frameworks */ = {isa = PBXBuildFile; productRef = 69B770A82F93BBBF003B520F /* AmplitudeUnified */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,13 +34,46 @@
 			remoteGlobalIDString = 694D475A2F8D0EDE007340A4;
 			remoteInfo = "Lumoria App";
 		};
+		69B770912F929ACA003B520F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 694D47532F8D0EDE007340A4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 69B770832F929AC8003B520F;
+			remoteInfo = LumoriaStickers;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		69B770982F929ACA003B520F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				69B770932F929ACA003B520F /* LumoriaStickers.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		694D475B2F8D0EDE007340A4 /* Lumoria App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Lumoria App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		694D476A2F8D0EDF007340A4 /* Lumoria AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Lumoria AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		694D47742F8D0EE0007340A4 /* Lumoria AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Lumoria AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		69B770842F929AC8003B520F /* LumoriaStickers.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LumoriaStickers.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		69B770862F929AC8003B520F /* Messages.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Messages.framework; path = System/Library/Frameworks/Messages.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		69B770A02F929FA6003B520F /* Exceptions for "LumoriaStickers" folder in "LumoriaStickers" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 69B770832F929AC8003B520F /* LumoriaStickers */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		694D475D2F8D0EDE007340A4 /* Lumoria App */ = {
@@ -55,6 +91,14 @@
 			path = "Lumoria AppUITests";
 			sourceTree = "<group>";
 		};
+		69B770882F929AC8003B520F /* LumoriaStickers */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				69B770A02F929FA6003B520F /* Exceptions for "LumoriaStickers" folder in "LumoriaStickers" target */,
+			);
+			path = LumoriaStickers;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -63,6 +107,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				694D47932F8E2DD0007340A4 /* PostgREST in Frameworks */,
+				69B770A92F93BBBF003B520F /* AmplitudeUnified in Frameworks */,
 				692E418D2F8FF4E000733174 /* ProgressiveBlurHeader in Frameworks */,
 				694D47912F8E2DD0007340A4 /* Functions in Frameworks */,
 				694D47992F8E2DD0007340A4 /* Supabase in Frameworks */,
@@ -86,6 +131,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		69B770812F929AC8003B520F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				69B770872F929AC8003B520F /* Messages.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -95,6 +148,8 @@
 				694D475D2F8D0EDE007340A4 /* Lumoria App */,
 				694D476D2F8D0EDF007340A4 /* Lumoria AppTests */,
 				694D47772F8D0EE0007340A4 /* Lumoria AppUITests */,
+				69B770882F929AC8003B520F /* LumoriaStickers */,
+				69B770852F929AC8003B520F /* Frameworks */,
 				694D475C2F8D0EDE007340A4 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -105,8 +160,17 @@
 				694D475B2F8D0EDE007340A4 /* Lumoria App.app */,
 				694D476A2F8D0EDF007340A4 /* Lumoria AppTests.xctest */,
 				694D47742F8D0EE0007340A4 /* Lumoria AppUITests.xctest */,
+				69B770842F929AC8003B520F /* LumoriaStickers.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		69B770852F929AC8003B520F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				69B770862F929AC8003B520F /* Messages.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -119,10 +183,12 @@
 				694D47572F8D0EDE007340A4 /* Sources */,
 				694D47582F8D0EDE007340A4 /* Frameworks */,
 				694D47592F8D0EDE007340A4 /* Resources */,
+				69B770982F929ACA003B520F /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				69B770922F929ACA003B520F /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				694D475D2F8D0EDE007340A4 /* Lumoria App */,
@@ -136,6 +202,7 @@
 				694D47962F8E2DD0007340A4 /* Storage */,
 				694D47982F8E2DD0007340A4 /* Supabase */,
 				692E418C2F8FF4E000733174 /* ProgressiveBlurHeader */,
+				69B770A82F93BBBF003B520F /* AmplitudeUnified */,
 			);
 			productName = "Lumoria App";
 			productReference = 694D475B2F8D0EDE007340A4 /* Lumoria App.app */;
@@ -187,6 +254,28 @@
 			productReference = 694D47742F8D0EE0007340A4 /* Lumoria AppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		69B770832F929AC8003B520F /* LumoriaStickers */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 69B770952F929ACA003B520F /* Build configuration list for PBXNativeTarget "LumoriaStickers" */;
+			buildPhases = (
+				69B770802F929AC8003B520F /* Sources */,
+				69B770812F929AC8003B520F /* Frameworks */,
+				69B770822F929AC8003B520F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				69B770882F929AC8003B520F /* LumoriaStickers */,
+			);
+			name = LumoriaStickers;
+			packageProductDependencies = (
+			);
+			productName = LumoriaStickers;
+			productReference = 69B770842F929AC8003B520F /* LumoriaStickers.appex */;
+			productType = "com.apple.product-type.app-extension.messages";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -208,6 +297,9 @@
 						CreatedOnToolsVersion = 26.4;
 						TestTargetID = 694D475A2F8D0EDE007340A4;
 					};
+					69B770832F929AC8003B520F = {
+						CreatedOnToolsVersion = 26.4;
+					};
 				};
 			};
 			buildConfigurationList = 694D47562F8D0EDE007340A4 /* Build configuration list for PBXProject "Lumoria App" */;
@@ -222,7 +314,6 @@
 				ja,
 				ko,
 				"zh-Hans",
-				"pt-PT",
 				es,
 			);
 			mainGroup = 694D47522F8D0EDE007340A4;
@@ -230,6 +321,7 @@
 			packageReferences = (
 				694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				692E418B2F8FF4E000733174 /* XCRemoteSwiftPackageReference "ProgressiveBlurHeader" */,
+				69B770A72F93BBBF003B520F /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 694D475C2F8D0EDE007340A4 /* Products */;
@@ -239,6 +331,7 @@
 				694D475A2F8D0EDE007340A4 /* Lumoria App */,
 				694D47692F8D0EDF007340A4 /* Lumoria AppTests */,
 				694D47732F8D0EE0007340A4 /* Lumoria AppUITests */,
+				69B770832F929AC8003B520F /* LumoriaStickers */,
 			);
 		};
 /* End PBXProject section */
@@ -259,6 +352,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		694D47722F8D0EE0007340A4 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69B770822F929AC8003B520F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -289,6 +389,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		69B770802F929AC8003B520F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -301,6 +408,11 @@
 			isa = PBXTargetDependency;
 			target = 694D475A2F8D0EDE007340A4 /* Lumoria App */;
 			targetProxy = 694D47752F8D0EE0007340A4 /* PBXContainerItemProxy */;
+		};
+		69B770922F929ACA003B520F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 69B770832F929AC8003B520F /* LumoriaStickers */;
+			targetProxy = 69B770912F929ACA003B520F /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -431,23 +543,18 @@
 		694D477F2F8D0EE0007340A4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Transpride";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Noir AppIcon Earth AppIcon Outline";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Lumoria App/Lumoria App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UV5KDNCKWS;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Lumoria;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Lumoria saves your exported tickets to your photo library.";
-				INFOPLIST_KEY_UIAppFonts = "Doto-Black.ttf";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -473,23 +580,18 @@
 		694D47802F8D0EE0007340A4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Transpride";
+				ASSETCATALOG_COMPILER_ALTERNATE_APPICON_NAMES = "AppIcon Noir AppIcon Earth AppIcon Outline";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				CODE_SIGN_ENTITLEMENTS = "Lumoria App/Lumoria App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = UV5KDNCKWS;
 				ENABLE_PREVIEWS = YES;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Lumoria;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
-				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "Lumoria saves your exported tickets to your photo library.";
-				INFOPLIST_KEY_UIAppFonts = "Doto-Black.ttf";
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -596,6 +698,66 @@
 			};
 			name = Release;
 		};
+		69B770962F929ACA003B520F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
+				CODE_SIGN_ENTITLEMENTS = LumoriaStickers/LumoriaStickers.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UV5KDNCKWS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LumoriaStickers/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lumoria;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "bearista.Lumoria-App.LumoriaStickers";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		69B770972F929ACA003B520F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "iMessage App Icon";
+				CODE_SIGN_ENTITLEMENTS = LumoriaStickers/LumoriaStickers.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UV5KDNCKWS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LumoriaStickers/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Lumoria;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "bearista.Lumoria-App.LumoriaStickers";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -635,6 +797,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		69B770952F929ACA003B520F /* Build configuration list for PBXNativeTarget "LumoriaStickers" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				69B770962F929ACA003B520F /* Debug */,
+				69B770972F929ACA003B520F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -652,6 +823,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 2.5.1;
+			};
+		};
+		69B770A72F93BBBF003B520F /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/amplitude/AmplitudeUnified-Swift";
+			requirement = {
+				branch = main;
+				kind = branch;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -691,6 +870,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		69B770A82F93BBBF003B520F /* AmplitudeUnified */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69B770A72F93BBBF003B520F /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */;
+			productName = AmplitudeUnified;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

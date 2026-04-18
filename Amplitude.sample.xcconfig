@@ -1,0 +1,5 @@
+// Amplitude.sample.xcconfig
+// Copy this file to `Amplitude.xcconfig` and fill in your project's Amplitude API key.
+// `Amplitude.xcconfig` is gitignored so your real key never lands in history.
+
+AMPLITUDE_API_KEY = YOUR_AMPLITUDE_API_KEY_HERE
