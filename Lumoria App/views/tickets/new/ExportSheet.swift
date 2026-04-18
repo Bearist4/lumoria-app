@@ -516,7 +516,11 @@ private struct CameraRollView: View {
             }
             Picker(title, selection: selection) {
                 ForEach(T.allCases) { value in
-                    Text(value.rawValue).tag(value)
+                    // LocalizedStringKey created at runtime — catalog keys
+                    // for translatable raw values ("Standard", "Full ticket",
+                    // "Square") are added to Localizable.xcstrings manually
+                    // since Xcode can't statically extract them from here.
+                    Text(LocalizedStringKey(value.rawValue)).tag(value)
                 }
             }
             .pickerStyle(.segmented)
