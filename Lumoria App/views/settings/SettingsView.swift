@@ -21,6 +21,12 @@ enum SettingsDestination: Hashable {
 struct SettingsView: View {
 
     @EnvironmentObject private var profileStore: ProfileStore
+    #if DEBUG
+    @EnvironmentObject private var ticketsStore: TicketsStore
+    @EnvironmentObject private var memoriesStore: MemoriesStore
+    @State private var marketingSeedToast: String? = nil
+    @State private var isSeedingMarketing = false
+    #endif
     @Environment(\.brandSlug) private var brandSlug
     @State private var path: [SettingsDestination] = []
 
@@ -67,6 +73,20 @@ struct SettingsView: View {
                         }
                     }
 
+                    #if DEBUG
+                    sectionCard {
+                        settingsRow(
+                            icon: "wand.and.stars",
+                            title: "Seed marketing content",
+                            right: .chevron
+                        ) {
+                            Task { await runMarketingSeed() }
+                        }
+                        .disabled(isSeedingMarketing)
+                        .opacity(isSeedingMarketing ? 0.5 : 1)
+                    }
+                    #endif
+
                     footer
                         .padding(.top, 24)
                 }
@@ -77,6 +97,9 @@ struct SettingsView: View {
             .background(Color.Background.default.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { Analytics.track(.settingsOpened) }
+            #if DEBUG
+            .lumoriaToast($marketingSeedToast)
+            #endif
             .navigationDestination(for: SettingsDestination.self) { dest in
                 switch dest {
                 case .profile:       ProfileView()
@@ -256,6 +279,24 @@ struct SettingsView: View {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         return v
     }
+
+    // MARK: - Marketing seed (Debug only)
+
+    #if DEBUG
+    @MainActor
+    private func runMarketingSeed() async {
+        guard !isSeedingMarketing else { return }
+        isSeedingMarketing = true
+        defer { isSeedingMarketing = false }
+
+        marketingSeedToast = "Seeding marketing content…"
+        let result = await MarketingSeeder.seed(
+            ticketsStore: ticketsStore,
+            memoriesStore: memoriesStore
+        )
+        marketingSeedToast = "Seeded \(result.ticketCount) tickets and \(result.memoryCount) memories."
+    }
+    #endif
 }
 
 // MARK: - Preview
