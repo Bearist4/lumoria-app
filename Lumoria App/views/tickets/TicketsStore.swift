@@ -3,7 +3,7 @@
 //  Lumoria App
 //
 //  Loads / creates / deletes / updates the signed-in user's tickets, and
-//  manages their membership in collections via the `collection_tickets`
+//  manages their membership in memories via the `memory_tickets`
 //  junction table.
 //
 
@@ -36,7 +36,7 @@ final class TicketsStore: ObservableObject {
         do {
             let rows: [TicketRow] = try await supabase
                 .from("tickets")
-                .select("*, collection_tickets(collection_id)")
+                .select("*, memory_tickets(memory_id)")
                 .order("created_at", ascending: false)
                 .execute()
                 .value
@@ -49,6 +49,7 @@ final class TicketsStore: ObservableObject {
                 }
             }
             errorMessage = nil
+            StickerRenderService.shared.reconcile(with: tickets)
         } catch is CancellationError {
             // View dismissed mid-load — normal, don't surface.
         } catch let error as URLError where error.code == .cancelled {
@@ -56,6 +57,7 @@ final class TicketsStore: ObservableObject {
         } catch {
             errorMessage = "Couldn’t load tickets. \(error.localizedDescription)"
             print("[TicketsStore] load failed:", error)
+            Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.load"))
         }
     }
 
@@ -65,7 +67,10 @@ final class TicketsStore: ObservableObject {
     func create(
         payload: TicketPayload,
         orientation: TicketOrientation,
-        collectionIds: [UUID] = []
+        memoryIds: [UUID] = [],
+        originLocation: TicketLocation? = nil,
+        destinationLocation: TicketLocation? = nil,
+        styleId: String? = nil
     ) async -> Ticket? {
 
         let userId: UUID
@@ -79,38 +84,45 @@ final class TicketsStore: ObservableObject {
 
         do {
             let json = try TicketCodec.encode(payload)
+            let primaryEnc   = try originLocation.map { try TicketLocation.encrypt($0) }
+            let secondaryEnc = try destinationLocation.map { try TicketLocation.encrypt($0) }
             let insert = NewTicketRow(
                 userId: userId,
                 templateKind: payload.kind.rawValue,
                 orientation: orientation.rawValue,
-                payload: json
+                payload: json,
+                locationPrimaryEnc: primaryEnc,
+                locationSecondaryEnc: secondaryEnc,
+                styleId: styleId
             )
 
             let row: TicketRow = try await supabase
                 .from("tickets")
                 .insert(insert)
-                .select("*, collection_tickets(collection_id)")
+                .select("*, memory_tickets(memory_id)")
                 .single()
                 .execute()
                 .value
 
             var ticket = try row.toTicket()
 
-            // Attach to collections, if any were specified.
-            if !collectionIds.isEmpty {
+            // Attach to memories, if any were specified.
+            if !memoryIds.isEmpty {
                 try await insertMemberships(
                     ticketId: ticket.id,
-                    collectionIds: collectionIds
+                    memoryIds: memoryIds
                 )
-                ticket.collectionIds = collectionIds
+                ticket.memoryIds = memoryIds
             }
 
             tickets.insert(ticket, at: 0)
             errorMessage = nil
+            StickerRenderService.shared.render(ticket)
             return ticket
         } catch {
             errorMessage = "Couldn’t save ticket. \(error.localizedDescription)"
             print("[TicketsStore] create failed:", error)
+            Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.create"))
             return nil
         }
     }
@@ -118,22 +130,27 @@ final class TicketsStore: ObservableObject {
     // MARK: - Update
 
     /// Updates the ticket's payload / orientation. Does not touch membership —
-    /// use `setCollections(for:to:)` for that.
+    /// use `setMemories(for:to:)` for that.
     @discardableResult
     func update(_ ticket: Ticket) async -> Bool {
         do {
             let json = try TicketCodec.encode(ticket.payload)
+            let primaryEnc   = try ticket.originLocation.map { try TicketLocation.encrypt($0) }
+            let secondaryEnc = try ticket.destinationLocation.map { try TicketLocation.encrypt($0) }
             let patch = TicketUpdateRow(
                 templateKind: ticket.kind.rawValue,
                 orientation: ticket.orientation.rawValue,
-                payload: json
+                payload: json,
+                locationPrimaryEnc: primaryEnc,
+                locationSecondaryEnc: secondaryEnc,
+                styleId: ticket.styleId
             )
 
             let updated: TicketRow = try await supabase
                 .from("tickets")
                 .update(patch)
                 .eq("id", value: ticket.id.uuidString)
-                .select("*, collection_tickets(collection_id)")
+                .select("*, memory_tickets(memory_id)")
                 .single()
                 .execute()
                 .value
@@ -143,10 +160,12 @@ final class TicketsStore: ObservableObject {
                 tickets[idx] = rebuilt
             }
             errorMessage = nil
+            StickerRenderService.shared.render(rebuilt)
             return true
         } catch {
             errorMessage = "Couldn’t save changes. \(error.localizedDescription)"
             print("[TicketsStore] update failed:", error)
+            Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.update"))
             return false
         }
     }
@@ -163,24 +182,26 @@ final class TicketsStore: ObservableObject {
 
             tickets.removeAll { $0.id == ticket.id }
             errorMessage = nil
+            StickerRenderService.shared.delete(ticketId: ticket.id)
         } catch {
             errorMessage = "Couldn’t delete ticket. \(error.localizedDescription)"
             print("[TicketsStore] delete failed:", error)
+            Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.delete"))
         }
     }
 
-    // MARK: - Collection membership
+    // MARK: - Memory membership
 
-    /// Replaces the set of collections this ticket belongs to with the given
-    /// `collectionIds`. Inserts any new links, removes any stale ones.
-    func setCollections(
+    /// Replaces the set of memories this ticket belongs to with the given
+    /// `memoryIds`. Inserts any new links, removes any stale ones.
+    func setMemories(
         for ticketId: UUID,
-        to collectionIds: [UUID]
+        to memoryIds: [UUID]
     ) async {
         guard let idx = tickets.firstIndex(where: { $0.id == ticketId }) else { return }
 
-        let current = Set(tickets[idx].collectionIds)
-        let desired = Set(collectionIds)
+        let current = Set(tickets[idx].memoryIds)
+        let desired = Set(memoryIds)
         let toAdd   = desired.subtracting(current)
         let toRemove = current.subtracting(desired)
 
@@ -188,35 +209,36 @@ final class TicketsStore: ObservableObject {
             if !toAdd.isEmpty {
                 try await insertMemberships(
                     ticketId: ticketId,
-                    collectionIds: Array(toAdd)
+                    memoryIds: Array(toAdd)
                 )
             }
             if !toRemove.isEmpty {
                 try await supabase
-                    .from("collection_tickets")
+                    .from("memory_tickets")
                     .delete()
                     .eq("ticket_id", value: ticketId.uuidString)
-                    .in("collection_id", values: toRemove.map(\.uuidString))
+                    .in("memory_id", values: toRemove.map(\.uuidString))
                     .execute()
             }
-            tickets[idx].collectionIds = collectionIds
+            tickets[idx].memoryIds = memoryIds
             errorMessage = nil
         } catch {
-            errorMessage = "Couldn’t update collections. \(error.localizedDescription)"
-            print("[TicketsStore] setCollections failed:", error)
+            errorMessage = "Couldn’t update memories. \(error.localizedDescription)"
+            print("[TicketsStore] setMemories failed:", error)
+            Analytics.track(.appError(domain: .memory, code: (error as NSError).code.description, viewContext: "TicketsStore.setMemories"))
         }
     }
 
-    /// Adds or removes the ticket ↔ collection link, depending on current state.
-    func toggleMembership(ticketId: UUID, collectionId: UUID) async {
+    /// Adds or removes the ticket ↔ memory link, depending on current state.
+    func toggleMembership(ticketId: UUID, memoryId: UUID) async {
         guard let idx = tickets.firstIndex(where: { $0.id == ticketId }) else { return }
-        var ids = Set(tickets[idx].collectionIds)
-        if ids.contains(collectionId) {
-            ids.remove(collectionId)
+        var ids = Set(tickets[idx].memoryIds)
+        if ids.contains(memoryId) {
+            ids.remove(memoryId)
         } else {
-            ids.insert(collectionId)
+            ids.insert(memoryId)
         }
-        await setCollections(for: ticketId, to: Array(ids))
+        await setMemories(for: ticketId, to: Array(ids))
     }
 
     // MARK: - Queries
@@ -225,21 +247,21 @@ final class TicketsStore: ObservableObject {
         tickets.first { $0.id == id }
     }
 
-    func tickets(in collectionId: UUID) -> [Ticket] {
-        tickets.filter { $0.collectionIds.contains(collectionId) }
+    func tickets(in memoryId: UUID) -> [Ticket] {
+        tickets.filter { $0.memoryIds.contains(memoryId) }
     }
 
     // MARK: - Junction helper
 
     private func insertMemberships(
         ticketId: UUID,
-        collectionIds: [UUID]
+        memoryIds: [UUID]
     ) async throws {
-        let rows = collectionIds.map {
-            CollectionTicketRow(collectionId: $0, ticketId: ticketId)
+        let rows = memoryIds.map {
+            MemoryTicketRow(memoryId: $0, ticketId: ticketId)
         }
         try await supabase
-            .from("collection_tickets")
+            .from("memory_tickets")
             .insert(rows)
             .execute()
     }
@@ -257,13 +279,19 @@ extension TicketsStore {
     }
 
     /// Preview-only: seed first `count` sample tickets, each attached to
-    /// `collectionId`. Does NOT hit Supabase.
-    func seedSamples(in collectionId: UUID, count: Int) {
+    /// `memoryId`. Does NOT hit Supabase.
+    func seedSamples(in memoryId: UUID, count: Int) {
         tickets = Array(TicketsStore.sampleTickets.prefix(count)).map {
             var t = $0
-            t.collectionIds = [collectionId]
+            t.memoryIds = [memoryId]
             return t
         }
+    }
+
+    /// Preview-only — lets `#Preview` blocks drop a curated set of tickets
+    /// into the store without going through Supabase.
+    func seedForPreview(_ tickets: [Ticket]) {
+        self.tickets = tickets
     }
 
     static let sampleTickets: [Ticket] = [
