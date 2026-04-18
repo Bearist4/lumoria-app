@@ -41,8 +41,22 @@ struct NotificationCenterView: View {
         .background(Color.Background.default)
         .task { await store.load() }
         .onAppear {
-            Analytics.track(.notificationCenterOpened(unreadCount: store.notifications.filter { !$0.isRead }.count))
+            let unread = store.notifications.filter { !$0.isRead }
+            Analytics.track(.notificationCenterOpened(unreadCount: unread.count))
+            for n in unread {
+                Analytics.track(.notificationMarkedRead(notificationKind: Self.analyticsKind(n.kind)))
+            }
             store.markAllRead()
+        }
+    }
+
+    /// Maps domain notification kind to analytics wire-format.
+    private static func analyticsKind(_ kind: LumoriaNotification.Kind) -> NotificationKindProp {
+        switch kind {
+        case .throwback:  return .throwback
+        case .onboarding: return .onboarding
+        case .news:       return .news
+        case .link:       return .link
         }
     }
 
@@ -94,6 +108,10 @@ struct NotificationCenterView: View {
             List {
                 ForEach(store.notifications) { notification in
                     Button {
+                        Analytics.track(.notificationTapped(
+                            notificationKind: Self.analyticsKind(notification.kind),
+                            source: .center
+                        ))
                         onSelect(notification)
                         dismiss()
                     } label: {

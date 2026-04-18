@@ -1,5 +1,5 @@
 //
-//  CollectionDetailView.swift
+//  MemoryDetailView.swift
 //  Lumoria App
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=1166-42715
@@ -8,16 +8,19 @@
 import SwiftUI
 import ProgressiveBlurHeader
 
-struct CollectionDetailView: View {
+struct MemoryDetailView: View {
 
-    let collection: Collection
+    let memory: Memory
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
-    @EnvironmentObject private var collectionsStore: CollectionsStore
+    @EnvironmentObject private var memoriesStore: MemoriesStore
 
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
+    @State private var showMap = false
+    @State private var showNewTicket = false
+    @State private var showAddExistingTicket = false
     @State private var previewColorFamily: String?
 
     var body: some View {
@@ -39,52 +42,87 @@ struct CollectionDetailView: View {
             } content: {
                 VStack(alignment: .leading, spacing: 0) {
                     title
-                        .padding(.horizontal, 16)
-                        .padding(.top, 56)
-                        .padding(.bottom, 56)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 64)
+                        .padding(.bottom, 64)
 
                     contentCard
                 }
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            Analytics.track(.memoryOpened(
+                source: .memory,
+                ticketCount: ticketsStore.tickets(in: memory.id).count,
+                memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
+            ))
+        }
         .navigationDestination(for: Ticket.self) { ticket in
             TicketDetailView(ticket: ticket)
         }
         .sheet(isPresented: $showEdit, onDismiss: {
             previewColorFamily = nil
         }) {
-            EditCollectionView(
-                collection: currentCollection,
+            EditMemoryView(
+                memory: currentMemory,
                 previewColorFamily: $previewColorFamily
             )
-            .environmentObject(collectionsStore)
+            .environmentObject(memoriesStore)
+        }
+        .fullScreenCover(isPresented: $showNewTicket) {
+            NewTicketFunnelView()
+                .environmentObject(ticketsStore)
+                .environmentObject(memoriesStore)
+        }
+        .sheet(isPresented: $showAddExistingTicket) {
+            AddExistingTicketSheet(memoryId: memory.id)
+                .environmentObject(ticketsStore)
         }
         .alert(
-            "Delete this collection?",
+            "Delete this memory?",
             isPresented: $showDeleteConfirm
         ) {
-            Button("Delete collection", role: .destructive) {
+            Button("Delete memory", role: .destructive) {
                 Task {
-                    await collectionsStore.delete(currentCollection)
+                    await memoriesStore.delete(currentMemory)
                     dismiss()
                 }
             }
-            Button("Keep it", role: .cancel) { }
+            Button("Keep memory", role: .cancel) { }
         } message: {
-            Text("Tickets in this collection will not be deleted. This action can’t be undone.")
+            Text("Tickets stay in your gallery. Can’t be undone.")
+        }
+        .fullScreenCover(isPresented: $showMap) {
+            MemoryMapView(
+                memory: currentMemory,
+                tickets: ticketsStore.tickets(in: memory.id)
+            )
+        }
+    }
+
+    // MARK: - Map availability
+
+    /// Any ticket in this memory with at least one attached location.
+    private var hasAnyLocation: Bool {
+        ticketsStore.tickets(in: memory.id).contains {
+            $0.originLocation != nil || $0.destinationLocation != nil
         }
     }
 
     // MARK: - Derived
 
     /// Latest copy from the store so edits propagate without re-init.
-    private var currentCollection: Collection {
-        collectionsStore.collections.first(where: { $0.id == collection.id }) ?? collection
+    private var currentMemory: Memory {
+        memoriesStore.memories.first(where: { $0.id == memory.id }) ?? memory
     }
 
     private var menuItems: [LumoriaMenuItem] {
         [
+            .init(title: "New ticket…") { showNewTicket = true },
+            .init(title: "Add existing ticket…") {
+                showAddExistingTicket = true
+            },
             .init(title: "Edit") { showEdit = true },
             .init(title: "Delete", kind: .destructive) { showDeleteConfirm = true },
         ]
@@ -93,7 +131,7 @@ struct CollectionDetailView: View {
     // MARK: - Background
 
     private var activeColorFamily: String {
-        previewColorFamily ?? currentCollection.colorFamily
+        previewColorFamily ?? currentMemory.colorFamily
     }
 
     private var tintBackground: Color {
@@ -114,42 +152,46 @@ struct CollectionDetailView: View {
             Spacer(minLength: 0)
 
             LumoriaIconButton(
-                systemImage: "plus",
+                systemImage: "map",
                 position: .onSurface
             ) {
-                // TODO: new ticket in this collection
+                showMap = true
             }
+            .disabled(!hasAnyLocation)
+            .opacity(hasAnyLocation ? 1 : 0.5)
 
-            LumoriaContextualMenuButton(items: menuItems) {
-                Image(systemName: "ellipsis")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .frame(width: 48, height: 48)
-                    .background(Circle().fill(.white))
-            }
+            LumoriaIconButton(
+                systemImage: "ellipsis",
+                position: .onSurface,
+                menuItems: menuItems
+            )
         }
     }
 
     // MARK: - Title
 
     private var title: some View {
-        HStack {
-            Text(collection.name)
-                .font(.system(size: 34, weight: .bold))
-                .tracking(0.4)
-                .foregroundStyle(Color.Text.OnColor.black)
-                .lineLimit(1)
-                .truncationMode(.tail)
+        VStack(alignment: .leading, spacing: 8) {
+            if let emoji = currentMemory.emoji, !emoji.isEmpty {
+                Text(emoji)
+                    .font(.system(size: 48, weight: .bold))
+            }
 
-            Spacer(minLength: 0)
+            Text(currentMemory.name)
+                .font(.title.bold())
+                .lineSpacing(6)
+                .foregroundStyle(Color.Text.OnColor.black)
+                .lineLimit(2)
+                .truncationMode(.tail)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Content card
 
     @ViewBuilder
     private var contentCard: some View {
-        let tickets = ticketsStore.tickets(in: collection.id)
+        let tickets = ticketsStore.tickets(in: memory.id)
 
         VStack(alignment: .leading, spacing: 0) {
             if tickets.isEmpty {
@@ -177,40 +219,31 @@ struct CollectionDetailView: View {
     // MARK: - Empty state
 
     private var emptyBody: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            emptyTicketPlaceholder
+        VStack(spacing: 8) {
+            Spacer(minLength: 0)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("No tickets yet")
-                    .font(.system(size: 22, weight: .bold))
-                    .tracking(-0.26)
-                    .foregroundStyle(Color.Text.tertiary)
+            Text("This memory is empty. Add a ticket to begin.")
+                .font(.title2.bold())
+                .foregroundStyle(Color.Text.tertiary)
 
-                Text("This collection is empty. Add a ticket from the + button or the gallery to start building it up.")
-                    .font(.system(size: 17, weight: .regular))
-                    .tracking(-0.43)
-                    .foregroundStyle(Color.Text.tertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 0) {
+                HStack(spacing: 4) {
+                    Text("Add a ticket, or craft a new one in the")
+                }
+                HStack(spacing: 4) {
+                    EmptyStateInlineBadge(systemImage: "ellipsis")
+                    Text("menu.")
+                }
             }
+            .font(.body)
+            .foregroundStyle(Color.Text.tertiary)
+            .multilineTextAlignment(.center)
 
             Spacer(minLength: 0)
         }
-        .padding(16)
-    }
-
-    private var emptyTicketPlaceholder: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.black.opacity(0.03))
-
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .strokeBorder(
-                    Color.Border.default,
-                    style: StrokeStyle(lineWidth: 3, dash: [6])
-                )
-        }
-        .frame(height: 215)
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 40)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Grid
@@ -270,35 +303,33 @@ struct CollectionDetailView: View {
 
 // MARK: - Preview
 
-private let previewCollection = Collection(
+private let previewMemory = Memory(
     id: UUID(),
     userId: UUID(),
     name: "Japan 2026",
     colorFamily: "Red",
-    locationName: nil,
-    locationLat: nil,
-    locationLng: nil,
+    emoji: "🗾",
     createdAt: .now,
     updatedAt: .now
 )
 
 #Preview("Empty") {
     NavigationStack {
-        CollectionDetailView(collection: previewCollection)
+        MemoryDetailView(memory: previewMemory)
             .environmentObject(TicketsStore())
-            .environmentObject(CollectionsStore())
+            .environmentObject(MemoriesStore())
     }
 }
 
 #Preview("5 tickets") {
     let store: TicketsStore = {
         let s = TicketsStore()
-        s.seedSamples(in: previewCollection.id, count: 5)
+        s.seedSamples(in: previewMemory.id, count: 5)
         return s
     }()
     return NavigationStack {
-        CollectionDetailView(collection: previewCollection)
+        MemoryDetailView(memory: previewMemory)
             .environmentObject(store)
-            .environmentObject(CollectionsStore())
+            .environmentObject(MemoriesStore())
     }
 }

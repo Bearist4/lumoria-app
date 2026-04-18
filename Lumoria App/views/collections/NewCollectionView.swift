@@ -1,35 +1,29 @@
 //
-//  NewCollectionView.swift
+//  NewMemoryView.swift
 //  Lumoria App
 //
-//  Modal sheet for creating a new collection.
+//  Modal sheet for creating a new memory.
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=982-27918
 //
 
 import SwiftUI
-import MapKit
 
-struct NewCollectionView: View {
+struct NewMemoryView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var title: String = ""
     @State private var selectedColor: ColorOption? = nil
-    @State private var locationEnabled: Bool = false
-    @State private var selectedLocation: SelectedLocation? = nil
+    @State private var emoji: String? = nil
 
     /// Invoked when the user taps Create.
-    var onCreate: ((String, ColorOption?, SelectedLocation?) -> Void)? = nil
+    var onCreate: ((String, ColorOption?, String?) -> Void)? = nil
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.s8) {
                 intro
                 titleField
-                colorField
-                locationCard
-                if locationEnabled {
-                    LumoriaLocationField(selected: $selectedLocation)
-                }
+                emojiColorRow
             }
             .padding(.horizontal, Spacing.s6)
             .padding(.top, 72)
@@ -37,6 +31,7 @@ struct NewCollectionView: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color.Background.default)
+        .onAppear { Analytics.track(.memoryCreationStarted) }
         .safeAreaInset(edge: .bottom) {
             createButton
                 .padding(.horizontal, Spacing.s6)
@@ -59,14 +54,12 @@ struct NewCollectionView: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: Spacing.s3) {
-            Text("Create a new collection")
-                .font(.system(size: 34, weight: .bold))
-                .tracking(0.4)
+            Text("Create a new memory")
+                .font(.largeTitle.bold())
                 .foregroundStyle(Color.Text.primary)
 
-            Text("Collections are where your tickets come together. Group them by trip, theme, or memory to keep everything organized.")
-                .font(.system(size: 17, weight: .regular))
-                .tracking(-0.43)
+            Text("Memories are where your tickets come together. Group them by trip, event, or place — whatever you want to remember.")
+                .font(.body)
                 .foregroundStyle(Color.Text.secondary)
         }
     }
@@ -75,60 +68,45 @@ struct NewCollectionView: View {
 
     private var titleField: some View {
         LumoriaInputField(
-            label: "Collection title",
-            placeholder: "Name your collection",
+            label: "Memory title",
+            placeholder: "Name your memory",
             text: $title,
             isRequired: true
         )
     }
 
-    // MARK: - Color dropdown
+    // MARK: - Emoji + Color row
 
-    private var colorField: some View {
-        LumoriaDropdown(
-            label: "Color",
-            placeholder: "Choose a color",
-            isRequired: true,
-            assistiveText: "The color will be displayed in the background of the Collection’s preview.",
-            options: ColorOption.all,
-            selection: $selectedColor,
-            selectedLabel: { $0.name }
-        ) { option in
-            HStack(spacing: 8) {
-                ColorWell(color: option.swatchColor)
-                Text(option.name)
-                    .font(.system(size: 17, weight: .regular))
-                    .tracking(-0.43)
-                    .foregroundStyle(Color.Text.primary)
-            }
-        }
-    }
+    private var emojiColorRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 16) {
+                LumoriaInputField(
+                    label: "Emoji",
+                    emoji: $emoji,
+                    isRequired: false
+                )
 
-    // MARK: - Location toggle card
-
-    private var locationCard: some View {
-        HStack(alignment: .top, spacing: Spacing.s4) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Location")
-                    .font(.system(size: 17, weight: .semibold))
-                    .tracking(-0.43)
-                    .foregroundStyle(Color.Text.primary)
-
-                Text("You can associate this collection to a location of your choice.")
-                    .font(.system(size: 13, weight: .regular))
-                    .tracking(-0.08)
-                    .foregroundStyle(Color.Text.primary)
+                LumoriaDropdown(
+                    label: "Color",
+                    placeholder: "Choose a color",
+                    isRequired: true,
+                    options: ColorOption.all,
+                    selection: $selectedColor,
+                    selectedLabel: { $0.name }
+                ) { option in
+                    HStack(spacing: 8) {
+                        ColorWell(color: option.swatchColor)
+                        Text(option.name)
+                            .font(.body)
+                            .foregroundStyle(Color.Text.primary)
+                    }
+                }
             }
 
-            Spacer(minLength: 0)
-
-            Toggle("", isOn: $locationEnabled.animation(.easeInOut(duration: 0.2)))
-                .labelsHidden()
-                .tint(Color("Colors/Green/500"))
+            Text("Add an emoji and a color to personalize your memory.")
+                .font(.caption2)
+                .foregroundStyle(Color(hex: "525252"))
         }
-        .padding(Spacing.s4)
-        .background(Color.Background.elevated)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     // MARK: - Primary CTA
@@ -138,11 +116,11 @@ struct NewCollectionView: View {
             onCreate?(
                 title.trimmingCharacters(in: .whitespaces),
                 selectedColor,
-                locationEnabled ? selectedLocation : nil
+                emoji
             )
             dismiss()
         } label: {
-            Text("Create collection")
+            Text("Create memory")
         }
         .lumoriaButtonStyle(.primary, size: .large)
         .disabled(!canCreate)
@@ -163,7 +141,7 @@ struct ColorOption: Identifiable, Equatable {
 
     /// Soft tint used in the dropdown color well.
     var swatchColor: Color { Color("Colors/\(family)/50") }
-    /// Saturated color used for the collection preview background.
+    /// Saturated color used for the memory preview background.
     var primaryColor: Color { Color("Colors/\(family)/500") }
     /// Legacy alias — some callers ask for `color`.
     var color: Color { primaryColor }
@@ -171,17 +149,17 @@ struct ColorOption: Identifiable, Equatable {
     var assetPath: String { "\(family)/500" }
 
     static let all: [ColorOption] = [
-        .init(name: "Blue",   family: "Blue"),
-        .init(name: "Indigo", family: "Indigo"),
-        .init(name: "Cyan",   family: "Cyan"),
-        .init(name: "Teal",   family: "Teal"),
-        .init(name: "Green",  family: "Green"),
-        .init(name: "Lime",   family: "Lime"),
-        .init(name: "Yellow", family: "Yellow"),
-        .init(name: "Orange", family: "Orange"),
-        .init(name: "Red",    family: "Red"),
-        .init(name: "Pink",   family: "Pink"),
-        .init(name: "Purple", family: "Purple"),
+        .init(name: String(localized: "Blue"),   family: "Blue"),
+        .init(name: String(localized: "Indigo"), family: "Indigo"),
+        .init(name: String(localized: "Cyan"),   family: "Cyan"),
+        .init(name: String(localized: "Teal"),   family: "Teal"),
+        .init(name: String(localized: "Green"),  family: "Green"),
+        .init(name: String(localized: "Lime"),   family: "Lime"),
+        .init(name: String(localized: "Yellow"), family: "Yellow"),
+        .init(name: String(localized: "Orange"), family: "Orange"),
+        .init(name: String(localized: "Red"),    family: "Red"),
+        .init(name: String(localized: "Pink"),   family: "Pink"),
+        .init(name: String(localized: "Purple"), family: "Purple"),
     ]
 }
 
@@ -194,7 +172,7 @@ struct ColorOption: Identifiable, Equatable {
             Color.Background.subtle
                 .ignoresSafeArea()
                 .sheet(isPresented: $show) {
-                    NewCollectionView()
+                    NewMemoryView()
                 }
         }
     }
