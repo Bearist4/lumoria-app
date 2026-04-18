@@ -4,15 +4,15 @@
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=955-14489
 //
-//  Shows a single ticket in full. The Collections section below the details
+//  Shows a single ticket in full. The Memories section below the details
 //  card is context-aware:
 //
-//  - No collections at all             → "Create collection…" menu, empty copy
-//  - Collections exist, not in any     → "Create collection…" + "Add to…"
-//  - Ticket is in ≥1 collection        → + "Remove from collection…"
-//  - Remove mode active                → cards show a red remove badge;
-//                                        tapping any card triggers a confirm
-//                                        alert before detaching.
+//  - No memories at all             → "Create memory…" menu, empty copy
+//  - Memories exist, not in any     → "Create memory…" + "Add to…"
+//  - Ticket is in ≥1 memory         → + "Remove from memory…"
+//  - Remove mode active             → cards show a red remove badge;
+//                                     tapping any card triggers a confirm
+//                                     alert before detaching.
 //
 
 import SwiftUI
@@ -21,21 +21,30 @@ import ProgressiveBlurHeader
 struct TicketDetailView: View {
 
     let ticket: Ticket
+    var openedFromSource: TicketSourceProp = .gallery
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
-    @EnvironmentObject private var collectionsStore: CollectionsStore
+    @EnvironmentObject private var memoriesStore: MemoriesStore
 
-    @State private var showNewCollection = false
-    @State private var showAddToCollection = false
+    @State private var showNewMemory = false
+    @State private var showAddToMemory = false
     @State private var inRemoveMode = false
-    @State private var collectionPendingRemoval: Collection? = nil
+    @State private var memoryPendingRemoval: Memory? = nil
 
     @State private var showExport = false
     @State private var showDeleteConfirm = false
 
     var body: some View {
-        StickyBlurHeader(maxBlurRadius: 8, fadeExtension: 48) {
+        // Scroll-fading blur so the header dim is invisible until the
+        // user actually scrolls content behind it — avoids a
+        // permanent dark band when opened as a sheet from the map.
+        ScrollFadingBlurHeader(
+            maxBlurRadius: 8,
+            fadeExtension: 0,
+            tintOpacityTop: 1.0,
+            tintOpacityMiddle: 1.0
+        ) {
             header
         } content: {
             VStack(alignment: .leading, spacing: 24) {
@@ -49,20 +58,27 @@ struct TicketDetailView: View {
         }
         .background(Color.Background.default.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $showNewCollection) {
-            NewCollectionView { name, color, location in
+        .onAppear {
+            Analytics.track(.ticketOpened(
+                category: ticket.kind.analyticsCategory,
+                template: ticket.kind.analyticsTemplate,
+                source: openedFromSource
+            ))
+        }
+        .sheet(isPresented: $showNewMemory) {
+            NewMemoryView { name, color, emoji in
                 guard let color else { return }
                 Task {
-                    await collectionsStore.create(
+                    await memoriesStore.create(
                         name: name,
                         colorFamily: color.family,
-                        location: location
+                        emoji: emoji
                     )
                 }
             }
         }
-        .sheet(isPresented: $showAddToCollection) {
-            AddToCollectionSheet(ticket: currentTicket)
+        .sheet(isPresented: $showAddToMemory) {
+            AddToMemorySheet(ticket: currentTicket)
         }
         .sheet(isPresented: $showExport) {
             ExportSheet(ticket: currentTicket)
@@ -73,36 +89,45 @@ struct TicketDetailView: View {
         ) {
             Button("Delete ticket", role: .destructive) {
                 Task {
+                    let wasInMemory = !currentTicket.memoryIds.isEmpty
                     await ticketsStore.delete(currentTicket)
+                    Analytics.track(.ticketDeleted(
+                        category: ticket.kind.analyticsCategory,
+                        template: ticket.kind.analyticsTemplate,
+                        wasInMemory: wasInMemory
+                    ))
                     dismiss()
                 }
             }
-            Button("Keep it", role: .cancel) { }
+            Button("Keep ticket", role: .cancel) { }
         } message: {
-            Text("This will permanently remove the ticket from your gallery and any collections it's in. This can't be undone.")
+            Text("This will permanently remove the ticket from your gallery and any memories it’s in. This can’t be undone.")
         }
         .alert(
             "Remove this ticket?",
             isPresented: Binding(
-                get: { collectionPendingRemoval != nil },
-                set: { if !$0 { collectionPendingRemoval = nil } }
+                get: { memoryPendingRemoval != nil },
+                set: { if !$0 { memoryPendingRemoval = nil } }
             ),
-            presenting: collectionPendingRemoval
-        ) { collection in
-            Button("Remove from collection", role: .destructive) {
+            presenting: memoryPendingRemoval
+        ) { memory in
+            Button("Remove from memory", role: .destructive) {
                 Task {
                     await ticketsStore.toggleMembership(
                         ticketId: currentTicket.id,
-                        collectionId: collection.id
+                        memoryId: memory.id
                     )
-                    if associatedCollections.count <= 1 {
+                    Analytics.track(.ticketRemovedFromMemory(
+                        memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
+                    ))
+                    if associatedMemories.count <= 1 {
                         inRemoveMode = false
                     }
                 }
             }
-            Button("Leave it in collection", role: .cancel) { }
+            Button("Keep in memory", role: .cancel) { }
         } message: { _ in
-            Text("You are going to remove this ticket from your collection. You can always add it back later. Do you want to proceed?")
+            Text("Remove this ticket from the memory? You can add it back later.")
         }
     }
 
@@ -114,10 +139,10 @@ struct TicketDetailView: View {
             Spacer()
             LumoriaContextualMenuButton(items: headerMenuItems) {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.title3)
                     .foregroundStyle(Color.Text.primary)
                     .frame(width: 48, height: 48)
-                    .background(Circle().fill(Color.black.opacity(0.05)))
+                    .background(Circle().fill(Color.Background.fieldFill))
             }
         }
         .padding(.horizontal, 16)
@@ -145,33 +170,30 @@ struct TicketDetailView: View {
 
     @ViewBuilder
     private var detailsCard: some View {
-        let items: [TicketDetailsCardItem] = [
-            .init(label: "Creation",  sublabel: Self.formatted(currentTicket.createdAt)),
-            .init(label: "Last edit", sublabel: Self.formatted(currentTicket.updatedAt)),
-            .init(label: "✈︎",       sublabel: currentTicket.kind.categoryLabel, fullWidth: true),
-        ]
-
         TicketDetailsCard(
-            items: items,
-            menuItems: collectionsMenuItems,
-            collectionsContent: { collectionsBody }
+            creationDate: Self.formatted(currentTicket.createdAt),
+            lastEditDate: Self.formatted(currentTicket.updatedAt),
+            category: currentTicket.kind.categoryStyle,
+            location: currentTicket.originLocation,
+            menuItems: memoriesMenuItems,
+            memoriesContent: { memoriesBody }
         )
     }
 
-    // MARK: - Collections section menu
+    // MARK: - Memories section menu
 
-    private var collectionsMenuItems: [LumoriaMenuItem] {
+    private var memoriesMenuItems: [LumoriaMenuItem] {
         var out: [LumoriaMenuItem] = [
-            .init(title: "Create collection…") { showNewCollection = true },
+            .init(title: "Create memory…") { showNewMemory = true },
         ]
-        if !collectionsStore.collections.isEmpty {
-            out.append(.init(title: "Add to a collection…") {
-                showAddToCollection = true
+        if !memoriesStore.memories.isEmpty {
+            out.append(.init(title: "Add to a memory…") {
+                showAddToMemory = true
             })
         }
-        if !associatedCollections.isEmpty {
+        if !associatedMemories.isEmpty {
             out.append(.init(
-                title: inRemoveMode ? "Done" : "Remove from collection…",
+                title: inRemoveMode ? "Done" : "Remove from memory…",
                 kind: .destructive
             ) {
                 inRemoveMode.toggle()
@@ -180,42 +202,49 @@ struct TicketDetailView: View {
         return out
     }
 
-    // MARK: - Collections body
+    // MARK: - Memories body
+
+    private let memoriesColumns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16),
+    ]
 
     @ViewBuilder
-    private var collectionsBody: some View {
-        if associatedCollections.isEmpty {
+    private var memoriesBody: some View {
+        if associatedMemories.isEmpty {
             Text(emptyCopy)
-                .font(.system(size: 15, weight: .regular))
-                .tracking(-0.23)
+                .font(.subheadline)
                 .foregroundStyle(Color.Text.secondary)
         } else {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(associatedCollections) { c in
-                        let tickets = ticketsStore.tickets(in: c.id)
-                        Button {
-                            if inRemoveMode {
-                                collectionPendingRemoval = c
-                            }
-                        } label: {
-                            CollectionCard(
-                                title: c.name,
-                                subtitle: tickets.count == 1 ? "1 ticket" : "\(tickets.count) tickets",
-                                state: inRemoveMode ? .removable : .normal,
-                                filledCount: min(tickets.count, 5),
-                                colorFamily: c.colorFamily
-                            ) { idx in
-                                if idx < tickets.count {
-                                    TicketPreview(ticket: tickets[idx])
-                                        .frame(width: 160)
-                                } else {
-                                    EmptyView()
-                                }
+            LazyVGrid(columns: memoriesColumns, spacing: 16) {
+                ForEach(associatedMemories) { m in
+                    let tickets = ticketsStore.tickets(in: m.id)
+                    Button {
+                        if inRemoveMode {
+                            memoryPendingRemoval = m
+                        }
+                    } label: {
+                        MemoryCard(
+                            title: m.name,
+                            subtitle: tickets.count == 1
+                                ? String(localized: "1 ticket")
+                                : String(localized: "\(tickets.count) tickets"),
+                            state: inRemoveMode ? .removable : .normal,
+                            emoji: m.emoji,
+                            filledCount: min(tickets.count, 5),
+                            colorFamily: m.colorFamily
+                        ) { idx in
+                            if idx < tickets.count {
+                                MemoryCardSlot.frameForSlot(
+                                    TicketPreview(ticket: tickets[idx]),
+                                    orientation: tickets[idx].orientation
+                                )
+                            } else {
+                                EmptyView()
                             }
                         }
-                        .buttonStyle(.plain)
                     }
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -223,46 +252,175 @@ struct TicketDetailView: View {
 
     // MARK: - Derived state
 
-    /// Live snapshot of the ticket, so collection edits propagate without
+    /// Live snapshot of the ticket, so memory edits propagate without
     /// forcing the view to re-init.
     private var currentTicket: Ticket {
         ticketsStore.ticket(with: ticket.id) ?? ticket
     }
 
-    private var associatedCollections: [Collection] {
-        let ids = Set(currentTicket.collectionIds)
-        return collectionsStore.collections.filter { ids.contains($0.id) }
+    private var associatedMemories: [Memory] {
+        let ids = Set(currentTicket.memoryIds)
+        return memoriesStore.memories.filter { ids.contains($0.id) }
     }
 
     private var emptyCopy: String {
-        if collectionsStore.collections.isEmpty {
-            return "You have no collection yet. To create a collection, tap the + icon."
+        if memoriesStore.memories.isEmpty {
+            return String(localized: "You have no memories yet. To create a memory, tap the + icon.")
         } else {
-            return "This ticket is not part of a collection. Collections help organize your tickets in a way that makes sense to you."
+            return String(localized: "This ticket is not part of a memory. Memories help you group tickets by trip, event, or place.")
         }
     }
 
     // MARK: - Formatting
 
+    /// Formats dates for the Created / Edited tiles. Goals:
+    ///   - Stay compact. The tiles are narrow; long months like
+    ///     "September" / "settembre" / "septiembre" push the year
+    ///     to a second line.
+    ///   - Stay locale-native. German/French/etc. readers see their
+    ///     own month names; CJK users see a fully native `yyyy年M月d日`
+    ///     style via `DateFormatter.longStyle`.
+    ///
+    /// For Latin-script locales we cap the month name at 4 characters,
+    /// which is long enough to stay unambiguous (Apri / Sept / Dece)
+    /// without overflowing the tile.
     private static func formatted(_ date: Date) -> String {
-        let df = DateFormatter()
-        df.dateFormat = "dd MMMM yyyy"
-        df.locale = Locale(identifier: "en_US_POSIX")
-        return df.string(from: date)
+        let locale = Locale.current
+        let lang = locale.language.languageCode?.identifier ?? "en"
+
+        // CJK: let the system pick its fully-localized long format.
+        if ["ko", "ja", "zh"].contains(lang) {
+            let df = DateFormatter()
+            df.locale = locale
+            df.dateStyle = .long
+            return df.string(from: date)
+        }
+
+        let monthFormatter = DateFormatter()
+        monthFormatter.locale = locale
+        monthFormatter.dateFormat = "MMM."
+        var month = monthFormatter.string(from: date)
+        if month.count > 4 {
+            month = String(month.prefix(4))
+        }
+
+        let components = Calendar.current.dateComponents([.day, .year], from: date)
+        let day = components.day ?? 0
+        let year = components.year ?? 0
+        return "\(day) \(month) \(year)"
     }
 }
 
 // MARK: - Preview
 
-#Preview("Prism horizontal") {
-    let tickets: TicketsStore = {
-        let s = TicketsStore()
-        s.seedSamples()
-        return s
-    }()
+private enum TicketDetailPreview {
+
+    /// Stock locations used in previews so the map card actually renders.
+    static let sin = TicketLocation(
+        name: "Singapore Changi", subtitle: "SIN",
+        city: "Singapore", country: "Singapore", countryCode: "SG",
+        lat: 1.3644, lng: 103.9915, kind: .airport
+    )
+    static let hnd = TicketLocation(
+        name: "Tokyo Haneda", subtitle: "HND",
+        city: "Tokyo", country: "Japan", countryCode: "JP",
+        lat: 35.5494, lng: 139.7798, kind: .airport
+    )
+    static let hkg = TicketLocation(
+        name: "Hong Kong", subtitle: "HKG",
+        city: "Hong Kong", country: "Hong Kong", countryCode: "HK",
+        lat: 22.3080, lng: 113.9185, kind: .airport
+    )
+
+    /// Builds a ticket + stores populated for a given preview flavor.
+    @MainActor
+    static func scenario(
+        template index: Int = 0,
+        origin: TicketLocation? = nil,
+        destination: TicketLocation? = nil,
+        memories: [Memory] = []
+    ) -> (Ticket, TicketsStore, MemoriesStore) {
+        var ticket = TicketsStore.sampleTickets[index]
+        ticket.originLocation = origin
+        ticket.destinationLocation = destination
+        ticket.memoryIds = memories.map(\.id)
+
+        let ticketsStore = TicketsStore()
+        ticketsStore.seedForPreview([ticket])
+
+        let memoriesStore = MemoriesStore()
+        memoriesStore.seedForPreview(memories)
+
+        return (ticket, ticketsStore, memoriesStore)
+    }
+
+    static func memory(name: String, color: String, emoji: String?) -> Memory {
+        Memory(
+            id: UUID(), userId: UUID(),
+            name: name, colorFamily: color, emoji: emoji,
+            createdAt: .now, updatedAt: .now
+        )
+    }
+}
+
+#Preview("Prism · both locations, 2 memories") {
+    let japanTrip = TicketDetailPreview.memory(
+        name: "Japan 2026", color: "Red", emoji: "🗾"
+    )
+    let asiaTour = TicketDetailPreview.memory(
+        name: "Asia tour", color: "Blue", emoji: "✈️"
+    )
+    let (ticket, ticketsStore, memoriesStore) = TicketDetailPreview.scenario(
+        template: 0,
+        origin: TicketDetailPreview.sin,
+        destination: TicketDetailPreview.hnd,
+        memories: [japanTrip, asiaTour]
+    )
     return NavigationStack {
-        TicketDetailView(ticket: TicketsStore.sampleTickets[0])
-            .environmentObject(tickets)
-            .environmentObject(CollectionsStore())
+        TicketDetailView(ticket: ticket)
+            .environmentObject(ticketsStore)
+            .environmentObject(memoriesStore)
+    }
+}
+
+#Preview("Heritage · location only") {
+    let (ticket, ticketsStore, memoriesStore) = TicketDetailPreview.scenario(
+        template: 1,
+        origin: TicketDetailPreview.hkg,
+        destination: nil,
+        memories: []
+    )
+    return NavigationStack {
+        TicketDetailView(ticket: ticket)
+            .environmentObject(ticketsStore)
+            .environmentObject(memoriesStore)
+    }
+}
+
+#Preview("Studio · no location, memories exist") {
+    let weekendMemory = TicketDetailPreview.memory(
+        name: "Weekend breaks", color: "Green", emoji: "🌿"
+    )
+    let (ticket, ticketsStore, memoriesStore) = TicketDetailPreview.scenario(
+        template: 2,
+        origin: nil,
+        destination: nil,
+        memories: [weekendMemory] // exists in store, ticket not in it
+    )
+    return NavigationStack {
+        TicketDetailView(ticket: ticket)
+            .environmentObject(ticketsStore)
+            .environmentObject(memoriesStore)
+    }
+}
+
+#Preview("Prism · bare (no location, no memories)") {
+    let (ticket, ticketsStore, memoriesStore) = TicketDetailPreview.scenario(
+        template: 0
+    )
+    return NavigationStack {
+        TicketDetailView(ticket: ticket)
+            .environmentObject(ticketsStore)
+            .environmentObject(memoriesStore)
     }
 }

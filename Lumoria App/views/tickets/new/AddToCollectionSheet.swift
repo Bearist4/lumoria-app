@@ -1,23 +1,23 @@
 //
-//  AddToCollectionSheet.swift
+//  AddToMemorySheet.swift
 //  Lumoria App
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=1166-83935
 //
-//  Bottom sheet surfaced from the success step. Lists the user's collections
-//  as `CollectionCard`s; tapping one toggles the ticket's membership and
+//  Bottom sheet surfaced from the success step. Lists the user's memories
+//  as `MemoryCard`s; tapping one toggles the ticket's membership and
 //  flashes a confirmation pill at the bottom.
 //
 
 import SwiftUI
 
-struct AddToCollectionSheet: View {
+struct AddToMemorySheet: View {
 
     let ticket: Ticket
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
-    @EnvironmentObject private var collections: CollectionsStore
+    @EnvironmentObject private var memories: MemoriesStore
 
     @State private var toastMessage: String? = nil
 
@@ -31,25 +31,33 @@ struct AddToCollectionSheet: View {
             header
 
             ScrollView {
-                if collections.collections.isEmpty {
+                if memories.memories.isEmpty {
                     emptyCopy
                         .padding(.horizontal, 24)
                         .padding(.top, 32)
                 } else {
                     LazyVGrid(columns: columns, spacing: 24) {
-                        ForEach(collections.collections) { c in
+                        ForEach(memories.memories) { m in
+                            let tickets = visibleTickets(in: m)
                             Button {
-                                Task { await toggle(c) }
+                                Task { await toggle(m) }
                             } label: {
-                                CollectionCard(
-                                    title: c.name,
-                                    subtitle: subtitle(for: c),
-                                    state: isMember(of: c) ? .added : .normal,
-                                    filledCount: isMember(of: c) ? 1 : 0,
-                                    colorFamily: c.colorFamily
-                                ) { _ in
-                                    TicketPreview(ticket: currentTicket)
-                                        .frame(width: 160)
+                                MemoryCard(
+                                    title: m.name,
+                                    subtitle: subtitle(for: m),
+                                    state: isMember(of: m) ? .added : .normal,
+                                    emoji: m.emoji,
+                                    filledCount: min(tickets.count, 5),
+                                    colorFamily: m.colorFamily
+                                ) { index in
+                                    if index < tickets.count {
+                                        MemoryCardSlot.frameForSlot(
+                                            TicketPreview(ticket: tickets[index]),
+                                            orientation: tickets[index].orientation
+                                        )
+                                    } else {
+                                        Color.clear
+                                    }
                                 }
                             }
                             .buttonStyle(.plain)
@@ -59,7 +67,7 @@ struct AddToCollectionSheet: View {
                     .padding(.vertical, 16)
                 }
             }
-            .refreshable { await collections.load() }
+            .refreshable { await memories.load() }
         }
         .background(Color.Background.default)
         .presentationDragIndicator(.visible)
@@ -71,9 +79,8 @@ struct AddToCollectionSheet: View {
 
     private var header: some View {
         ZStack {
-            Text("Add to a collection")
-                .font(.system(size: 17, weight: .semibold))
-                .tracking(-0.43)
+            Text("Add to a memory")
+                .font(.headline)
                 .foregroundStyle(Color.Text.primary)
 
             HStack {
@@ -90,13 +97,11 @@ struct AddToCollectionSheet: View {
 
     private var emptyCopy: some View {
         VStack(spacing: 8) {
-            Text("No collections yet")
-                .font(.system(size: 22, weight: .bold))
-                .tracking(-0.26)
+            Text("No memories yet")
+                .font(.title2.bold())
                 .foregroundStyle(Color.Text.tertiary)
-            Text("Create a collection first, then come back to add this ticket.")
-                .font(.system(size: 17, weight: .regular))
-                .tracking(-0.43)
+            Text("Create a memory first, then come back to add this ticket.")
+                .font(.body)
                 .foregroundStyle(Color.Text.tertiary)
                 .multilineTextAlignment(.center)
         }
@@ -104,26 +109,48 @@ struct AddToCollectionSheet: View {
 
     // MARK: - Helpers
 
-    /// Latest snapshot of the ticket (picks up any collection edits the store
+    /// Latest snapshot of the ticket (picks up any memory edits the store
     /// has applied since this sheet was presented).
     private var currentTicket: Ticket {
         ticketsStore.ticket(with: ticket.id) ?? ticket
     }
 
-    private func isMember(of collection: Collection) -> Bool {
-        currentTicket.collectionIds.contains(collection.id)
+    private func isMember(of memory: Memory) -> Bool {
+        currentTicket.memoryIds.contains(memory.id)
     }
 
-    private func subtitle(for c: Collection) -> String {
-        let count = ticketsStore.tickets(in: c.id).count
+    /// Tickets already in the memory, with the currently-being-added
+    /// ticket pinned to the top when it's a member. The card shows
+    /// whatever is here as the deck — up to 5 get rendered.
+    private func visibleTickets(in memory: Memory) -> [Ticket] {
+        let existing = ticketsStore.tickets(in: memory.id)
+        guard isMember(of: memory) else { return existing }
+        var ordered = existing.filter { $0.id != currentTicket.id }
+        ordered.insert(currentTicket, at: 0)
+        return ordered
+    }
+
+    private func subtitle(for m: Memory) -> String {
+        let count = ticketsStore.tickets(in: m.id).count
         return count == 1 ? "1 ticket" : "\(count) tickets"
     }
 
-    private func toggle(_ c: Collection) async {
-        let wasMember = isMember(of: c)
-        await ticketsStore.toggleMembership(ticketId: ticket.id, collectionId: c.id)
+    private func toggle(_ m: Memory) async {
+        let wasMember = isMember(of: m)
+        await ticketsStore.toggleMembership(ticketId: ticket.id, memoryId: m.id)
+        if wasMember {
+            Analytics.track(.ticketRemovedFromMemory(
+                memoryIdHash: AnalyticsIdentity.hashUUID(m.id)
+            ))
+        } else {
+            let newCount = ticketsStore.tickets(in: m.id).count
+            Analytics.track(.ticketAddedToMemory(
+                memoryIdHash: AnalyticsIdentity.hashUUID(m.id),
+                newTicketCount: newCount
+            ))
+        }
         toastMessage = wasMember
-            ? "Removed from \(c.name)"
-            : "Ticket added to \(c.name)"
+            ? "Removed from \(m.name)"
+            : "Ticket added to \(m.name)"
     }
 }
