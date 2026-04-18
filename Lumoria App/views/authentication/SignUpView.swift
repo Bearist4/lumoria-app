@@ -15,17 +15,17 @@ private enum PasswordStrength: Int {
 
     var label: String {
         switch self {
-        case .empty:  return "Password strength"
-        case .weak:   return "Weak"
-        case .fair:   return "Fair"
-        case .good:   return "Good"
-        case .strong: return "Strong"
+        case .empty:  return String(localized: "Password strength")
+        case .weak:   return String(localized: "Weak")
+        case .fair:   return String(localized: "Fair")
+        case .good:   return String(localized: "Good")
+        case .strong: return String(localized: "Strong")
         }
     }
 
     var color: Color {
         switch self {
-        case .empty:  return Color.black.opacity(0.1)
+        case .empty:  return Color("Colors/Opacity/Black/inverse/10")
         case .weak:   return Color(hex: "D94544")
         case .fair:   return Color(hex: "F2986A")
         case .good:   return Color(hex: "F5D46A")
@@ -54,14 +54,14 @@ private struct PasswordStrengthIndicator: View {
             HStack(spacing: 2) {
                 ForEach(1...4, id: \.self) { index in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(index <= strength.rawValue ? strength.color : Color.black.opacity(0.1))
+                        .fill(index <= strength.rawValue ? strength.color : Color("Colors/Opacity/Black/inverse/10"))
                         .frame(height: 4)
                         .animation(.easeInOut(duration: 0.2), value: strength.rawValue)
                 }
             }
             Text(strength.label)
-                .font(.system(size: 12, weight: .regular))
-                .foregroundStyle(strength == .empty ? Color(hex: "737373") : strength.color)
+                .font(.caption)
+                .foregroundStyle(strength == .empty ? Color.Text.tertiary : strength.color)
                 .animation(.easeInOut(duration: 0.2), value: strength.rawValue)
         }
     }
@@ -90,18 +90,19 @@ struct SignUpView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
+        ZStack {
+            Color.Background.default
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Toolbar — X dismiss
                 HStack {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(Color.Text.primary)
                             .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.05))
+                            .background(Color.Background.fieldFill)
                             .clipShape(Circle())
                     }
                     Spacer()
@@ -115,14 +116,12 @@ struct SignUpView: View {
                         // Header
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Let's get started")
-                                .font(.system(size: 34, weight: .bold))
-                                .tracking(0.4)
-                                .foregroundStyle(.black)
+                                .font(.largeTitle.bold())
+                                .foregroundStyle(Color.Text.primary)
 
-                            Text("Let's create your new account")
-                                .font(.system(size: 17, weight: .regular))
-                                .tracking(-0.43)
-                                .foregroundStyle(.black)
+                            Text("Let's create your account")
+                                .font(.body)
+                                .foregroundStyle(Color.Text.primary)
                         }
 
                         // Fields
@@ -157,15 +156,14 @@ struct SignUpView: View {
                                 // Requirements
                                 VStack(alignment: .leading, spacing: 0) {
                                     Text("Password must be at least 8 characters and include:")
-                                        .foregroundStyle(Color(hex: "737373"))
+                                        .foregroundStyle(Color.Text.tertiary)
                                     requirementRow("1 uppercase letter (A–Z)")
                                     requirementRow("1 lowercase letter (a–z)")
                                     requirementRow("1 number (0–9)")
                                     requirementRow("1 special character (!@#$%^&*)")
                                 }
-                                .font(.system(size: 13, weight: .regular))
-                                .tracking(-0.08)
-                                .foregroundStyle(Color(hex: "737373"))
+                                .font(.footnote)
+                                .foregroundStyle(Color.Text.tertiary)
                             }
 
                             LumoriaInputField(
@@ -181,15 +179,15 @@ struct SignUpView: View {
                         if let errorMessage {
                             Text(errorMessage)
                                 .font(.footnote)
-                                .foregroundStyle(Color(hex: "D94544"))
+                                .foregroundStyle(Color.Feedback.Danger.text)
                         }
 
                         // Primary CTA
                         Button(action: submit) {
                             if isLoading {
-                                ProgressView().tint(.white)
+                                ProgressView().tint(Color.Text.OnColor.white)
                             } else {
-                                Text("Create an account")
+                                Text("Create account")
                             }
                         }
                         .lumoriaButtonStyle(.primary)
@@ -198,22 +196,29 @@ struct SignUpView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 24)
                     .padding(.bottom, 120)
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard() }
                 }
 
                 Spacer(minLength: 0)
             }
 
-            // Pinned bottom CTA
-            Button("Log in") {
-                dismiss()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    onLogIn()
+            // Pinned bottom CTA — stays anchored regardless of keyboard
+            VStack {
+                Spacer()
+                Button("Log in") {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        onLogIn()
+                    }
                 }
+                .lumoriaButtonStyle(.secondary)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 20)
             }
-            .lumoriaButtonStyle(.secondary)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
+        .onAppear { Analytics.track(.signupStarted) }
         .presentationDragIndicator(.hidden)
         .presentationCornerRadius(38)
         .alert("Check your email", isPresented: $showConfirmation) {
@@ -225,14 +230,24 @@ struct SignUpView: View {
 
     // MARK: Helpers
 
-    private func requirementRow(_ text: String) -> some View {
+    private func requirementRow(_ text: LocalizedStringKey) -> some View {
         Label(text, systemImage: "circle.fill")
             .labelStyle(BulletLabelStyle())
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
 
     private func submit() {
         errorMessage = nil
         isLoading = true
+        let domain = AnalyticsIdentity.emailDomain(email) ?? "unknown"
+        Analytics.track(.signupSubmitted(emailDomain: domain, hasName: !name.isEmpty))
+
         Task {
             defer { isLoading = false }
             do {
@@ -241,8 +256,17 @@ struct SignUpView: View {
                     password: password,
                     data: ["display_name": .string(name)]
                 )
+                Analytics.track(.signupVerificationSent(emailDomain: domain))
                 showConfirmation = true
             } catch {
+                let errType: AuthErrorTypeProp = {
+                    let msg = error.localizedDescription.lowercased()
+                    if msg.contains("registered") || msg.contains("exists") { return .email_in_use }
+                    if msg.contains("password") { return .weak_password }
+                    if msg.contains("network") || msg.contains("offline") { return .network }
+                    return .unknown
+                }()
+                Analytics.track(.signupFailed(errorType: errType))
                 errorMessage = error.localizedDescription
             }
         }

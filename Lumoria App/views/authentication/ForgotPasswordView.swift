@@ -18,17 +18,17 @@ struct ForgotPasswordView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
+            Color.Background.default.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Toolbar — X dismiss
                 HStack {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(Color.Text.primary)
                             .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.05))
+                            .background(Color.Background.fieldFill)
                             .clipShape(Circle())
                     }
                     Spacer()
@@ -41,14 +41,12 @@ struct ForgotPasswordView: View {
                     // Header
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Update your password")
-                            .font(.system(size: 34, weight: .bold))
-                            .tracking(0.4)
-                            .foregroundStyle(.black)
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(Color.Text.primary)
 
-                        Text("No worries, we will send you an email for you to reset it.")
-                            .font(.system(size: 17, weight: .regular))
-                            .tracking(-0.43)
-                            .foregroundStyle(.black)
+                        Text("We'll email you a reset link.")
+                            .font(.body)
+                            .foregroundStyle(Color.Text.primary)
                     }
 
                     // Field + CTA
@@ -64,14 +62,14 @@ struct ForgotPasswordView: View {
                         if let errorMessage {
                             Text(errorMessage)
                                 .font(.footnote)
-                                .foregroundStyle(Color(hex: "D94544"))
+                                .foregroundStyle(Color.Feedback.Danger.text)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.top, 8)
                         }
 
                         Button(action: submit) {
                             if isLoading {
-                                ProgressView().tint(.white)
+                                ProgressView().tint(Color.Text.OnColor.white)
                             } else {
                                 Text("Send reset link")
                             }
@@ -92,13 +90,16 @@ struct ForgotPasswordView: View {
         .alert("Check your email", isPresented: $showConfirmation) {
             Button("OK", role: .cancel) { dismiss() }
         } message: {
-            Text("If \(email) is registered, you'll receive a password reset link shortly.")
+            Text("If \(email) has an account, we've sent a reset link.")
         }
     }
 
     private func submit() {
         errorMessage = nil
         isLoading = true
+        let domain = AnalyticsIdentity.emailDomain(email) ?? "unknown"
+        Analytics.track(.passwordResetRequested(emailDomain: domain))
+
         Task {
             defer { isLoading = false }
             do {

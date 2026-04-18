@@ -21,7 +21,7 @@ struct LogInView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
+            Color.Background.default.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // Toolbar — X dismiss button
@@ -30,10 +30,10 @@ struct LogInView: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.black)
+                            .font(.callout.weight(.semibold))
+                            .foregroundStyle(Color.Text.primary)
                             .frame(width: 44, height: 44)
-                            .background(Color.black.opacity(0.05))
+                            .background(Color.Background.fieldFill)
                             .clipShape(Circle())
                     }
                     Spacer()
@@ -47,14 +47,12 @@ struct LogInView: View {
                         // Header
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Welcome back!")
-                                .font(.system(size: 34, weight: .bold))
-                                .tracking(0.4)
-                                .foregroundStyle(.black)
+                                .font(.largeTitle.bold())
+                                .foregroundStyle(Color.Text.primary)
 
-                            Text("Log in to your Lumoria account")
-                                .font(.system(size: 17, weight: .regular))
-                                .tracking(-0.43)
-                                .foregroundStyle(.black)
+                            Text("Log in to Lumoria")
+                                .font(.body)
+                                .foregroundStyle(Color.Text.primary)
                         }
 
                         // Fields
@@ -81,13 +79,13 @@ struct LogInView: View {
                             if let errorMessage {
                                 Text(errorMessage)
                                     .font(.footnote)
-                                    .foregroundStyle(Color(hex: "D94544"))
+                                    .foregroundStyle(Color.Feedback.Danger.text)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
 
                             Button(action: submit) {
                                 if isLoading {
-                                    ProgressView().tint(.white)
+                                    ProgressView().tint(Color.Text.OnColor.white)
                                 } else {
                                     Text("Log in")
                                 }
@@ -107,35 +105,60 @@ struct LogInView: View {
                     .padding(.horizontal, 24)
                     .padding(.top, 24)
                     .padding(.bottom, 120) // reserve space for pinned button
+                    .contentShape(Rectangle())
+                    .onTapGesture { dismissKeyboard() }
                 }
 
                 Spacer(minLength: 0)
             }
 
-            // Pinned bottom CTA
-            Button("Create an account") {
-                dismiss()
-                // Small delay so dismiss animation completes before showing sign up
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    onCreateAccount()
+            // Pinned bottom CTA — stays anchored regardless of keyboard
+            VStack {
+                Spacer()
+                Button("Create account") {
+                    dismiss()
+                    // Small delay so dismiss animation completes before showing sign up
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        onCreateAccount()
+                    }
                 }
+                .lumoriaButtonStyle(.secondary)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 20)
             }
-            .lumoriaButtonStyle(.secondary)
-            .padding(.horizontal, 24)
-            .padding(.bottom, 20)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .presentationDragIndicator(.hidden)
         .presentationCornerRadius(38)
     }
 
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
+    }
+
     private func submit() {
         errorMessage = nil
         isLoading = true
+        let domain = AnalyticsIdentity.emailDomain(email) ?? "unknown"
+        Analytics.track(.loginSubmitted(emailDomain: domain))
+
         Task {
             defer { isLoading = false }
             do {
                 try await supabase.auth.signIn(email: email, password: password)
+                // Note: Login Succeeded is fired by AuthManager on the .signedIn state change.
             } catch {
+                let errType: AuthErrorTypeProp = {
+                    let msg = error.localizedDescription.lowercased()
+                    if msg.contains("invalid") || msg.contains("credentials") { return .invalid_credentials }
+                    if msg.contains("network") || msg.contains("offline") { return .network }
+                    if msg.contains("cancel") { return .cancelled }
+                    return .unknown
+                }()
+                Analytics.track(.loginFailed(errorType: errType))
                 errorMessage = error.localizedDescription
             }
         }

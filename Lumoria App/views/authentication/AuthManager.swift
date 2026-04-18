@@ -9,8 +9,14 @@ import SwiftUI
 
 @MainActor
 final class AuthManager: ObservableObject {
-    @Published var isAuthenticated = false
+    @Published var isAuthenticated = false {
+        didSet { AuthCache.lastKnownAuthenticated = isAuthenticated }
+    }
     @Published var isBetaSubscriber = false
+    /// True while the initial session restore is in flight. The app root
+    /// shows a neutral splash instead of the landing screen during this
+    /// window so returning signed-in users never see a landing flash.
+    @Published var isRestoring = true
 
     init() {
         Task {
@@ -22,6 +28,8 @@ final class AuthManager: ObservableObject {
             if let uid = session?.user.id {
                 provisionDataKey(for: uid)
             }
+            AuthCache.hasCache = true
+            isRestoring = false
             await listenForAuthChanges()
         }
     }
@@ -32,25 +40,46 @@ final class AuthManager: ObservableObject {
             case .initialSession:
                 let valid = session.map { !$0.isExpired } ?? false
                 isAuthenticated = valid
-                if valid, let uid = session?.user.id {
-                    provisionDataKey(for: uid)
+                Analytics.track(.sessionRestored(hadCache: AuthCache.hasCache))
+                if valid, let user = session?.user {
+                    provisionDataKey(for: user.id)
+                    identifyUser(user)
                     await checkBetaStatus()
                     await claimPendingInviteIfAny()
                 }
             case .signedIn, .tokenRefreshed, .userUpdated:
                 isAuthenticated = session != nil
-                if let uid = session?.user.id {
-                    provisionDataKey(for: uid)
+                if let user = session?.user {
+                    provisionDataKey(for: user.id)
+                    if event == .signedIn {
+                        let domain = AnalyticsIdentity.emailDomain(user.email ?? "") ?? "unknown"
+                        let wasFromInvite = PendingInviteTokenStore.current != nil
+                        Analytics.track(.loginSucceeded(
+                            emailDomain: domain,
+                            wasFromInvite: wasFromInvite
+                        ))
+                    }
+                    identifyUser(user)
                     await checkBetaStatus()
                     await claimPendingInviteIfAny()
                 }
             case .signedOut:
                 isAuthenticated = false
                 isBetaSubscriber = false
+                Analytics.track(.logout)
+                Analytics.reset()
             default:
                 break
             }
         }
+    }
+
+    private func identifyUser(_ user: User) {
+        let userId = user.id.uuidString
+        let domain = AnalyticsIdentity.emailDomain(user.email ?? "") ?? "unknown"
+        Analytics.identify(userId: userId, userProperties: [
+            "email_domain": domain,
+        ])
     }
 
     /// Loads or generates the local encryption key for this user. Running
@@ -85,6 +114,25 @@ final class AuthManager: ObservableObject {
         } catch {
             print("[AuthManager] Beta status check failed: \(error)")
         }
+    }
+}
+
+/// Persisted hint about the last session outcome. Lets the app root
+/// route the first frame to the correct surface (ContentView for
+/// signed-in returners, LandingView for signed-out ones) while the
+/// async session restore is still in flight.
+enum AuthCache {
+    private static let hasCacheKey = "auth.hasCache"
+    private static let lastKnownAuthedKey = "auth.lastKnownAuthenticated"
+
+    static var hasCache: Bool {
+        get { UserDefaults.standard.bool(forKey: hasCacheKey) }
+        set { UserDefaults.standard.set(newValue, forKey: hasCacheKey) }
+    }
+
+    static var lastKnownAuthenticated: Bool {
+        get { UserDefaults.standard.bool(forKey: lastKnownAuthedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: lastKnownAuthedKey) }
     }
 }
 
