@@ -92,7 +92,7 @@ struct InviteView: View {
             VStack(spacing: 8) {
                 Button {
                     UIPasteboard.general.string = invite.shareURL.absoluteString
-                    copyToast = "Link copied"
+                    copyToast = String(localized: "Link copied")
                     shareInvite = invite
                     showShareSheet = true
                     Analytics.track(.inviteShared(
@@ -302,8 +302,8 @@ private struct IllustrationCard<Content: View>: View {
 // MARK: - Title block
 
 private struct TitleBlock: View {
-    let title: String
-    let description: String
+    let title: LocalizedStringKey
+    let description: LocalizedStringKey
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {

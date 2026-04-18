@@ -86,7 +86,7 @@ final class NotificationPrefsStore: ObservableObject {
         } catch is CancellationError {
         } catch let error as URLError where error.code == .cancelled {
         } catch {
-            errorMessage = "Couldn't load notification preferences. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn't load notification preferences. \(error.localizedDescription)")
             print("[NotificationPrefsStore] load failed:", error)
             Analytics.track(.appError(domain: .notification, code: (error as NSError).code.description, viewContext: "NotificationPrefsStore.load"))
         }
@@ -129,7 +129,7 @@ final class NotificationPrefsStore: ObservableObject {
         } catch is CancellationError {
         } catch let error as URLError where error.code == .cancelled {
         } catch {
-            errorMessage = "Couldn't save notification preferences. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn't save notification preferences. \(error.localizedDescription)")
             print("[NotificationPrefsStore] save failed:", error)
             Analytics.track(.appError(domain: .notification, code: (error as NSError).code.description, viewContext: "NotificationPrefsStore.save"))
         }

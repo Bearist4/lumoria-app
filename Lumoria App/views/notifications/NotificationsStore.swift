@@ -51,7 +51,7 @@ final class NotificationsStore: ObservableObject {
         } catch let error as URLError where error.code == .cancelled {
             // URLSession cancellation — same treatment.
         } catch {
-            errorMessage = "Couldn’t load notifications. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t load notifications. \(error.localizedDescription)")
             print("[NotificationsStore] load failed:", error)
             Analytics.track(.appError(domain: .notification, code: (error as NSError).code.description, viewContext: "NotificationsStore.load"))
         }

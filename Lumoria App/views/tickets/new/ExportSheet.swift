@@ -241,8 +241,8 @@ private struct DestinationsView: View {
 
     private func destinationCard(
         iconRow: AnyView,
-        title: String,
-        subtitle: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
         isEnabled: Bool,
         isComingSoon: Bool,
         isLoading: Bool = false,
@@ -473,8 +473,8 @@ private struct CameraRollView: View {
     // MARK: - Rows
 
     private func toggleRow(
-        title: String,
-        subtitle: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
         isOn: Binding<Bool>
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
@@ -500,8 +500,8 @@ private struct CameraRollView: View {
     }
 
     private func segmentedRow<T: Hashable & CaseIterable & Identifiable & RawRepresentable>(
-        title: String,
-        subtitle: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
         selection: Binding<T>
     ) -> some View where T.RawValue == String, T.AllCases: RandomAccessCollection {
         VStack(alignment: .leading, spacing: 12) {
@@ -555,7 +555,7 @@ private struct CameraRollView: View {
 
             let rendered = renderImage()
             guard let image = rendered else {
-                toastMessage = "Couldn't render ticket."
+                toastMessage = String(localized: "Couldn't render ticket.")
                 Analytics.track(.ticketExportFailed(
                     destination: .camera_roll,
                     errorType: "render_failed"
@@ -592,7 +592,7 @@ private struct CameraRollView: View {
                 durationMs: durationMs
             ))
             Analytics.updateUserProperties(["last_export_destination": ExportDestinationProp.camera_roll.rawValue])
-            toastMessage = "Saved to Camera roll"
+            toastMessage = String(localized: "Saved to Camera roll")
             try? await Task.sleep(nanoseconds: 1_200_000_000)
             onExported()
         }

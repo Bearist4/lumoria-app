@@ -58,7 +58,7 @@ final class MemoriesStore: ObservableObject {
         } catch let error as URLError where error.code == .cancelled {
             // URLSession cancellation — same treatment.
         } catch {
-            self.errorMessage = "Couldn’t load memories. \(error.localizedDescription)"
+            self.errorMessage = String(localized: "Couldn’t load memories. \(error.localizedDescription)")
             print("[MemoriesStore] load failed:", error)
         }
     }
@@ -73,7 +73,7 @@ final class MemoriesStore: ObservableObject {
     ) async -> Memory? {
 
         guard let userId = supabase.auth.currentUser?.id else {
-            errorMessage = "You need to be signed in to create a memory."
+            errorMessage = String(localized: "You need to be signed in to create a memory.")
             return nil
         }
 
@@ -113,7 +113,7 @@ final class MemoriesStore: ObservableObject {
 
             return inserted
         } catch {
-            errorMessage = "Couldn’t save memory. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t save memory. \(error.localizedDescription)")
             print("[MemoriesStore] create failed:", error)
             Analytics.track(.appError(
                 domain: .memory,
@@ -166,7 +166,7 @@ final class MemoriesStore: ObservableObject {
                 memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
             ))
         } catch {
-            errorMessage = "Couldn’t update memory. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t update memory. \(error.localizedDescription)")
             print("[MemoriesStore] update failed:", error)
             Analytics.track(.appError(
                 domain: .memory,
@@ -193,7 +193,7 @@ final class MemoriesStore: ObservableObject {
                 memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
             ))
         } catch {
-            errorMessage = "Couldn’t delete memory. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t delete memory. \(error.localizedDescription)")
             print("[MemoriesStore] delete failed:", error)
             Analytics.track(.appError(
                 domain: .memory,

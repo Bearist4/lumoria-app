@@ -74,7 +74,7 @@ final class InvitesStore: ObservableObject {
         } catch is CancellationError {
         } catch let error as URLError where error.code == .cancelled {
         } catch {
-            errorMessage = "Couldn’t load your invite. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t load your invite. \(error.localizedDescription)")
             print("[InvitesStore] load failed:", error)
         }
     }
@@ -86,7 +86,7 @@ final class InvitesStore: ObservableObject {
     @discardableResult
     func sendInvite() async -> Invite? {
         guard let userId = supabase.auth.currentUser?.id else {
-            errorMessage = "You need to be signed in to send an invite."
+            errorMessage = String(localized: "You need to be signed in to send an invite.")
             return nil
         }
 
@@ -115,7 +115,7 @@ final class InvitesStore: ObservableObject {
                     || message.contains("duplicate key value")
                 if isUniqueViolation, attempt == 0 { continue }
 
-                errorMessage = "Couldn’t send your invite. \(error.localizedDescription)"
+                errorMessage = String(localized: "Couldn’t send your invite. \(error.localizedDescription)")
                 print("[InvitesStore] send failed:", error)
                 return nil
             }
@@ -136,7 +136,7 @@ final class InvitesStore: ObservableObject {
             state = .notSent
             errorMessage = nil
         } catch {
-            errorMessage = "Couldn’t revoke the invite. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t revoke the invite. \(error.localizedDescription)")
             print("[InvitesStore] revoke failed:", error)
         }
     }

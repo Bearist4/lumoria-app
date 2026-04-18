@@ -503,7 +503,7 @@ struct ProfileView: View {
             avatarPickerItem = nil
             withAnimation(.easeInOut(duration: 0.2)) { isEditing = false }
         } catch {
-            saveError = "Couldn’t save changes. \(error.localizedDescription)"
+            saveError = String(localized: "Couldn’t save changes. \(error.localizedDescription)")
             print("[ProfileView] save failed:", error)
             Analytics.track(.appError(
                 domain: .auth,

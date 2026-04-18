@@ -55,7 +55,7 @@ final class TicketsStore: ObservableObject {
         } catch let error as URLError where error.code == .cancelled {
             // URLSession cancellation — same treatment.
         } catch {
-            errorMessage = "Couldn’t load tickets. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t load tickets. \(error.localizedDescription)")
             print("[TicketsStore] load failed:", error)
             Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.load"))
         }
@@ -77,7 +77,7 @@ final class TicketsStore: ObservableObject {
         do {
             userId = try await supabase.auth.session.user.id
         } catch {
-            errorMessage = "You need to be signed in to save a ticket."
+            errorMessage = String(localized: "You need to be signed in to save a ticket.")
             print("[TicketsStore] session fetch failed:", error)
             return nil
         }
@@ -120,7 +120,7 @@ final class TicketsStore: ObservableObject {
             StickerRenderService.shared.render(ticket)
             return ticket
         } catch {
-            errorMessage = "Couldn’t save ticket. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t save ticket. \(error.localizedDescription)")
             print("[TicketsStore] create failed:", error)
             Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.create"))
             return nil
@@ -163,7 +163,7 @@ final class TicketsStore: ObservableObject {
             StickerRenderService.shared.render(rebuilt)
             return true
         } catch {
-            errorMessage = "Couldn’t save changes. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t save changes. \(error.localizedDescription)")
             print("[TicketsStore] update failed:", error)
             Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.update"))
             return false
@@ -184,7 +184,7 @@ final class TicketsStore: ObservableObject {
             errorMessage = nil
             StickerRenderService.shared.delete(ticketId: ticket.id)
         } catch {
-            errorMessage = "Couldn’t delete ticket. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t delete ticket. \(error.localizedDescription)")
             print("[TicketsStore] delete failed:", error)
             Analytics.track(.appError(domain: .ticket, code: (error as NSError).code.description, viewContext: "TicketsStore.delete"))
         }
@@ -223,7 +223,7 @@ final class TicketsStore: ObservableObject {
             tickets[idx].memoryIds = memoryIds
             errorMessage = nil
         } catch {
-            errorMessage = "Couldn’t update memories. \(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn’t update memories. \(error.localizedDescription)")
             print("[TicketsStore] setMemories failed:", error)
             Analytics.track(.appError(domain: .memory, code: (error as NSError).code.description, viewContext: "TicketsStore.setMemories"))
         }

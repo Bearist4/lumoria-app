@@ -498,7 +498,7 @@ final class NewTicketFunnel: ObservableObject {
     func persist(using store: TicketsStore) async {
         guard createdTicket == nil else { return }
         guard let payload = buildPayload() else {
-            errorMessage = "Missing ticket data."
+            errorMessage = String(localized: "Missing ticket data.")
             return
         }
         isSaving = true
