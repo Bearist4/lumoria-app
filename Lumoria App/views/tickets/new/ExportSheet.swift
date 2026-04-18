@@ -26,6 +26,9 @@ struct ExportSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var phase: Phase = .destinations
 
+    // IM share state
+    @State private var isPreparingIMShare = false
+
     enum Phase { case destinations, cameraRoll }
 
     var body: some View {
@@ -33,11 +36,17 @@ struct ExportSheet: View {
             switch phase {
             case .destinations:
                 DestinationsView(
+                    isPreparingIMShare: isPreparingIMShare,
                     onClose: { dismiss() },
                     onCameraRoll: {
+                        Analytics.track(.exportDestinationSelected(destination: .camera_roll))
                         withAnimation(.easeInOut(duration: 0.25)) {
                             phase = .cameraRoll
                         }
+                    },
+                    onInstantMessaging: {
+                        Analytics.track(.exportDestinationSelected(destination: .whatsapp))
+                        Task { await handleIMShare() }
                     }
                 )
                 .transition(.asymmetric(
@@ -62,6 +71,112 @@ struct ExportSheet: View {
         }
         .background(Color.Background.default)
         .presentationDragIndicator(.visible)
+        .onAppear {
+            Analytics.track(.exportSheetOpened(
+                category: ticket.kind.analyticsCategory,
+                template: ticket.kind.analyticsTemplate
+            ))
+        }
+    }
+
+    // MARK: - IM share
+
+    /// Activity types hidden from the IM share sheet. Camera roll already has
+    /// its own dedicated flow; the rest are either irrelevant or sunset/obscure
+    /// social networks.
+    private static let excludedIMActivityTypes: [UIActivity.ActivityType] = [
+        .saveToCameraRoll,
+        .addToReadingList,
+        .assignToContact,
+        .openInIBooks,
+        .markupAsPDF,
+        .postToFacebook,
+        .postToTwitter,
+        .postToWeibo,
+        .postToFlickr,
+        .postToVimeo,
+        .postToTencentWeibo,
+    ]
+
+    @MainActor
+    private func handleIMShare() async {
+        guard !isPreparingIMShare else { return }
+        isPreparingIMShare = true
+        defer { isPreparingIMShare = false }
+
+        let renderer = ImageRenderer(content: IMShareRenderView(ticket: ticket))
+        renderer.scale = 2.0
+        renderer.isOpaque = true  // skip alpha — render is fully opaque
+        guard let image = renderer.uiImage else { return }
+
+        presentActivityController(for: image)
+    }
+
+    /// Presents the activity sheet via UIKit on the topmost presented view
+    /// controller. SwiftUI's `.sheet` cannot host a `UIActivityViewController`
+    /// when the parent view is itself presented in a sheet — iOS fights over
+    /// the presentation slot and the activity items silently fail to register
+    /// with their target activities (classic "SHSheetActivityPerformer
+    /// already performing" log).
+    @MainActor
+    private func presentActivityController(for image: UIImage) {
+        guard
+            let scene = UIApplication.shared.connectedScenes
+                .first(where: { $0.activationState == .foregroundActive })
+                as? UIWindowScene,
+            let window = scene.windows.first(where: \.isKeyWindow),
+            let rootVC = window.rootViewController
+        else { return }
+
+        var topVC: UIViewController = rootVC
+        while let presented = topVC.presentedViewController {
+            topVC = presented
+        }
+
+        let controller = UIActivityViewController(
+            activityItems: [image, LumoriaLinks.shareMessage],
+            applicationActivities: nil
+        )
+        controller.excludedActivityTypes = Self.excludedIMActivityTypes
+        controller.completionWithItemsHandler = { activityType, completed, _, _ in
+            guard completed else { return }
+            let platform: IMPlatformProp = {
+                let raw = activityType?.rawValue.lowercased() ?? ""
+                if raw.contains("whatsapp") { return .whatsapp }
+                if raw.contains("messenger") || raw.contains("fb-messenger") { return .messenger }
+                if raw.contains("discord") { return .discord }
+                return .other
+            }()
+            Analytics.track(.ticketSharedViaIM(platform: platform))
+            let destination: ExportDestinationProp = {
+                switch platform {
+                case .whatsapp:  return .whatsapp
+                case .messenger: return .messenger
+                case .discord:   return .discord
+                case .other:     return .whatsapp
+                }
+            }()
+            Analytics.track(.ticketExported(
+                destination: destination,
+                resolution: nil, crop: nil, format: nil,
+                includeBackground: nil, includeWatermark: nil,
+                durationMs: 0
+            ))
+            Analytics.updateUserProperties(["last_export_destination": destination.rawValue])
+        }
+
+        // iPad popover anchor — no-op on iPhone.
+        if let popover = controller.popoverPresentationController {
+            popover.sourceView = topVC.view
+            popover.sourceRect = CGRect(
+                x: topVC.view.bounds.midX,
+                y: topVC.view.bounds.midY,
+                width: 0, height: 0
+            )
+            popover.permittedArrowDirections = []
+        }
+
+        topVC.present(controller, animated: true)
     }
 }
 
@@ -69,8 +184,10 @@ struct ExportSheet: View {
 
 private struct DestinationsView: View {
 
+    let isPreparingIMShare: Bool
     let onClose: () -> Void
     let onCameraRoll: () -> Void
+    let onInstantMessaging: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -82,8 +199,7 @@ private struct DestinationsView: View {
             .padding(.top, 8)
 
             Text("Export your ticket")
-                .font(.system(size: 34, weight: .bold))
-                .tracking(0.4)
+                .font(.largeTitle.bold())
                 .foregroundStyle(Color.Text.primary)
                 .padding(.horizontal, 16)
 
@@ -94,20 +210,24 @@ private struct DestinationsView: View {
                         title: "Social Media",
                         subtitle: "Post your Lumoria ticket in your story or as a post.",
                         isEnabled: false,
+                        isComingSoon: true,
                         action: {}
                     )
                     destinationCard(
                         iconRow: AnyView(socialIconRow(.messaging)),
                         title: "Instant messaging",
                         subtitle: "Share your Lumoria ticket with your friends.",
-                        isEnabled: false,
-                        action: {}
+                        isEnabled: !isPreparingIMShare,
+                        isComingSoon: false,
+                        isLoading: isPreparingIMShare,
+                        action: onInstantMessaging
                     )
                     destinationCard(
                         iconRow: AnyView(cameraRollIcon()),
                         title: "Camera roll",
                         subtitle: "Save your Lumoria ticket in your gallery.",
                         isEnabled: true,
+                        isComingSoon: false,
                         action: onCameraRoll
                     )
                 }
@@ -124,6 +244,8 @@ private struct DestinationsView: View {
         title: String,
         subtitle: String,
         isEnabled: Bool,
+        isComingSoon: Bool,
+        isLoading: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
@@ -131,18 +253,23 @@ private struct DestinationsView: View {
                 iconRow
                 VStack(alignment: .leading, spacing: 0) {
                     Text(title)
-                        .font(.system(size: 17, weight: .semibold))
-                        .tracking(-0.43)
+                        .font(.headline)
                         .foregroundStyle(Color.Text.primary)
                     Text(subtitle)
-                        .font(.system(size: 13, weight: .regular))
-                        .tracking(-0.08)
+                        .font(.footnote)
                         .foregroundStyle(Color.Text.secondary)
                 }
-                if !isEnabled {
+                if isComingSoon {
                     Text("Coming soon")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(Color.Text.tertiary)
+                } else if isLoading {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small)
+                        Text("Preparing…")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.Text.tertiary)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -244,16 +371,14 @@ private struct CameraRollView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     Text("Camera roll")
-                        .font(.system(size: 34, weight: .bold))
-                        .tracking(0.4)
+                        .font(.largeTitle.bold())
                         .foregroundStyle(Color.Text.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     previewCard
 
                     Text("Export options")
-                        .font(.system(size: 20, weight: .semibold))
-                        .tracking(-0.45)
+                        .font(.title3.bold())
                         .foregroundStyle(Color.Text.primary)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -298,14 +423,13 @@ private struct CameraRollView: View {
             Spacer()
             Button(action: export) {
                 Text(isExporting ? "Exporting…" : "Export")
-                    .font(.system(size: 15, weight: .semibold))
-                    .tracking(-0.43)
-                    .foregroundStyle(.white)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.Button.Primary.Label.default)
                     .padding(.horizontal, 16)
                     .frame(height: 44)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.black)
+                            .fill(Color.Button.Primary.Background.default)
                     )
             }
             .buttonStyle(.plain)
@@ -319,13 +443,20 @@ private struct CameraRollView: View {
 
     private var previewCard: some View {
         let previewTicket = ticket
+        let isVertical = previewTicket.orientation == .vertical
+
         return VStack {
             TicketPreview(ticket: previewTicket)
-                .aspectRatio(previewTicket.orientation == .horizontal ? 455/260 : 260/455, contentMode: .fit)
-                .frame(maxWidth: .infinity)
-                .padding(26)
+                .aspectRatio(isVertical ? 260/455 : 455/260, contentMode: .fit)
+                // Vertical tickets cap at 200pt wide to mirror the 0.5×
+                // downscale applied in `ExportRenderView` — real frame
+                // constraint (not scaleEffect) so the card hugs the ticket
+                // instead of reserving full-size space around it.
+                .frame(maxWidth: isVertical ? 200 : .infinity)
         }
         .frame(maxWidth: .infinity)
+        .padding(.vertical, 32)
+        .padding(.horizontal, 26)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.Background.elevated)
@@ -334,6 +465,9 @@ private struct CameraRollView: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.Border.default, lineWidth: 1)
         )
+        // Mirror the watermark toggle into the on-screen preview so the
+        // user sees what the exported image will contain.
+        .environment(\.showsLumoriaWatermark, includeWatermark)
     }
 
     // MARK: - Rows
@@ -346,12 +480,10 @@ private struct CameraRollView: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .tracking(-0.43)
+                    .font(.headline)
                     .foregroundStyle(Color.Text.primary)
                 Text(subtitle)
-                    .font(.system(size: 13, weight: .regular))
-                    .tracking(-0.08)
+                    .font(.footnote)
                     .foregroundStyle(Color.Text.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -375,12 +507,10 @@ private struct CameraRollView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-                    .tracking(-0.43)
+                    .font(.headline)
                     .foregroundStyle(Color.Text.primary)
                 Text(subtitle)
-                    .font(.system(size: 13, weight: .regular))
-                    .tracking(-0.08)
+                    .font(.footnote)
                     .foregroundStyle(Color.Text.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -403,12 +533,33 @@ private struct CameraRollView: View {
 
     private func export() {
         isExporting = true
+        let resolutionProp: ExportResolutionProp = {
+            switch resolution {
+            case .standard: return .x1
+            case .x2:       return .x2
+            case .x3:       return .x3
+            }
+        }()
+        let cropProp: ExportCropProp = crop == .square ? .square : .full
+        let formatProp: ExportFormatProp = format == .jpg ? .jpg : .png
+        Analytics.track(.cameraRollExportConfigured(
+            includeBackground: includeBackground,
+            includeWatermark: includeWatermark,
+            resolution: resolutionProp,
+            crop: cropProp,
+            format: formatProp
+        ))
+        let startedAt = Date()
         Task { @MainActor in
             defer { isExporting = false }
 
             let rendered = renderImage()
             guard let image = rendered else {
                 toastMessage = "Couldn't render ticket."
+                Analytics.track(.ticketExportFailed(
+                    destination: .camera_roll,
+                    errorType: "render_failed"
+                ))
                 return
             }
 
@@ -430,6 +581,17 @@ private struct CameraRollView: View {
             }
 
             UIImageWriteToSavedPhotosAlbum(finalImage, nil, nil, nil)
+            let durationMs = Int(Date().timeIntervalSince(startedAt) * 1000)
+            Analytics.track(.ticketExported(
+                destination: .camera_roll,
+                resolution: resolutionProp,
+                crop: cropProp,
+                format: formatProp,
+                includeBackground: includeBackground,
+                includeWatermark: includeWatermark,
+                durationMs: durationMs
+            ))
+            Analytics.updateUserProperties(["last_export_destination": ExportDestinationProp.camera_roll.rawValue])
             toastMessage = "Saved to Camera roll"
             try? await Task.sleep(nanoseconds: 1_200_000_000)
             onExported()
@@ -489,17 +651,41 @@ private struct ExportRenderView: View {
 
             TicketPreview(ticket: ticket)
                 .padding(64)
-
-            if includeWatermark {
-                VStack {
-                    Spacer()
-                    Text("Made with Lumoria")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.9))
-                        .padding(.bottom, 24)
-                }
-            }
+                // Vertical tickets render too large inside the portrait
+                // canvas — scale them down so they sit comfortably in the
+                // exported image with breathing room on all sides.
+                .scaleEffect(ticket.orientation == .vertical ? 0.5 : 1.0)
         }
         .frame(width: canvasSize.width, height: canvasSize.height)
+        // Propagates down to every template view's `madeWithBadge` so they
+        // render (or skip) the embedded Lumoria watermark in unison.
+        .environment(\.showsLumoriaWatermark, includeWatermark)
     }
+}
+
+// MARK: - Preview
+
+private struct ExportSheetPreviewHost: View {
+    @State private var showSheet = true
+    let ticket: Ticket
+
+    var body: some View {
+        Color.Background.default
+            .ignoresSafeArea()
+            .sheet(isPresented: $showSheet) {
+                ExportSheet(ticket: ticket)
+            }
+    }
+}
+
+#Preview("Export sheet — horizontal ticket") {
+    let ticket = TicketsStore.sampleTickets.first { $0.orientation == .horizontal }
+        ?? TicketsStore.sampleTickets[0]
+    return ExportSheetPreviewHost(ticket: ticket)
+}
+
+#Preview("Export sheet — vertical ticket") {
+    let ticket = TicketsStore.sampleTickets.first { $0.orientation == .vertical }
+        ?? TicketsStore.sampleTickets[0]
+    return ExportSheetPreviewHost(ticket: ticket)
 }

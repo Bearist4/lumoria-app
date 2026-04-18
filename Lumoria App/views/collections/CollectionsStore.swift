@@ -1,44 +1,54 @@
 //
-//  CollectionsStore.swift
+//  MemoriesStore.swift
 //  Lumoria App
 //
-//  Loads / creates / deletes the signed-in user's collections via Supabase.
+//  Loads / creates / deletes the signed-in user's memories via Supabase.
 //
 
+import Combine
 import Foundation
 import Supabase
 import SwiftUI
-import CoreLocation
-import Combine
 
 @MainActor
-final class CollectionsStore: ObservableObject {
-    @Published private(set) var collections: [Collection] = []
+final class MemoriesStore: ObservableObject {
+    @Published private(set) var memories: [Memory] = []
     @Published private(set) var isLoading: Bool = false
     @Published var errorMessage: String? = nil
+
+    #if DEBUG
+    /// Preview-only flag: once `seedForPreview` runs, `load()` becomes a
+    /// no-op so the unauthenticated preview path can't blank the seeded
+    /// memories out.
+    private var skipLoadForPreview = false
+    #endif
 
     // MARK: - Load
 
     func load() async {
+        #if DEBUG
+        if skipLoadForPreview { return }
+        #endif
+
         isLoading = true
         defer { isLoading = false }
 
         guard supabase.auth.currentUser != nil else {
-            collections = []
+            memories = []
             return
         }
 
         do {
-            let rows: [CollectionRow] = try await supabase
-                .from("collections")
+            let rows: [MemoryRow] = try await supabase
+                .from("memories")
                 .select()
                 .order("created_at", ascending: false)
                 .execute()
                 .value
-            self.collections = rows.compactMap { row in
-                do { return try row.toCollection() }
+            self.memories = rows.compactMap { row in
+                do { return try row.toMemory() }
                 catch {
-                    print("[CollectionsStore] skipping row \(row.id):", error)
+                    print("[MemoriesStore] skipping row \(row.id):", error)
                     return nil
                 }
             }
@@ -48,8 +58,8 @@ final class CollectionsStore: ObservableObject {
         } catch let error as URLError where error.code == .cancelled {
             // URLSession cancellation — same treatment.
         } catch {
-            self.errorMessage = "Couldn’t load collections. \(error.localizedDescription)"
-            print("[CollectionsStore] load failed:", error)
+            self.errorMessage = "Couldn’t load memories. \(error.localizedDescription)"
+            print("[MemoriesStore] load failed:", error)
         }
     }
 
@@ -59,37 +69,57 @@ final class CollectionsStore: ObservableObject {
     func create(
         name: String,
         colorFamily: String,
-        location: SelectedLocation?
-    ) async -> Collection? {
+        emoji: String?
+    ) async -> Memory? {
 
         guard let userId = supabase.auth.currentUser?.id else {
-            errorMessage = "You need to be signed in to create a collection."
+            errorMessage = "You need to be signed in to create a memory."
             return nil
         }
 
         do {
-            let payload = try NewCollectionPayload.make(
+            let payload = try NewMemoryPayload.make(
                 userId: userId,
                 name: name,
                 colorFamily: colorFamily,
-                location: location
+                emoji: emoji
             )
 
-            let row: CollectionRow = try await supabase
-                .from("collections")
+            let row: MemoryRow = try await supabase
+                .from("memories")
                 .insert(payload)
                 .select()
                 .single()
                 .execute()
                 .value
-            let inserted = try row.toCollection()
+            let inserted = try row.toMemory()
 
-            collections.insert(inserted, at: 0)
+            memories.insert(inserted, at: 0)
             errorMessage = nil
+
+            let colorProp = MemoryColorFamilyProp(rawValue: colorFamily.lowercased()) ?? .gray
+            Analytics.track(.memoryCreated(
+                colorFamily: colorProp,
+                hasEmoji: !(emoji?.isEmpty ?? true),
+                nameLength: name.count
+            ))
+            Analytics.updateUserProperties([
+                "memories_created_lifetime": memories.count,
+            ])
+            if memories.count == 1 {
+                Analytics.track(.firstMemoryCreated(colorFamily: colorProp))
+                Analytics.updateUserProperties(["has_created_first_memory": true])
+            }
+
             return inserted
         } catch {
-            errorMessage = "Couldn’t save collection. \(error.localizedDescription)"
-            print("[CollectionsStore] create failed:", error)
+            errorMessage = "Couldn’t save memory. \(error.localizedDescription)"
+            print("[MemoriesStore] create failed:", error)
+            Analytics.track(.appError(
+                domain: .memory,
+                code: (error as NSError).code.description,
+                viewContext: "MemoriesStore.create"
+            ))
             return nil
         }
     }
@@ -97,55 +127,92 @@ final class CollectionsStore: ObservableObject {
     // MARK: - Update
 
     func update(
-        _ collection: Collection,
+        _ memory: Memory,
         name: String,
         colorFamily: String,
-        location: SelectedLocation?
+        emoji: String?
     ) async {
 
+        let nameChanged = memory.name != name
+        let colorChanged = memory.colorFamily != colorFamily
+        let emojiChanged = memory.emoji != emoji
+
         do {
-            let payload = try UpdateCollectionPayload.make(
+            let payload = try UpdateMemoryPayload.make(
                 name: name,
                 colorFamily: colorFamily,
-                location: location
+                emoji: emoji
             )
 
             try await supabase
-                .from("collections")
+                .from("memories")
                 .update(payload)
-                .eq("id", value: collection.id.uuidString)
+                .eq("id", value: memory.id.uuidString)
                 .execute()
 
-            if let idx = collections.firstIndex(where: { $0.id == collection.id }) {
-                var c = collections[idx]
-                c.name = name
-                c.colorFamily = colorFamily
-                c.locationName = location?.title
-                c.locationLat = location?.coordinate.latitude
-                c.locationLng = location?.coordinate.longitude
-                collections[idx] = c
+            if let idx = memories.firstIndex(where: { $0.id == memory.id }) {
+                var m = memories[idx]
+                m.name = name
+                m.colorFamily = colorFamily
+                m.emoji = emoji
+                memories[idx] = m
             }
             errorMessage = nil
+
+            Analytics.track(.memoryEdited(
+                nameChanged: nameChanged,
+                emojiChanged: emojiChanged,
+                colorChanged: colorChanged,
+                memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
+            ))
         } catch {
-            errorMessage = "Couldn’t update collection. \(error.localizedDescription)"
-            print("[CollectionsStore] update failed:", error)
+            errorMessage = "Couldn’t update memory. \(error.localizedDescription)"
+            print("[MemoriesStore] update failed:", error)
+            Analytics.track(.appError(
+                domain: .memory,
+                code: (error as NSError).code.description,
+                viewContext: "MemoriesStore.update"
+            ))
         }
     }
 
     // MARK: - Delete
 
-    func delete(_ collection: Collection) async {
+    func delete(_ memory: Memory) async {
         do {
             try await supabase
-                .from("collections")
+                .from("memories")
                 .delete()
-                .eq("id", value: collection.id.uuidString)
+                .eq("id", value: memory.id.uuidString)
                 .execute()
 
-            collections.removeAll { $0.id == collection.id }
+            memories.removeAll { $0.id == memory.id }
+
+            Analytics.track(.memoryDeleted(
+                ticketCount: 0,
+                memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
+            ))
         } catch {
-            errorMessage = "Couldn’t delete collection. \(error.localizedDescription)"
-            print("[CollectionsStore] delete failed:", error)
+            errorMessage = "Couldn’t delete memory. \(error.localizedDescription)"
+            print("[MemoriesStore] delete failed:", error)
+            Analytics.track(.appError(
+                domain: .memory,
+                code: (error as NSError).code.description,
+                viewContext: "MemoriesStore.delete"
+            ))
         }
+    }
+
+    // MARK: - Preview seeding
+
+    /// Preview-only — lets `#Preview` blocks populate the store without
+    /// going through Supabase. Sets `skipLoadForPreview` so the view's
+    /// auto `.task { await store.load() }` doesn't wipe the seed back
+    /// to an empty array when there's no authenticated user.
+    func seedForPreview(_ memories: [Memory]) {
+        self.memories = memories
+        #if DEBUG
+        skipLoadForPreview = true
+        #endif
     }
 }

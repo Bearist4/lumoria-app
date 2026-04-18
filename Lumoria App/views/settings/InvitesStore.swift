@@ -25,9 +25,31 @@ final class InvitesStore: ObservableObject {
     @Published private(set) var state: ViewState = .loading
     @Published var errorMessage: String? = nil
 
+    /// Nonisolated so it can be used as a SwiftUI view-init default arg
+    /// from nonisolated contexts. All stored properties are simple
+    /// defaults that don't require actor access at init time.
+    nonisolated init() {}
+
+    #if DEBUG
+    /// Preview-only flag: once seeded, `load()` becomes a no-op so the
+    /// live Supabase fetch can't stomp the preview state.
+    private var skipLoadForPreview = false
+
+    /// Preview-only: seed `state` without going through Supabase so
+    /// `#Preview` blocks can render each `ViewState` variant.
+    func setStateForPreview(_ state: ViewState) {
+        self.state = state
+        skipLoadForPreview = true
+    }
+    #endif
+
     // MARK: - Load
 
     func load() async {
+        #if DEBUG
+        if skipLoadForPreview { return }
+        #endif
+
         guard (try? await supabase.auth.session) != nil else {
             state = .notSent
             return
@@ -81,6 +103,10 @@ final class InvitesStore: ObservableObject {
                 let invite = inserted.toInvite()
                 state = .sent(invite)
                 errorMessage = nil
+                let tokenHash = AnalyticsIdentity.hashString(invite.token)
+                Analytics.track(.inviteGenerated(isFirstTime: attempt == 0))
+                Analytics.updateUserProperties(["invites_sent": 1])
+                _ = tokenHash
                 return invite
             } catch {
                 let message = "\(error)"
@@ -122,13 +148,26 @@ final class InvitesStore: ObservableObject {
     /// a deep-link. Errors are logged but not shown — the invitee may not
     /// realize an invite exists, and shouldn't see an error if they don't.
     static func claim(token: String) async {
+        let started = Date()
+        let tokenHash = AnalyticsIdentity.hashString(token)
         do {
             _ = try await supabase.rpc(
                 "claim_invite",
                 params: ["p_token": token]
             ).execute()
+            let ms = Int(Date().timeIntervalSince(started) * 1000)
+            Analytics.track(.inviteClaimed(
+                inviteTokenHash: tokenHash,
+                role: .invitee,
+                timeToClaimMs: ms
+            ))
         } catch {
             print("[InvitesStore] claim failed for token \(token):", error)
+            Analytics.track(.appError(
+                domain: .invite,
+                code: (error as NSError).code.description,
+                viewContext: "InvitesStore.claim"
+            ))
         }
     }
 }

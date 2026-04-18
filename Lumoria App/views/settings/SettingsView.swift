@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Auth
+import ProgressiveBlurHeader
 import Supabase
 
 enum SettingsDestination: Hashable {
@@ -19,11 +20,18 @@ enum SettingsDestination: Hashable {
 
 struct SettingsView: View {
 
+    @EnvironmentObject private var profileStore: ProfileStore
+    @Environment(\.brandSlug) private var brandSlug
     @State private var path: [SettingsDestination] = []
 
     var body: some View {
         NavigationStack(path: $path) {
-            ScrollView {
+            StickyBlurHeader(maxBlurRadius: 8, fadeExtension: 48) {
+                // No top-bar controls on the root settings screen — a thin
+                // spacer is enough for the blur to cover the status bar area
+                // once content scrolls under it.
+                Color.clear.frame(height: 8)
+            } content: {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
@@ -46,12 +54,15 @@ struct SettingsView: View {
 
                     sectionCard {
                         settingsRow(icon: "doc.text",       title: "Terms of Service", right: .external) {
+                            Analytics.track(.legalLinkOpened(linkType: .tos))
                             openURL("https://lumoria.app/terms")
                         }
                         settingsRow(icon: "lock.shield",    title: "Privacy Policy",   right: .external) {
+                            Analytics.track(.legalLinkOpened(linkType: .privacy))
                             openURL("https://lumoria.app/privacy")
                         }
                         settingsRow(icon: "lifepreserver",  title: "Contact support",  right: .external) {
+                            Analytics.track(.legalLinkOpened(linkType: .support))
                             openURL("mailto:support@lumoria.app")
                         }
                     }
@@ -60,11 +71,12 @@ struct SettingsView: View {
                         .padding(.top, 24)
                 }
                 .padding(.horizontal, 16)
-                .padding(.top, 16)
+                .padding(.top, 8)
                 .padding(.bottom, 32)
             }
-            .background(Color.Background.default)
+            .background(Color.Background.default.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .onAppear { Analytics.track(.settingsOpened) }
             .navigationDestination(for: SettingsDestination.self) { dest in
                 switch dest {
                 case .profile:       ProfileView()
@@ -85,7 +97,7 @@ struct SettingsView: View {
     private func placeholderView(_ title: LocalizedStringKey) -> some View {
         VStack {
             Text(title)
-                .font(.system(size: 34, weight: .bold))
+                .font(.largeTitle.bold())
                 .padding(.top, 100)
             Spacer()
         }
@@ -97,8 +109,7 @@ struct SettingsView: View {
 
     private var header: some View {
         Text("Settings")
-            .font(.system(size: 34, weight: .bold))
-            .tracking(0.4)
+            .font(.largeTitle.bold())
             .foregroundStyle(Color.Text.primary)
             .padding(.horizontal, 0)
             .padding(.top, 8)
@@ -117,14 +128,12 @@ struct SettingsView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(profileName)
-                        .font(.system(size: 17, weight: .regular))
-                        .tracking(-0.43)
+                        .font(.body)
                         .foregroundStyle(Color.Text.primary)
                         .lineLimit(1)
 
                     Text("Show profile")
-                        .font(.system(size: 15, weight: .regular))
-                        .tracking(-0.23)
+                        .font(.subheadline)
                         .foregroundStyle(Color.Text.secondary)
                         .lineLimit(1)
                 }
@@ -147,17 +156,22 @@ struct SettingsView: View {
             Circle()
                 .fill(Color("Colors/Red/50"))
 
-            Text(profileInitial)
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundStyle(Color.Text.secondary)
+            if let ui = profileStore.avatarImage {
+                Image(uiImage: ui)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Text(profileInitial)
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(Color.Text.secondary)
+            }
         }
+        .clipShape(Circle())
     }
 
     private var profileName: String {
-        if let email = supabase.auth.currentUser?.email, !email.isEmpty {
-            return email
-        }
-        return String(localized: "Your profile")
+        let stored = profileStore.name
+        return stored.isEmpty ? String(localized: "Your profile") : stored
     }
 
     private var profileInitial: String {
@@ -197,19 +211,18 @@ struct SettingsView: View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.headline)
                     .foregroundStyle(Color.Text.primary)
                     .frame(width: 32, height: 32)
 
                 Text(title)
-                    .font(.system(size: 17, weight: .regular))
-                    .tracking(-0.43)
+                    .font(.body)
                     .foregroundStyle(Color.Text.primary)
 
                 Spacer(minLength: 0)
 
                 Image(systemName: right == .chevron ? "chevron.right" : "arrow.up.right")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color.Text.primary)
                     .frame(width: 32, height: 32)
             }
@@ -224,7 +237,7 @@ struct SettingsView: View {
 
     private var footer: some View {
         VStack(spacing: 8) {
-            Image("brand/default/full")
+            Image("brand/\(brandSlug)/full")
                 .resizable()
                 .scaledToFit()
                 .frame(height: 60)
@@ -233,8 +246,7 @@ struct SettingsView: View {
                 Text(appVersion)
                 Text("Build")
             }
-            .font(.system(size: 15, weight: .regular))
-            .tracking(-0.23)
+            .font(.subheadline)
             .foregroundStyle(Color.Text.tertiary)
         }
         .frame(maxWidth: .infinity)
@@ -253,4 +265,5 @@ struct SettingsView: View {
         SettingsView()
             .tabItem { Label("Settings", systemImage: "gearshape") }
     }
+    .environmentObject(ProfileStore())
 }
