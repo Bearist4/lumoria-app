@@ -7,26 +7,30 @@
 
 import SwiftUI
 import SwiftData
-import CoreText
+
+// Analytics bootstrapping. Runs once at process start, before any view
+// is constructed. Missing API key falls back to NoopAnalyticsService.
+private let analyticsBootstrap: Void = {
+    if let service = AmplitudeAnalyticsService() {
+        Analytics.configure(service)
+    }
+    Analytics.track(.sdkInitialized)
+}()
 
 @main
 struct Lumoria_AppApp: App {
+    @UIApplicationDelegateAdaptor(LumoriaAppDelegate.self) private var appDelegate
     @StateObject private var authManager = AuthManager()
+    @StateObject private var pushService = PushNotificationService.shared
+    @StateObject private var notificationPrefs = NotificationPrefsStore()
     @AppStorage("appearance.mode") private var storedMode: String = AppearanceMode.system.rawValue
+    @AppStorage("appearance.highContrast") private var highContrast: Bool = false
+    @AppStorage("appearance.iconName") private var storedIconName: String = ""
+    @AppStorage("auth.hasCache") private var authHasCache: Bool = false
+    @AppStorage("auth.lastKnownAuthenticated") private var authLastKnown: Bool = false
 
     init() {
-        Self.registerBundledFonts()
-    }
-
-    private static func registerBundledFonts() {
-        let names = ["Doto-Black"]
-        for name in names {
-            guard let url = Bundle.main.url(forResource: name, withExtension: "ttf") else {
-                continue
-            }
-            var error: Unmanaged<CFError>?
-            CTFontManagerRegisterFontsForURL(url as CFURL, .process, &error)
-        }
+        _ = analyticsBootstrap
     }
 
     var sharedModelContainer: ModelContainer = {
@@ -46,38 +50,101 @@ struct Lumoria_AppApp: App {
         AppearanceMode(rawValue: storedMode)?.colorScheme
     }
 
+    /// Route the first paint based on the last known session outcome so
+    /// returning signed-in users never see the landing screen flash
+    /// while Supabase restores their session asynchronously.
+    private var shouldShowAuthedUI: Bool {
+        if authManager.isRestoring { return authHasCache && authLastKnown }
+        return authManager.isAuthenticated
+    }
+
+    /// Render the landing screen directly when we know the last state
+    /// was signed-out — no splash, no flash.
+    private var shouldShowLanding: Bool {
+        if authManager.isRestoring { return authHasCache && !authLastKnown }
+        return !authManager.isAuthenticated
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
-                if authManager.isAuthenticated {
+                if shouldShowAuthedUI {
                     ContentView()
                         .environmentObject(authManager)
-                } else {
+                        .environmentObject(pushService)
+                        .environmentObject(notificationPrefs)
+                } else if shouldShowLanding {
                     AuthNavigationView()
                         .environmentObject(authManager)
+                } else {
+                    AuthRestoringSplash()
                 }
             }
             .preferredColorScheme(colorScheme)
+            .environment(\.brandSlug, BrandArt.slug(from: storedIconName.isEmpty ? nil : storedIconName))
+            .onChange(of: highContrast, initial: true) { _, on in
+                applyHighContrast(on)
+            }
             .onOpenURL { url in
                 handleIncomingURL(url)
             }
+            .task {
+                Analytics.track(.appOpened(source: .cold))
+                await pushService.requestAuthorization()
+            }
+            .onChange(of: authManager.isAuthenticated) { _, isAuthed in
+                if isAuthed {
+                    pushService.authDidChange()
+                    Task { await notificationPrefs.load() }
+                } else {
+                    Task { await pushService.signedOut() }
+                }
+            }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Forces the asset-catalog "contrast=high" variant on every active
+    /// window when the user toggles the in-app High Contrast switch.
+    /// Uses `UIWindow.traitOverrides` (iOS 17+). Propagates to all
+    /// `Color("…")` lookups and UIColor-based assets.
+    private func applyHighContrast(_ on: Bool) {
+        for scene in UIApplication.shared.connectedScenes {
+            guard let windowScene = scene as? UIWindowScene else { continue }
+            for window in windowScene.windows {
+                window.traitOverrides.accessibilityContrast = on ? .high : .normal
+            }
+        }
     }
 
     /// Catches incoming universal links (https://getlumoria.app/invite/…) and
     /// custom-scheme links (lumoria://invite/…). Stashes the token so the
     /// auth flow can claim it once the invitee has a session.
     private func handleIncomingURL(_ url: URL) {
-        guard let token = InviteLink.token(from: url) else { return }
+        let scheme = url.scheme ?? "unknown"
+        let host = url.host
+        let token = InviteLink.token(from: url)
+        let kind: DeepLinkKindProp = token != nil ? .invite : .other
+
+        Analytics.track(.deepLinkOpened(scheme: scheme, host: host, kind: kind))
+
+        guard let token else { return }
+        let tokenHash = AnalyticsIdentity.hashString(token)
+        let wasAuthenticated = authManager.isAuthenticated
+        Analytics.track(.inviteLinkOpened(
+            inviteTokenHash: tokenHash,
+            wasAuthenticated: wasAuthenticated
+        ))
+
         PendingInviteTokenStore.save(token)
 
         // If the recipient is already signed in (e.g. taps on the same
         // device), claim right away so it doesn't sit until next launch.
-        if authManager.isAuthenticated {
+        if wasAuthenticated {
             Task {
                 guard let pending = PendingInviteTokenStore.take() else { return }
                 await InvitesStore.claim(token: pending)
+                Analytics.track(.inviteAutoClaimed(inviteTokenHash: tokenHash))
             }
         }
     }
@@ -88,5 +155,23 @@ struct Lumoria_AppApp: App {
 private struct AuthNavigationView: View {
     var body: some View {
         LandingView()
+    }
+}
+
+/// Neutral splash shown while the saved Supabase session is being
+/// restored. Matches the launch-screen logomark so the handoff from
+/// system launch screen → first SwiftUI frame has no visible jump.
+private struct AuthRestoringSplash: View {
+    @Environment(\.brandSlug) private var brandSlug
+
+    var body: some View {
+        ZStack {
+            Color.Background.default.ignoresSafeArea()
+            Image("brand/\(brandSlug)/logomark")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 96, height: 96)
+                .opacity(0.6)
+        }
     }
 }
