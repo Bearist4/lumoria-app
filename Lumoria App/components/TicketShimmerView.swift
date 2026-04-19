@@ -18,7 +18,7 @@ struct TicketShimmerView: View {
     /// Off-screen cards should pass `false` to pause motion reads.
     var isActive: Bool = true
 
-    @StateObject private var motion = TiltMotionManagerObserver()
+    @ObservedObject private var motion: TiltMotionManager = .shared
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.colorSchemeContrast) private var contrast
@@ -179,29 +179,6 @@ extension View {
             TicketShimmerView(mode: mode, isActive: isActive)
                 .allowsHitTesting(false)
         )
-    }
-}
-
-// MARK: - Motion observer
-
-/// Thin adapter so views can consume `TiltMotionManager.shared` as an
-/// `ObservableObject` without introducing singleton state directly.
-@MainActor
-private final class TiltMotionManagerObserver: ObservableObject {
-    @Published var roll: Double = 0
-    @Published var pitch: Double = 0
-    private var cancellable: Any?
-
-    init() {
-        let manager = TiltMotionManager.shared
-        self.roll = manager.roll
-        self.pitch = manager.pitch
-        self.cancellable = manager.objectWillChange.sink { [weak self] _ in
-            Task { @MainActor in
-                self?.roll = manager.roll
-                self?.pitch = manager.pitch
-            }
-        }
     }
 }
 
