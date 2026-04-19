@@ -275,8 +275,9 @@ struct MemoryDetailView: View {
         NavigationLink(value: ticket) {
             TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
                 .trackCenteredRow(id: ticket.id, into: $centredId)
+                .ticketInspect()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TicketCardButtonStyle())
     }
 
     // MARK: - Row partitioning
