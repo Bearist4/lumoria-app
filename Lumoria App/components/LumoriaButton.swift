@@ -77,7 +77,12 @@ private struct LumoriaButtonBody: View {
                         .stroke(Color.Button.Secondary.Border.inactive, lineWidth: 1)
                 }
             }
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .animation(MotionTokens.impulse, value: configuration.isPressed)
+            .sensoryFeedback(
+                hierarchy == .danger ? .warning : .selection,
+                trigger: configuration.isPressed
+            )
     }
 
     // MARK: Label color
