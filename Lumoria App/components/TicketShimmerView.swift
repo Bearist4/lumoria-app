@@ -151,6 +151,9 @@ struct TicketShimmerView: View {
         if ProcessInfo.processInfo.isLowPowerModeEnabled, mode == .holographic {
             return .paperGloss
         }
+        if DeviceTier.current == .low, mode == .holographic {
+            return .paperGloss
+        }
         return mode
     }
 
