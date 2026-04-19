@@ -218,6 +218,7 @@ struct NotificationsView: View {
             Toggle("", isOn: isOn)
                 .labelsHidden()
                 .tint(Color("Colors/Green/500"))
+                .sensoryFeedback(.impact(weight: .light), trigger: isOn.wrappedValue)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
