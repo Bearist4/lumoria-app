@@ -21,21 +21,15 @@ struct TicketPreview: View {
     var body: some View {
         templateView
             .overlay {
-                TicketShimmerView(
-                    mode: ticket.kind.shimmer,
-                    isActive: isCentered
-                )
-                // Mask the shimmer using the template view itself so the
-                // overlay inherits every template's cutouts (Prism notches,
-                // perforated edges, rounded corners). Template is rendered
-                // a second time here with hit-testing off — cost is one
-                // extra layout pass; correctness otherwise requires a
-                // per-template shape hand-off.
-                .mask {
-                    templateView
-                        .allowsHitTesting(false)
-                }
-                .allowsHitTesting(false)
+                TicketShimmerView(isActive: isCentered)
+                    // Mask the wash using the template view itself so the
+                    // overlay inherits every template's cutouts (Prism
+                    // notches, perforated edges, rounded corners).
+                    .mask {
+                        templateView
+                            .allowsHitTesting(false)
+                    }
+                    .allowsHitTesting(false)
             }
     }
 

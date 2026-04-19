@@ -129,7 +129,7 @@ struct NewTicketSuccessStep: View {
     @ViewBuilder
     private var previewCard: some View {
         if let saved = funnel.createdTicket {
-            TicketSaveRevealView {
+            TicketSaveRevealView(orientation: saved.orientation) {
                 TicketPreview(ticket: saved, isCentered: true)
             }
             .id(saved.id)

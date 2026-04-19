@@ -145,9 +145,6 @@ struct AllTicketsView: View {
             SevenPointStar()
                 .fill(Color.Text.tertiary)
                 .frame(width: 56, height: 56)
-                .overlay(
-                    TicketShimmerView(mode: .softGlow, isActive: true)
-                )
 
             Text("Your gallery starts here")
                 .font(.title2.bold())

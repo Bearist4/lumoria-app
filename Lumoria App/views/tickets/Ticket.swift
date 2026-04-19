@@ -36,15 +36,6 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// Tilt-driven shimmer style for this template. See `TicketShimmerView`.
-    var shimmer: TicketShimmer {
-        switch self {
-        case .prism, .studio:                          return .holographic
-        case .heritage, .terminal, .orient, .express:  return .paperGloss
-        case .afterglow, .night:                       return .softGlow
-        }
-    }
-
     /// Broad category shown with the glyph on the detail card.
     var categoryLabel: String {
         switch self {

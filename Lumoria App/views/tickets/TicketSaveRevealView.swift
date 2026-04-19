@@ -1,78 +1,110 @@
 import SwiftUI
 import UIKit
 
-/// Hosts the print/emboss reveal of a freshly saved ticket. Reveals the
-/// ticket content in 4 horizontal bands top-down with a paper-feed
-/// haptic, then a single bless sweep marks completion. Falls back to a
-/// single crossfade + success haptic when Reduce Motion is enabled.
+/// Hosts the printer-emerge reveal of a freshly saved ticket.
+///
+/// Sequence:
+///  1. **Emerge.** Ticket slides down from a slot at the top of the
+///     container while bending slightly (leading edge droops ~14°) —
+///     like paper fed out of a printer head. Horizontal tickets start
+///     rotated 90° (long edge vertical) so the short edge emerges
+///     first.
+///  2. **Flip.** Horizontal tickets rotate 90° → 0° after emerging.
+///     Vertical tickets skip this phase.
+///  3. **Slam.** The ticket settles with a quick overshoot, paired
+///     with a medium haptic. Brand voice: paper landing on a desk.
+///
+/// Reduce Motion collapses the whole sequence to a 300ms crossfade +
+/// success haptic.
 struct TicketSaveRevealView<Content: View>: View {
 
+    let orientation: TicketOrientation
     @ViewBuilder let content: () -> Content
 
-    @State private var revealedBands: Int = 0
-    @State private var blessSweep: Bool = false
+    @State private var emerged: Bool = false
+    @State private var flipped: Bool = false
+    @State private var slammed: Bool = false
     @State private var announced: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    // Tuning constants
+    private let emergeDuration: Double = 0.55
+    private let flipDuration: Double = 0.35
+    private let slamOvershoot: CGFloat = 1.03
+    private let slamSettle: Double = 0.18
+
     var body: some View {
         content()
-            .mask(revealMask)
-            .overlay(blessOverlay)
-            .onAppear(perform: runRevealSequence)
-    }
-
-    private var revealMask: some View {
-        GeometryReader { geo in
-            VStack(spacing: 0) {
-                ForEach(0..<4) { i in
-                    Rectangle()
-                        .frame(height: geo.size.height / 4)
-                        .opacity(i < revealedBands ? 1 : 0)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder private var blessOverlay: some View {
-        if blessSweep {
-            LinearGradient(
-                stops: [
-                    .init(color: .white.opacity(0), location: 0.0),
-                    .init(color: .white.opacity(0.35), location: 0.5),
-                    .init(color: .white.opacity(0), location: 1.0),
-                ],
-                startPoint: UnitPoint(x: -0.3, y: 0.5),
-                endPoint: UnitPoint(x: 1.3, y: 0.5)
+            .rotationEffect(.degrees(printerRotation), anchor: .center)
+            .rotation3DEffect(
+                .degrees(bendAngle),
+                axis: (1, 0, 0),
+                anchor: .top,
+                perspective: 0.55
             )
-            .blendMode(.screen)
-            .allowsHitTesting(false)
-            .transition(.opacity)
-        }
+            .scaleEffect(slamScale)
+            .offset(y: emergeOffsetY)
+            .opacity(emerged ? 1 : 0)
+            .onAppear(perform: runSequence)
     }
 
-    private func runRevealSequence() {
+    // MARK: - Animation values
+
+    private var printerRotation: Double {
+        guard orientation == .horizontal else { return 0 }
+        return flipped ? 0 : 90
+    }
+
+    private var bendAngle: Double {
+        guard !reduceMotion else { return 0 }
+        return emerged ? 0 : 14
+    }
+
+    private var emergeOffsetY: CGFloat {
+        guard !reduceMotion else { return 0 }
+        return emerged ? 0 : -280
+    }
+
+    private var slamScale: CGFloat {
+        slammed ? slamOvershoot : 1.0
+    }
+
+    // MARK: - Sequence
+
+    private func runSequence() {
         guard !reduceMotion else {
-            withAnimation(MotionTokens.editorial) {
-                revealedBands = 4
-            }
+            withAnimation(MotionTokens.editorial) { emerged = true; flipped = true }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             announceSaved()
             return
         }
+
+        withAnimation(.easeOut(duration: emergeDuration)) {
+            emerged = true
+        }
         HapticPalette.playSavePattern()
-        for i in 1...4 {
-            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.140) {
-                withAnimation(MotionTokens.editorial) {
-                    revealedBands = i
+
+        let flipDelay = emergeDuration * 0.85
+        DispatchQueue.main.asyncAfter(deadline: .now() + flipDelay) {
+            if orientation == .horizontal {
+                withAnimation(.spring(response: flipDuration, dampingFraction: 0.78)) {
+                    flipped = true
                 }
-                if i == 4 {
-                    withAnimation(MotionTokens.expose) { blessSweep = true }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + MotionTokens.exposeDuration) {
-                        withAnimation(.easeOut(duration: 0.2)) { blessSweep = false }
-                        announceSaved()
-                    }
+            } else {
+                flipped = true
+            }
+        }
+
+        let slamStart = flipDelay + flipDuration
+        DispatchQueue.main.asyncAfter(deadline: .now() + slamStart) {
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            withAnimation(.easeOut(duration: 0.10)) { slammed = true }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                withAnimation(.spring(response: slamSettle, dampingFraction: 0.55)) {
+                    slammed = false
                 }
+                announceSaved()
             }
         }
     }
