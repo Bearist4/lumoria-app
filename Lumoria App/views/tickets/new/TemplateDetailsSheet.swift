@@ -82,7 +82,7 @@ struct TemplateDetailsSheet: View {
             orientation: .horizontal,
             payload: NewTicketFunnel.previewPayload(for: kind)
         )
-        return TicketPreview(ticket: ticket)
+        return TicketPreview(ticket: ticket, isCentered: true)
             .padding(.horizontal, 43)
             .padding(.vertical, 48)
             .frame(maxWidth: .infinity)

@@ -61,7 +61,7 @@ struct NewTicketStyleStep: View {
                 payload: payload,
                 styleId: funnel.selectedStyleId
             )
-            TicketPreview(ticket: ticket)
+            TicketPreview(ticket: ticket, isCentered: true)
                 .padding(funnel.orientation == .horizontal ? 16 : 64)
                 .frame(maxWidth: .infinity)
                 .background(

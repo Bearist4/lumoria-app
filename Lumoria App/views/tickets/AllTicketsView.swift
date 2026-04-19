@@ -28,6 +28,9 @@ struct AllTicketsView: View {
     @EnvironmentObject private var store: TicketsStore
     @State private var showFunnel = false
     @State private var sort: TicketSortOption? = nil
+    /// ID of the ticket closest to vertical centre of the screen. Drives
+    /// the shimmer's `isActive` so only the focused card consumes motion.
+    @State private var centredId: UUID?
 
     var body: some View {
         NavigationStack {
@@ -229,7 +232,18 @@ struct AllTicketsView: View {
 
     private func ticketLink(_ ticket: Ticket) -> some View {
         NavigationLink(value: ticket) {
-            TicketPreview(ticket: ticket)
+            TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear
+                            .onChange(of: proxy.frame(in: .global).midY) { _, midY in
+                                let screenMid = UIScreen.main.bounds.midY
+                                if abs(midY - screenMid) < 80 {
+                                    centredId = ticket.id
+                                }
+                            }
+                    }
+                )
         }
         .buttonStyle(.plain)
     }

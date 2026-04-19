@@ -129,7 +129,7 @@ struct NewTicketSuccessStep: View {
     @ViewBuilder
     private var previewCard: some View {
         if let ticket = funnel.createdTicket ?? livePreviewTicket {
-            TicketPreview(ticket: ticket)
+            TicketPreview(ticket: ticket, isCentered: true)
                 .padding(ticket.orientation == .horizontal ? 16 : 64)
                 .frame(maxWidth: .infinity)
                 .background(

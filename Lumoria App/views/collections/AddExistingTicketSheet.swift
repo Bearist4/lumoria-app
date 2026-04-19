@@ -18,6 +18,9 @@ struct AddExistingTicketSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
+    /// ID of the ticket closest to vertical centre of the sheet. Drives
+    /// the shimmer's `isActive` so only the focused card consumes motion.
+    @State private var centredId: UUID?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -116,7 +119,18 @@ struct AddExistingTicketSheet: View {
                 dismiss()
             }
         } label: {
-            TicketPreview(ticket: ticket)
+            TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear
+                            .onChange(of: proxy.frame(in: .global).midY) { _, midY in
+                                let screenMid = UIScreen.main.bounds.midY
+                                if abs(midY - screenMid) < 80 {
+                                    centredId = ticket.id
+                                }
+                            }
+                    }
+                )
         }
         .buttonStyle(.plain)
     }

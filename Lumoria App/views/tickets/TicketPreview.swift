@@ -2,7 +2,8 @@
 //  TicketPreview.swift
 //  Lumoria App
 //
-//  Dispatches to the correct template view for a given ticket + orientation.
+//  Dispatches to the correct template view for a given ticket + orientation,
+//  and applies the tilt-driven shimmer overlay on the outer shape.
 //
 
 import SwiftUI
@@ -10,8 +11,20 @@ import SwiftUI
 struct TicketPreview: View {
 
     let ticket: Ticket
+    /// `true` when this ticket is the currently focused / hero card on
+    /// screen. Drives the shimmer overlay: only the centred card consumes
+    /// tilt motion, so off-screen tickets stay static. Callers rendering
+    /// in list/scroll surfaces wire this through a viewport check; single
+    /// detail surfaces pass `true` directly.
+    var isCentered: Bool = false
 
     var body: some View {
+        templateView
+            .ticketShimmer(mode: ticket.kind.shimmer, isActive: isCentered)
+    }
+
+    @ViewBuilder
+    private var templateView: some View {
         let style = ticket.resolvedStyle
 
         switch (ticket.payload, ticket.orientation) {
