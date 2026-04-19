@@ -25,9 +25,7 @@ struct NewTicketSuccessStep: View {
 
             previewCard
 
-            if funnel.isSaving {
-                savingBanner
-            } else if let error = funnel.errorMessage {
+            if let error = funnel.errorMessage {
                 errorBanner(error)
             }
 
@@ -128,26 +126,23 @@ struct NewTicketSuccessStep: View {
 
     @ViewBuilder
     private var previewCard: some View {
-        if let saved = funnel.createdTicket {
-            TicketSaveRevealView(orientation: saved.orientation) {
-                TicketPreview(ticket: saved, isCentered: true)
+        Group {
+            if let saved = funnel.createdTicket {
+                TicketSaveRevealView(orientation: saved.orientation) {
+                    TicketPreview(ticket: saved, isCentered: true)
+                }
+                .id(saved.id)
+                .padding(saved.orientation == .horizontal ? 16 : 64)
+            } else {
+                TicketSaveSlotPlaceholder()
+                    .padding(16)
             }
-            .id(saved.id)
-            .padding(saved.orientation == .horizontal ? 16 : 64)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.Background.elevated)
-            )
-        } else if let preview = livePreviewTicket {
-            TicketPreview(ticket: preview, isCentered: true)
-                .padding(preview.orientation == .horizontal ? 16 : 64)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Color.Background.elevated)
-                )
         }
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color.Background.elevated)
+        )
     }
 
     /// Fallback preview while the Supabase insert is in-flight. Must

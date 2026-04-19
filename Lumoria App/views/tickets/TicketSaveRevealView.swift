@@ -1,117 +1,154 @@
 import SwiftUI
 import UIKit
 
-/// Hosts the printer-emerge reveal of a freshly saved ticket.
+/// Printer-style save reveal matching the Figma frames (node-ids
+/// 982:28858 → 1760:51575).
 ///
 /// Sequence:
-///  1. **Emerge.** Ticket slides down from a slot at the top of the
-///     container while bending slightly (leading edge droops ~14°) —
-///     like paper fed out of a printer head. Horizontal tickets start
-///     rotated 90° (long edge vertical) so the short edge emerges
-///     first.
-///  2. **Flip.** Horizontal tickets rotate 90° → 0° after emerging.
-///     Vertical tickets skip this phase.
-///  3. **Slam.** The ticket settles with a quick overshoot, paired
-///     with a medium haptic. Brand voice: paper landing on a desk.
+///  1. **Slot.** A horizontal black slot line sits at the top of the
+///     preview card. A "Your ticket is being printed…" caption is
+///     centred below. The ticket is off-screen above.
+///  2. **Emerge.** The ticket slides down from above the slot into
+///     view. Horizontal tickets stay rotated 90° (long edge vertical)
+///     so the short edge emerges first — like a real printer feed.
+///     The save haptic fires as it starts to move.
+///  3. **Flip.** Horizontal tickets rotate 90° → 0° to their final
+///     display orientation. Slot line and caption fade out in the same
+///     beat. Vertical tickets skip the rotation.
+///  4. **Slam.** Medium haptic + ~3% overshoot scale, settling on a
+///     tight spring.
 ///
-/// Reduce Motion collapses the whole sequence to a 300ms crossfade +
-/// success haptic.
+/// Reduce Motion collapses the sequence to the final state + success
+/// haptic with no motion.
 struct TicketSaveRevealView<Content: View>: View {
 
     let orientation: TicketOrientation
     @ViewBuilder let content: () -> Content
 
-    @State private var emerged: Bool = false
-    @State private var flipped: Bool = false
-    @State private var slammed: Bool = false
+    @State private var hasEmerged: Bool = false
+    @State private var hasFlipped: Bool = false
+    @State private var hasSlammed: Bool = false
+    @State private var slotVisible: Bool = true
+    @State private var captionVisible: Bool = true
     @State private var announced: Bool = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // Tuning constants
-    private let emergeDuration: Double = 0.55
-    private let flipDuration: Double = 0.35
-    private let slamOvershoot: CGFloat = 1.03
-    private let slamSettle: Double = 0.18
-
     var body: some View {
-        content()
-            .rotationEffect(.degrees(printerRotation), anchor: .center)
-            .rotation3DEffect(
-                .degrees(bendAngle),
-                axis: (1, 0, 0),
-                anchor: .top,
-                perspective: 0.55
-            )
-            .scaleEffect(slamScale)
-            .offset(y: emergeOffsetY)
-            .opacity(emerged ? 1 : 0)
-            .onAppear(perform: runSequence)
+        ZStack {
+            content()
+                .rotationEffect(.degrees(ticketRotation))
+                .offset(y: ticketOffsetY)
+                .scaleEffect(hasSlammed ? 1.03 : 1.0)
+
+            if slotVisible {
+                VStack(spacing: 0) {
+                    Rectangle()
+                        .fill(Color.Text.primary)
+                        .frame(height: 3)
+                        .padding(.horizontal, 16)
+                    Spacer(minLength: 0)
+                }
+                .transition(.opacity)
+                .allowsHitTesting(false)
+            }
+
+            if captionVisible {
+                Text("Your ticket is being printed…")
+                    .font(.footnote)
+                    .foregroundStyle(Color.Text.secondary)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 360)
+        .clipped()
+        .onAppear(perform: run)
     }
 
     // MARK: - Animation values
 
-    private var printerRotation: Double {
+    private var ticketRotation: Double {
         guard orientation == .horizontal else { return 0 }
-        return flipped ? 0 : 90
+        return hasFlipped ? 0 : 90
     }
 
-    private var bendAngle: Double {
+    private var ticketOffsetY: CGFloat {
         guard !reduceMotion else { return 0 }
-        return emerged ? 0 : 14
-    }
-
-    private var emergeOffsetY: CGFloat {
-        guard !reduceMotion else { return 0 }
-        return emerged ? 0 : -280
-    }
-
-    private var slamScale: CGFloat {
-        slammed ? slamOvershoot : 1.0
+        return hasEmerged ? 0 : -380
     }
 
     // MARK: - Sequence
 
-    private func runSequence() {
+    private func run() {
         guard !reduceMotion else {
-            withAnimation(MotionTokens.editorial) { emerged = true; flipped = true }
+            hasEmerged = true
+            hasFlipped = true
+            slotVisible = false
+            captionVisible = false
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            announceSaved()
+            announce()
             return
         }
 
-        withAnimation(.easeOut(duration: emergeDuration)) {
-            emerged = true
+        // Small initial delay so the slot-only state registers visually.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            withAnimation(.easeOut(duration: 0.65)) {
+                hasEmerged = true
+            }
+            HapticPalette.playSavePattern()
         }
-        HapticPalette.playSavePattern()
 
-        let flipDelay = emergeDuration * 0.85
-        DispatchQueue.main.asyncAfter(deadline: .now() + flipDelay) {
-            if orientation == .horizontal {
-                withAnimation(.spring(response: flipDuration, dampingFraction: 0.78)) {
-                    flipped = true
-                }
-            } else {
-                flipped = true
+        // Hold the rotated-out state, then flip + fade slot/caption.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
+                hasFlipped = true
+            }
+            withAnimation(.easeOut(duration: 0.28)) {
+                slotVisible = false
+                captionVisible = false
             }
         }
 
-        let slamStart = flipDelay + flipDuration
-        DispatchQueue.main.asyncAfter(deadline: .now() + slamStart) {
+        // Slam: tiny overshoot + medium haptic once fully flat.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.85) {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            withAnimation(.easeOut(duration: 0.10)) { slammed = true }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
-                withAnimation(.spring(response: slamSettle, dampingFraction: 0.55)) {
-                    slammed = false
+            withAnimation(.easeOut(duration: 0.08)) {
+                hasSlammed = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.55)) {
+                    hasSlammed = false
                 }
-                announceSaved()
+                announce()
             }
         }
     }
 
-    private func announceSaved() {
+    private func announce() {
         guard !announced else { return }
         announced = true
         UIAccessibility.post(notification: .announcement, argument: String(localized: "Saved."))
+    }
+}
+
+/// Empty-slot placeholder shown in SuccessStep while the Supabase
+/// insert is in flight. Matches the first Figma frame: a black slot
+/// line at the top and a "being printed" caption centred below.
+struct TicketSaveSlotPlaceholder: View {
+    var body: some View {
+        ZStack {
+            VStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.Text.primary)
+                    .frame(height: 3)
+                    .padding(.horizontal, 16)
+                Spacer(minLength: 0)
+            }
+            Text("Your ticket is being printed…")
+                .font(.footnote)
+                .foregroundStyle(Color.Text.secondary)
+        }
+        .frame(maxWidth: .infinity, minHeight: 360)
     }
 }
