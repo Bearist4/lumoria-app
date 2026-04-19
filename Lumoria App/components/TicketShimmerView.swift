@@ -63,7 +63,7 @@ struct TicketShimmerView: View {
         return LinearGradient(
             stops: [
                 .init(color: .white.opacity(0.0), location: 0.35),
-                .init(color: .white.opacity(0.18), location: 0.50),
+                .init(color: .white.opacity(0.10), location: 0.50),
                 .init(color: .white.opacity(0.0), location: 0.65),
             ],
             startPoint: UnitPoint(x: 0, y: 0),
@@ -84,15 +84,15 @@ struct TicketShimmerView: View {
 
         return AngularGradient(
             gradient: Gradient(colors: [
-                Color(hue: wrap(0.55 + Double(hueShift)), saturation: 0.6, brightness: 1),
-                Color(hue: wrap(0.82 + Double(hueShift)), saturation: 0.6, brightness: 1),
-                Color(hue: wrap(0.14 + Double(hueShift)), saturation: 0.6, brightness: 1),
-                Color(hue: wrap(0.55 + Double(hueShift)), saturation: 0.6, brightness: 1),
+                Color(hue: wrap(0.55 + Double(hueShift)), saturation: 0.5, brightness: 1),
+                Color(hue: wrap(0.82 + Double(hueShift)), saturation: 0.5, brightness: 1),
+                Color(hue: wrap(0.14 + Double(hueShift)), saturation: 0.5, brightness: 1),
+                Color(hue: wrap(0.55 + Double(hueShift)), saturation: 0.5, brightness: 1),
             ]),
             center: .center,
             angle: baseAngle
         )
-        .opacity(0.35)
+        .opacity(0.15)
         .blendMode(.overlay)
     }
 
@@ -100,7 +100,7 @@ struct TicketShimmerView: View {
 
     private func softGlow(in size: CGSize) -> some View {
         let pitchNorm = max(0, CGFloat(abs(motion.pitch)) / CGFloat(Double.pi / 3))
-        let intensity = 0.15 + pitchNorm * 0.35 // 0.15–0.50
+        let intensity = 0.05 + pitchNorm * 0.15 // 0.05–0.20
         return RadialGradient(
             colors: [
                 .white.opacity(Double(intensity)),

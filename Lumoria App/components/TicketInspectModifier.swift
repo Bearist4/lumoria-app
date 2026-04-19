@@ -16,9 +16,14 @@ struct TicketCardButtonStyle: ButtonStyle {
 /// ticket lifts (scale 1.06) with a deeper shadow and fires a single
 /// stamp haptic. Release returns it. Also exposes an "Inspect ticket"
 /// VoiceOver action so the gesture is reachable without long-press.
+///
+/// Uses SwiftUI's `.onLongPressGesture(…, onPressingChanged:)` so the
+/// gesture does not swallow the parent `NavigationLink`'s tap or the
+/// enclosing `ScrollView`'s vertical pan — a manually-composed
+/// `LongPressGesture.sequenced(before: DragGesture)` would.
 struct TicketInspectModifier: ViewModifier {
 
-    @GestureState private var isHolding = false
+    @State private var isHolding = false
     @State private var stampTrigger = 0
 
     func body(content: Content) -> some View {
@@ -33,19 +38,11 @@ struct TicketInspectModifier: ViewModifier {
             .accessibilityAction(named: Text("Inspect ticket")) {
                 stampTrigger &+= 1
             }
-            .simultaneousGesture(
-                LongPressGesture(minimumDuration: 0.30)
-                    .sequenced(before: DragGesture(minimumDistance: 0))
-                    .updating($isHolding) { value, state, _ in
-                        switch value {
-                        case .second(true, _): state = true
-                        default:               state = false
-                        }
-                    }
-                    .onEnded { _ in
-                        stampTrigger &+= 1
-                    }
-            )
+            .onLongPressGesture(minimumDuration: 0.30) {
+                stampTrigger &+= 1
+            } onPressingChanged: { pressing in
+                isHolding = pressing
+            }
             .sensoryFeedback(.impact(weight: .medium), trigger: stampTrigger)
     }
 }
