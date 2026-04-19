@@ -101,7 +101,7 @@ Rendered by a single shared `TicketShimmerView` driven by CoreMotion — one imp
 
 ### 4.3 Edge catch
 
-- When tilt angle crosses the steepest highlight point on the shimmer, fire `.shimmer` haptic once.
+- When the shimmer overlay's dominant highlight (brightest band for paperGloss, peak hue for holographic, peak intensity for softGlow) passes through the ticket's geometric center, fire `.shimmer` haptic once. Rate-limited to once per 1.5s.
 
 ### 4.4 Tap on ticket card
 
@@ -234,7 +234,7 @@ Rendered by a single shared `TicketShimmerView` driven by CoreMotion — one imp
 
 ## 10. Empty States
 
-- Single centered 7-point star with permanent `softGlow` shimmer (the only always-on shimmer surface).
+- Single centered 7-point star with `softGlow` shimmer permanently enabled — not viewport-gated like tickets. Tilt still drives the glow; with Reduce Motion on, the glow renders at a fixed non-zero intensity (not animated).
 - Copy below: "Your memories start here."
 - Tap anywhere on empty state → star scale-pulses once, then routes to creation flow.
 
