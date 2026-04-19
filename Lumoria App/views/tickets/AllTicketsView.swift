@@ -53,6 +53,7 @@ struct AllTicketsView: View {
                     .refreshable {
                         await store.load()
                         Analytics.track(.galleryRefreshed(ticketCount: store.tickets.count))
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
                 }
             }
