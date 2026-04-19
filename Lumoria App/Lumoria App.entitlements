@@ -8,5 +8,9 @@
 	<array>
 		<string>group.bearista.Lumoria-App</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:getlumoria.app</string>
+	</array>
 </dict>
 </plist>

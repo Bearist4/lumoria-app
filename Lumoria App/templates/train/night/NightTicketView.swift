@@ -217,7 +217,7 @@ struct NightTicketView: View {
             }
 
             if showsLumoriaWatermark {
-                MadeWithLumoria(style: .black, version: .small, scale: 0.44 * s)
+                MadeWithLumoria(style: .white, version: .small, scale: s)
                     .frame(maxWidth: .infinity)
             }
         }

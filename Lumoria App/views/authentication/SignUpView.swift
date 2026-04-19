@@ -224,7 +224,7 @@ struct SignUpView: View {
         .alert("Check your email", isPresented: $showConfirmation) {
             Button("OK", role: .cancel) { dismiss() }
         } message: {
-            Text("We sent a confirmation link to \(email). Open it to activate your account, then sign in.")
+            Text("We sent a confirmation link to \(email). Tap it on this iPhone to activate your account, then log in. You can't log in until your email is verified.")
         }
     }
 
@@ -254,7 +254,8 @@ struct SignUpView: View {
                 try await supabase.auth.signUp(
                     email: email,
                     password: password,
-                    data: ["display_name": .string(name)]
+                    data: ["display_name": .string(name)],
+                    redirectTo: AuthRedirect.emailConfirmed
                 )
                 Analytics.track(.signupVerificationSent(emailDomain: domain))
                 showConfirmation = true

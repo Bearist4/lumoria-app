@@ -32,7 +32,7 @@ struct StudioTicketView: View {
     let ticket: StudioTicket
     var style: TicketStyleVariant = TicketTemplateKind.studio.defaultStyle
 
-    @Environment(\.brandSlug) private var brandSlug
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
 
     private let aspectRatio: CGFloat = 455 / 260
 
@@ -216,38 +216,15 @@ struct StudioTicketView: View {
             .frame(width: 0.78 * s, height: 21.18 * s)
     }
 
+    @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
-        HStack(spacing: 3.5 * s) {
-            Text("Made with")
-                .font(.system(size: 7.48 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(style.footerText)
-
-            HStack(spacing: 2.5 * s) {
-                Image("brand/\(brandSlug)/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 7 * s, height: 7 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
-                    )
-
-                Image("brand/\(brandSlug)/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 3 * s)
-                    .environment(\.colorScheme, style.footerScheme)
-            }
+        if showsLumoriaWatermark {
+            MadeWithLumoria(
+                style: style.footerScheme == .dark ? .black : .white,
+                version: .small,
+                scale: s
+            )
         }
-        .padding(5.28 * s)
-        .background(
-            RoundedRectangle(cornerRadius: 5.28 * s, style: .continuous)
-                .fill(style.footerFill)
-        )
     }
 }
 

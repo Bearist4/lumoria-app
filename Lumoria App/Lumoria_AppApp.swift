@@ -5,6 +5,7 @@
 //  Created by Benjamin Caillet on 13/04/2026.
 //
 
+import Supabase
 import SwiftUI
 import SwiftData
 
@@ -117,16 +118,30 @@ struct Lumoria_AppApp: App {
         }
     }
 
-    /// Catches incoming universal links (https://getlumoria.app/invite/…) and
-    /// custom-scheme links (lumoria://invite/…). Stashes the token so the
-    /// auth flow can claim it once the invitee has a session.
+    /// Catches incoming universal links (https://getlumoria.app/invite/…,
+    /// https://getlumoria.app/auth/…) and custom-scheme links (lumoria://invite/…).
+    /// Auth callbacks complete the PKCE exchange; invite links stash the token
+    /// so the auth flow can claim it once the invitee has a session.
     private func handleIncomingURL(_ url: URL) {
         let scheme = url.scheme ?? "unknown"
         let host = url.host
+        let isAuthCallback = host?.lowercased() == "getlumoria.app"
+            && url.path.lowercased().hasPrefix("/auth/")
         let token = InviteLink.token(from: url)
-        let kind: DeepLinkKindProp = token != nil ? .invite : .other
+        let kind: DeepLinkKindProp = isAuthCallback ? .other : (token != nil ? .invite : .other)
 
         Analytics.track(.deepLinkOpened(scheme: scheme, host: host, kind: kind))
+
+        if isAuthCallback {
+            Task {
+                do {
+                    _ = try await supabase.auth.session(from: url)
+                } catch {
+                    print("[Auth] callback exchange failed:", error)
+                }
+            }
+            return
+        }
 
         guard let token else { return }
         let tokenHash = AnalyticsIdentity.hashString(token)

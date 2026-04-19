@@ -103,6 +103,11 @@ struct PrismTicketView: View {
 
             Spacer(minLength: 0)
 
+            madeWithBadge(scale: s)
+                .padding(.top, 1 * s)
+
+            Spacer(minLength: 0)
+
             VStack(alignment: .trailing, spacing: 4 * s) {
                 Text(ticket.date)
                     .font(.system(size: 10 * s, weight: .bold))
@@ -171,18 +176,11 @@ struct PrismTicketView: View {
 
     private func footerBar(scale s: CGFloat) -> some View {
         HStack(spacing: 0) {
-            HStack(spacing: 0) {
-                detailCell(label: "Gate",     value: ticket.gate,          showDivider: false, scale: s)
-                detailCell(label: "Seat",     value: ticket.seat,          showDivider: true,  scale: s)
-                detailCell(label: "Boards",   value: ticket.boardingTime,  showDivider: true,  scale: s)
-                detailCell(label: "Departs",  value: ticket.departureTime, showDivider: true,  scale: s)
-                detailCell(label: "Terminal", value: ticket.terminal,      showDivider: true,  scale: s)
-            }
-            .frame(width: 324 * s)
-
-            Spacer(minLength: 0)
-
-            madeWithBadge(scale: s)
+            detailCell(label: "Gate",     value: ticket.gate,          showDivider: false, scale: s)
+            detailCell(label: "Seat",     value: ticket.seat,          showDivider: true,  scale: s)
+            detailCell(label: "Boards",   value: ticket.boardingTime,  showDivider: true,  scale: s)
+            detailCell(label: "Departs",  value: ticket.departureTime, showDivider: true,  scale: s)
+            detailCell(label: "Terminal", value: ticket.terminal,      showDivider: true,  scale: s)
         }
         .padding(.horizontal, 16 * s)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -223,8 +221,7 @@ struct PrismTicketView: View {
     @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
         if showsLumoriaWatermark {
-            // 6.78pt local font ÷ 17pt component font = ~0.4 scale factor.
-            MadeWithLumoria(style: .white, version: .small, scale: 0.4 * s)
+            MadeWithLumoria(style: .black, version: .small, scale: s)
         }
     }
 }

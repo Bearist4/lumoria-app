@@ -13,7 +13,6 @@ struct StudioTicketVerticalView: View {
     var style: TicketStyleVariant = TicketTemplateKind.studio.defaultStyle
 
     @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
-    @Environment(\.brandSlug) private var brandSlug
 
     private let aspectRatio: CGFloat = 260 / 455
     private let cornerRadius: CGFloat = 32
@@ -57,16 +56,24 @@ struct StudioTicketVerticalView: View {
                 .padding(.bottom, 48 * s)
                 .frame(width: w, height: h)
 
-                // Footer "Made with Lumoria" strip pinned to the bottom,
-                // clipped to match the ticket's rounded bottom corners.
-                madeWithStrip(scale: s)
-                    .frame(width: w, height: 23 * s)
-                    .clipShape(
-                        UnevenRoundedRectangle(
-                            bottomLeadingRadius: cornerRadius * s,
-                            bottomTrailingRadius: cornerRadius * s
-                        )
-                    )
+                // Footer "Made with Lumoria" strip — the strip is full
+                // ticket-sized but masked by the ticket silhouette so
+                // the strip conforms to every notch/corner in the art.
+                if let asset = style.backgroundAsset {
+                    ZStack(alignment: .bottom) {
+                        Color.clear
+                        madeWithStrip(scale: s)
+                            .frame(height: 40 * s)
+                    }
+                    .frame(width: w, height: h)
+                    .mask {
+                        Image(asset)
+                            .resizable()
+                            .frame(width: h, height: w)
+                            .rotationEffect(.degrees(90))
+                            .frame(width: w, height: h)
+                    }
+                }
             }
             .frame(width: w, height: h)
         }
@@ -225,36 +232,12 @@ struct StudioTicketVerticalView: View {
             style.footerFill
 
             if showsLumoriaWatermark {
-                HStack(alignment: .center) {
-                    Text("Made with")
-                        .font(.system(size: 6.78 * s, weight: .semibold))
-                        .tracking(-0.43 * s)
-                        .foregroundStyle(style.footerText)
-
-                    Spacer()
-
-                    HStack(spacing: 2.5 * s) {
-                        Image("brand/\(brandSlug)/logomark")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 6.34 * s, height: 6.34 * s)
-                            .background(
-                                RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                                    .fill(Color(hex: "FFFCF0"))
-                            )
-                            .clipShape(
-                                RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                            )
-
-                        Image("brand/\(brandSlug)/full")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 2.8 * s)
-                            .environment(\.colorScheme, style.footerScheme)
-                    }
-                }
-                .padding(.horizontal, 27.14 * s)
-                .padding(.vertical, 4.79 * s)
+                MadeWithLumoria(
+                    style: style.footerScheme == .dark ? .black : .white,
+                    version: .full,
+                    scale: s,
+                    fullWidth: true
+                )
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

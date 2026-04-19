@@ -11,7 +11,7 @@ import SwiftUI
 struct AfterglowTicketVerticalView: View {
     let ticket: AfterglowTicket
 
-    @Environment(\.brandSlug) private var brandSlug
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
 
     private let aspectRatio: CGFloat = 260 / 455
 
@@ -90,37 +90,11 @@ struct AfterglowTicketVerticalView: View {
         }
     }
 
+    @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
-        HStack(spacing: 3.5 * s) {
-            Text("Made with")
-                .font(.system(size: 7.48 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(.black)
-
-            HStack(spacing: 2.5 * s) {
-                Image("brand/\(brandSlug)/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 7 * s, height: 7 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.24 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.24 * s, style: .continuous)
-                    )
-
-                Image("brand/\(brandSlug)/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 3 * s)
-            }
+        if showsLumoriaWatermark {
+            MadeWithLumoria(style: .white, version: .small, scale: s)
         }
-        .padding(5.28 * s)
-        .background(
-            RoundedRectangle(cornerRadius: 5.28 * s, style: .continuous)
-                .fill(.white)
-        )
     }
 
     // MARK: - Route block

@@ -65,12 +65,7 @@ struct OrientTicketView: View {
 
     private func headerRow(scale s: CGFloat) -> some View {
         HStack(alignment: .center) {
-            Text(ticket.company.uppercased())
-                .font(.playfair(size: 16 * s, weight: .bold, italic: true))
-                .tracking(0.48 * s)
-                .foregroundStyle(style.accent)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+            madeWithBadge(scale: s)
 
             Spacer()
 
@@ -179,8 +174,6 @@ struct OrientTicketView: View {
             detailCell(label: "DEPARTS",  value: ticket.departureTime, scale: s)
             detailCell(label: "CARRIAGE", value: ticket.carriage,      scale: s)
             detailCell(label: "SEAT",     value: ticket.seat,          scale: s)
-            madeWithBadge(scale: s)
-                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 28 * s)
         .padding(.vertical, 12 * s)
@@ -189,8 +182,7 @@ struct OrientTicketView: View {
     @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
         if showsLumoriaWatermark {
-            // 7.48pt local font ÷ 17pt component font ≈ 0.44 scale.
-            MadeWithLumoria(style: .black, version: .small, scale: 0.44 * s)
+            MadeWithLumoria(style: .white, version: .small, scale: s)
         }
     }
 

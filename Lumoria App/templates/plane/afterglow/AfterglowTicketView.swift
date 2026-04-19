@@ -110,8 +110,7 @@ struct AfterglowTicketView: View {
     @ViewBuilder
     private func madeWithBadge(scale: CGFloat) -> some View {
         if showsLumoriaWatermark {
-            // 7.5pt local font ÷ 17pt component font ≈ 0.44 scale factor.
-            MadeWithLumoria(style: .white, version: .small, scale: 0.44 * scale)
+            MadeWithLumoria(style: .white, version: .small, scale: scale)
         }
     }
 

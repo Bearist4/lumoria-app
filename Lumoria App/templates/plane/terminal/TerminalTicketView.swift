@@ -33,7 +33,7 @@ struct TerminalTicket: Codable, Hashable {
 struct TerminalTicketView: View {
     let ticket: TerminalTicket
 
-    @Environment(\.brandSlug) private var brandSlug
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
 
     // Ticket aspect ratio from Figma: 455 × 260
     private let aspectRatio: CGFloat = 455 / 260
@@ -113,38 +113,11 @@ struct TerminalTicketView: View {
         .rotationEffect(.degrees(90))
     }
 
+    @ViewBuilder
     private func stubBadge(scale s: CGFloat) -> some View {
-        HStack(spacing: 3.5 * s) {
-            Text("Made with")
-                .font(.system(size: 7.48 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(.black)
-
-            HStack(spacing: 2.5 * s) {
-                Image("brand/\(brandSlug)/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 7 * s, height: 7 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.236 * s, style: .continuous)
-                    )
-
-                Image("brand/\(brandSlug)/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 3 * s)
-                    .environment(\.colorScheme, .light)
-            }
+        if showsLumoriaWatermark {
+            MadeWithLumoria(style: .white, version: .small, scale: s)
         }
-        .padding(5.28 * s)
-        .background(
-            RoundedRectangle(cornerRadius: 5.28 * s, style: .continuous)
-                .fill(.white)
-        )
     }
 
     // MARK: - Top details row

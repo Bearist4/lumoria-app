@@ -18,6 +18,8 @@ struct LogInView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showForgotPassword = false
+    @State private var unverifiedEmail: String?
+    @State private var resendStatus: String?
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -130,6 +132,39 @@ struct LogInView: View {
         }
         .presentationDragIndicator(.hidden)
         .presentationCornerRadius(38)
+        .alert(
+            "Verify your email",
+            isPresented: Binding(
+                get: { unverifiedEmail != nil },
+                set: { if !$0 { unverifiedEmail = nil; resendStatus = nil } }
+            )
+        ) {
+            Button("Resend email") {
+                if let email = unverifiedEmail {
+                    Task { await resendVerification(for: email) }
+                }
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let resendStatus {
+                Text(resendStatus)
+            } else if let email = unverifiedEmail {
+                Text("Tap the link we sent to \(email) to activate your account, then log in. Check your spam folder if you don't see it.")
+            }
+        }
+    }
+
+    private func resendVerification(for email: String) async {
+        do {
+            try await supabase.auth.resend(
+                email: email,
+                type: .signup,
+                emailRedirectTo: AuthRedirect.emailConfirmed
+            )
+            resendStatus = "We resent the link to \(email)."
+        } catch {
+            resendStatus = "Couldn't resend: \(error.localizedDescription)"
+        }
     }
 
     private func dismissKeyboard() {
@@ -149,13 +184,23 @@ struct LogInView: View {
             defer { isLoading = false }
             do {
                 try await supabase.auth.signIn(email: email, password: password)
+                if let user = supabase.auth.currentUser, user.emailConfirmedAt == nil {
+                    let blockedEmail = email
+                    try? await supabase.auth.signOut()
+                    unverifiedEmail = blockedEmail
+                    return
+                }
                 // Note: Login Succeeded is fired by AuthManager on the .signedIn state change.
             } catch {
+                let lowered = error.localizedDescription.lowercased()
+                if lowered.contains("email not confirmed") || lowered.contains("email_not_confirmed") {
+                    unverifiedEmail = email
+                    return
+                }
                 let errType: AuthErrorTypeProp = {
-                    let msg = error.localizedDescription.lowercased()
-                    if msg.contains("invalid") || msg.contains("credentials") { return .invalid_credentials }
-                    if msg.contains("network") || msg.contains("offline") { return .network }
-                    if msg.contains("cancel") { return .cancelled }
+                    if lowered.contains("invalid") || lowered.contains("credentials") { return .invalid_credentials }
+                    if lowered.contains("network") || lowered.contains("offline") { return .network }
+                    if lowered.contains("cancel") { return .cancelled }
                     return .unknown
                 }()
                 Analytics.track(.loginFailed(errorType: errType))

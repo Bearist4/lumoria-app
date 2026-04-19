@@ -201,37 +201,31 @@ struct OrientTicketVerticalView: View {
         .frame(maxWidth: .infinity, alignment: alignment == .leading ? .leading : .trailing)
     }
 
-    // MARK: - Made with strip (full-width, masked by dedicated asset)
-
-    /// Dedicated alpha mask for the watermark strip. Authored as its
-    /// own asset — NOT the ticket bg — so the artist can shape the
-    /// strip's silhouette independently of the main card art. Centered
-    /// horizontally AND vertically within the strip.
-    private static let watermarkMaskAsset = "orient-watermark-mask-vertical"
+    // MARK: - Made with strip (full-width, masked by ticket shape)
 
     private func madeWithStrip(scale s: CGFloat, w: CGFloat, h: CGFloat) -> some View {
-        // Stretch the content to the full ticket dimensions so the
-        // mask (authored at 260×455, same ticket grid) aligns 1:1.
-        // MadeWithLumoria sits at the bottom of that full-size area;
-        // the mask's alpha carves the strip shape. Bottom padding
-        // lifts the strip off the very bottom edge so the text
-        // doesn't fall into the silhouette's rounded corners.
+        // Full-ticket sized so the mask (the ticket silhouette) aligns
+        // 1:1. MadeWithLumoria sits full-width at the very bottom; the
+        // ticket shape carves the visible strip so it follows every
+        // notch and rounded corner in the artwork.
         ZStack(alignment: .bottom) {
             Color.clear
             MadeWithLumoria(
                 style: .black,
-                version: .small,
-                scale: 0.44 * s,
-                fullWidth: true,
-                horizontalPadding: 28 * s
+                version: .full,
+                scale: s,
+                fullWidth: true
             )
-            .padding(.bottom, 8 * s)
         }
         .frame(width: w, height: h)
         .mask {
-            Image(Self.watermarkMaskAsset)
-                .resizable()
-                .frame(width: w, height: h)
+            if let base = style.backgroundAsset {
+                Image("\(base)-vertical")
+                    .resizable()
+                    .frame(width: w, height: h)
+            } else {
+                Color.black.frame(width: w, height: h)
+            }
         }
     }
 }

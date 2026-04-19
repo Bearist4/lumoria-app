@@ -216,8 +216,7 @@ struct TerminalTicketVerticalView: View {
     private func stubBadge(scale s: CGFloat) -> some View {
         if showsLumoriaWatermark {
             // Black-style badge on Terminal's dark stub.
-            // 7.48pt local font ÷ 17pt component font ≈ 0.44 scale factor.
-            MadeWithLumoria(style: .black, version: .small, scale: 0.44 * s)
+            MadeWithLumoria(style: .black, version: .small, scale: s)
         }
     }
 }

@@ -105,9 +105,15 @@ struct ExpressTicketVerticalView: View {
                 scale: s
             )
 
-            Image(systemName: "arrow.down")
-                .font(.system(size: 14 * s, weight: .regular))
-                .foregroundStyle(style.accent)
+            HStack(alignment: .center, spacing: 0) {
+                Image(systemName: "arrow.down")
+                    .font(.system(size: 14 * s, weight: .regular))
+                    .foregroundStyle(style.accent)
+
+                Spacer(minLength: 0)
+
+                madeWithBadge(scale: s)
+            }
 
             cityBlock(
                 latin: ticket.destinationCity,
@@ -186,14 +192,11 @@ struct ExpressTicketVerticalView: View {
             bilingualLine(kanji: "新幹線", en: "RESERVED SEAT TICKET", scale: s)
             bilingualLine(kanji: "新幹線", en: "VALID FOR SINGLE JOURNEY", scale: s)
 
-            HStack {
-                Text(ticket.ticketNumber)
-                    .font(.system(size: 6 * s, weight: .regular))
-                    .foregroundStyle(style.textSecondary)
-                Spacer()
-                madeWithBadge(scale: s)
-            }
-            .padding(.top, 8 * s)
+            Text(ticket.ticketNumber)
+                .font(.system(size: 6 * s, weight: .regular))
+                .foregroundStyle(style.textSecondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.top, 8 * s)
         }
     }
 
@@ -213,7 +216,7 @@ struct ExpressTicketVerticalView: View {
     @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
         if showsLumoriaWatermark {
-            MadeWithLumoria(style: .black, version: .small, scale: 0.44 * s)
+            MadeWithLumoria(style: .black, version: .small, scale: s)
         }
     }
 }

@@ -57,6 +57,11 @@ struct ExpressTicketView: View {
                     .padding(.top, 20 * s)
                     .padding(.trailing, 24 * s)
                     .frame(maxWidth: .infinity, alignment: .trailing)
+
+                // Watermark — overlaid top-center
+                madeWithBadge(scale: s)
+                    .padding(.top, 29 * s)
+                    .frame(maxWidth: .infinity, alignment: .center)
             }
             .frame(width: w, height: h)
             .clipShape(RoundedRectangle(cornerRadius: 16 * s, style: .continuous))
@@ -212,8 +217,6 @@ struct ExpressTicketView: View {
             Text(ticket.ticketNumber)
                 .font(.system(size: 6 * s, weight: .regular))
                 .foregroundStyle(style.textSecondary)
-
-            madeWithBadge(scale: s)
         }
     }
 
@@ -233,7 +236,7 @@ struct ExpressTicketView: View {
     @ViewBuilder
     private func madeWithBadge(scale s: CGFloat) -> some View {
         if showsLumoriaWatermark {
-            MadeWithLumoria(style: .black, version: .small, scale: 0.44 * s)
+            MadeWithLumoria(style: .black, version: .small, scale: s)
         }
     }
 }

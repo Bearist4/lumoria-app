@@ -12,7 +12,7 @@ struct PrismTicketVerticalView: View {
     let ticket: PrismTicket
 
     @Environment(\.ticketFillsNotchCutouts) private var fillsNotchCutouts
-    @Environment(\.brandSlug) private var brandSlug
+    @Environment(\.showsLumoriaWatermark) private var showsLumoriaWatermark
 
     private let aspectRatio: CGFloat = 260 / 455
 
@@ -25,8 +25,13 @@ struct PrismTicketVerticalView: View {
             let bgMask = Image("prism-bg-vertical").resizable().frame(width: w, height: h)
 
             ZStack(alignment: .top) {
-                // Aurora clipped to the notched ticket shape — notches
-                // stay transparent so the parent surface shows through.
+                // White base inside the mask — keeps notched/cutout
+                // regions opaque white instead of transparent.
+                Color.white
+                    .frame(width: w, height: h)
+                    .mask(bgMask)
+
+                // Aurora clipped to the notched ticket shape.
                 PrismAurora(imageName: "prism-gradient-vertical")
                     .frame(width: w, height: h)
                     .mask(bgMask)
@@ -41,7 +46,7 @@ struct PrismTicketVerticalView: View {
 
                     routeStack(scale: s)
                         .frame(width: w)
-                        .offset(y: 100 * s)
+                        .offset(y: 80 * s)
 
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
@@ -95,32 +100,33 @@ struct PrismTicketVerticalView: View {
     // MARK: - Route
 
     private func routeStack(scale s: CGFloat) -> some View {
-        VStack(alignment: .center, spacing: 16 * s) {
-            HStack(spacing: 0) {
-                airportBlock(
-                    code: ticket.origin,
-                    name: ticket.originName,
-                    align: .trailing,
-                    scale: s
-                )
-                Spacer(minLength: 30 * s)
-            }
+        VStack(alignment: .center, spacing: 4 * s) {
+            // Origin — code runs 13pt past the left edge so the mask
+            // clips it, but the airport name keeps 8pt of breathing room
+            // from the left so it always stays fully visible.
+            airportBlock(
+                code: ticket.origin,
+                name: ticket.originName,
+                align: .leading,
+                scale: s
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             Text(verbatim: "↓")
                 .font(.system(size: 16 * s, weight: .regular))
                 .foregroundStyle(.black.opacity(0.5))
 
-            HStack(spacing: 0) {
-                Spacer(minLength: 30 * s)
-                airportBlock(
-                    code: ticket.destination,
-                    name: ticket.destinationName,
-                    align: .leading,
-                    scale: s
-                )
-            }
+            // Destination — code runs 12pt past the right edge; name
+            // keeps 8pt of clearance from the right.
+            airportBlock(
+                code: ticket.destination,
+                name: ticket.destinationName,
+                align: .trailing,
+                scale: s
+            )
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(.horizontal, 16 * s)
+        .padding(.bottom, 12 * s)
     }
 
     private func airportBlock(
@@ -129,12 +135,18 @@ struct PrismTicketVerticalView: View {
         align: HorizontalAlignment,
         scale s: CGFloat
     ) -> some View {
-        VStack(alignment: align, spacing: 0) {
+        let codeOverhang: CGFloat = align == .leading ? -13 * s : 0
+        let codeOverhangTrailing: CGFloat = align == .trailing ? -12 * s : 0
+        let nameInset: CGFloat = 8 * s
+
+        return VStack(alignment: align, spacing: 0) {
             Text(code)
                 .font(.custom("Georgia-Bold", size: 80 * s))
                 .foregroundStyle(Color(red: 10.0/255, green: 10.0/255, blue: 10.0/255).opacity(0.82))
                 .lineLimit(1)
                 .fixedSize()
+                .padding(.leading, codeOverhang)
+                .padding(.trailing, codeOverhangTrailing)
 
             Text(name.uppercased())
                 .font(.system(size: 8 * s, weight: .bold))
@@ -142,36 +154,41 @@ struct PrismTicketVerticalView: View {
                 .foregroundStyle(Color(red: 10.0/255, green: 10.0/255, blue: 10.0/255).opacity(0.45))
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
+                .padding(.leading, align == .leading ? nameInset : 0)
+                .padding(.trailing, align == .trailing ? nameInset : 0)
         }
-        .frame(width: 175 * s, alignment: align == .leading ? .leading : .trailing)
     }
 
     // MARK: - Footer block
 
     private func footerBlock(scale s: CGFloat) -> some View {
-        ZStack(alignment: .bottom) {
-            Color(hex: "1A1A1A")
+        VStack(spacing: 0) {
+            // Dark details area — sits above the white watermark strip.
+            ZStack {
+                Color(hex: "1A1A1A")
 
-            VStack(spacing: 16 * s) {
-                // Top row: Gate | Seat | Boards
-                HStack(spacing: 8 * s) {
-                    detailCell(label: "Gate",   value: ticket.gate,         align: .leading,  scale: s)
-                    detailCell(label: "Seat",   value: ticket.seat,         align: .center,   scale: s)
-                    detailCell(label: "Boards", value: ticket.boardingTime, align: .trailing, scale: s)
-                }
+                VStack(spacing: 12 * s) {
+                    // Top row: Gate | Seat | Boards
+                    HStack(spacing: 8 * s) {
+                        detailCell(label: "Gate",   value: ticket.gate,         align: .leading,  scale: s)
+                        detailCell(label: "Seat",   value: ticket.seat,         align: .center,   scale: s)
+                        detailCell(label: "Boards", value: ticket.boardingTime, align: .trailing, scale: s)
+                    }
 
-                // Bottom row: Departs | Terminal (2 cells)
-                HStack(spacing: 8 * s) {
-                    detailCell(label: "Departs",  value: ticket.departureTime, align: .leading,  scale: s)
-                    detailCell(label: "Terminal", value: ticket.terminal,      align: .trailing, scale: s)
+                    // Bottom row: Departs | Terminal (2 cells)
+                    HStack(spacing: 8 * s) {
+                        detailCell(label: "Departs",  value: ticket.departureTime, align: .leading,  scale: s)
+                        detailCell(label: "Terminal", value: ticket.terminal,      align: .trailing, scale: s)
+                    }
                 }
+                .padding(.horizontal, 16 * s)
+                .padding(.vertical, 12 * s)
             }
-            .padding(.horizontal, 16 * s)
-            .padding(.top, 12 * s)
-            .padding(.bottom, 18 * s)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Made with strip pinned to bottom
+            // White watermark strip at the very bottom (masked by ticket shape).
             madeWithStrip(scale: s)
+                .frame(height: 40 * s)
         }
     }
 
@@ -207,38 +224,20 @@ struct PrismTicketVerticalView: View {
 
     // MARK: - Made with strip (bottom)
 
+    @ViewBuilder
     private func madeWithStrip(scale s: CGFloat) -> some View {
-        HStack(alignment: .center) {
-            Text("Made with")
-                .font(.system(size: 6.78 * s, weight: .semibold))
-                .tracking(-0.43 * s)
-                .foregroundStyle(.black)
-
-            Spacer()
-
-            HStack(spacing: 2.5 * s) {
-                Image("brand/\(brandSlug)/logomark")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 6.34 * s, height: 6.34 * s)
-                    .background(
-                        RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                            .fill(Color(hex: "FFFCF0"))
-                    )
-                    .clipShape(
-                        RoundedRectangle(cornerRadius: 1.12 * s, style: .continuous)
-                    )
-
-                Image("brand/\(brandSlug)/full")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(height: 2.8 * s)
+        ZStack {
+            Color.white
+            if showsLumoriaWatermark {
+                MadeWithLumoria(
+                    style: .white,
+                    version: .full,
+                    scale: s,
+                    fullWidth: true
+                )
             }
         }
-        .padding(.horizontal, 27.14 * s)
-        .padding(.vertical, 4.79 * s)
-        .frame(maxWidth: .infinity)
-        .background(.white)
+        .frame(maxWidth: .infinity, maxHeight: 40 * s)
     }
 }
 

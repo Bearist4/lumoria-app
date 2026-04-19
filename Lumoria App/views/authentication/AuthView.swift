@@ -21,6 +21,8 @@ struct AuthView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var signUpConfirmationShown = false
+    @State private var unverifiedEmail: String?
+    @State private var resendStatus: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -82,7 +84,40 @@ struct AuthView: View {
         .alert("Check your email", isPresented: $signUpConfirmationShown) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("We sent a confirmation link to \(email). Open it to activate your account, then sign in here.")
+            Text("We sent a confirmation link to \(email). Tap it on this iPhone to activate your account, then log in. You can't log in until your email is verified.")
+        }
+        .alert(
+            "Verify your email",
+            isPresented: Binding(
+                get: { unverifiedEmail != nil },
+                set: { if !$0 { unverifiedEmail = nil; resendStatus = nil } }
+            )
+        ) {
+            Button("Resend email") {
+                if let email = unverifiedEmail {
+                    Task { await resendVerification(for: email) }
+                }
+            }
+            Button("OK", role: .cancel) {}
+        } message: {
+            if let resendStatus {
+                Text(resendStatus)
+            } else if let email = unverifiedEmail {
+                Text("Tap the link we sent to \(email) to activate your account, then log in. Check your spam folder if you don't see it.")
+            }
+        }
+    }
+
+    private func resendVerification(for email: String) async {
+        do {
+            try await supabase.auth.resend(
+                email: email,
+                type: .signup,
+                emailRedirectTo: AuthRedirect.emailConfirmed
+            )
+            resendStatus = "We resent the link to \(email)."
+        } catch {
+            resendStatus = "Couldn't resend: \(error.localizedDescription)"
         }
     }
 
@@ -93,13 +128,28 @@ struct AuthView: View {
             defer { isLoading = false }
             do {
                 if mode == .signUp {
-                    try await supabase.auth.signUp(email: email, password: password)
+                    try await supabase.auth.signUp(
+                        email: email,
+                        password: password,
+                        redirectTo: AuthRedirect.emailConfirmed
+                    )
                     signUpConfirmationShown = true
                     mode = .signIn
                 } else {
                     try await supabase.auth.signIn(email: email, password: password)
+                    if let user = supabase.auth.currentUser, user.emailConfirmedAt == nil {
+                        let blockedEmail = email
+                        try? await supabase.auth.signOut()
+                        unverifiedEmail = blockedEmail
+                        return
+                    }
                 }
             } catch {
+                let lowered = error.localizedDescription.lowercased()
+                if lowered.contains("email not confirmed") || lowered.contains("email_not_confirmed") {
+                    unverifiedEmail = email
+                    return
+                }
                 errorMessage = error.localizedDescription
             }
         }

@@ -209,7 +209,7 @@ struct NightTicketVerticalView: View {
             Spacer()
 
             if showsLumoriaWatermark {
-                MadeWithLumoria(style: .black, version: .small, scale: 0.44 * s)
+                MadeWithLumoria(style: .black, version: .small, scale: s)
             }
         }
         .padding(.horizontal, 16 * s)
