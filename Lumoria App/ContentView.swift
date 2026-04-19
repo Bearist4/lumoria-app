@@ -16,26 +16,29 @@ struct ContentView: View {
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var notificationsStore = NotificationsStore()
 
+    @State private var selectedTab: Int = 0
+
     var body: some View {
         // iOS 18+ `Tab` API — renders the new liquid-glass floating
         // tab bar by default on iOS 26, letting each screen's content
         // run full-bleed behind the bar (matches the design specs).
-        TabView {
-            Tab("Memories", systemImage: "square.grid.2x2") {
+        TabView(selection: $selectedTab) {
+            Tab("Memories", systemImage: "square.grid.2x2", value: 0) {
                 MemoriesView()
             }
 
-            Tab("All tickets", systemImage: "ticket") {
+            Tab("All tickets", systemImage: "ticket", value: 1) {
                 AllTicketsView()
             }
 
-            Tab("Settings", systemImage: "gearshape") {
+            Tab("Settings", systemImage: "gearshape", value: 2) {
                 SettingsView()
             }
         }
         // Keep the tab bar in its expanded full-width state — it
         // otherwise minimizes to a compact pill on scroll.
         .tabBarMinimizeBehavior(.never)
+        .sensoryFeedback(.impact(weight: .light), trigger: selectedTab)
         .environmentObject(ticketsStore)
         .environmentObject(memoriesStore)
         .environmentObject(profileStore)

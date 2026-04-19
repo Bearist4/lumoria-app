@@ -22,6 +22,9 @@ struct MemoryDetailView: View {
     @State private var showNewTicket = false
     @State private var showAddExistingTicket = false
     @State private var previewColorFamily: String?
+    /// ID of the ticket closest to vertical centre of the screen. Drives
+    /// the shimmer's `isActive` so only the focused card consumes motion.
+    @State private var centredId: UUID?
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -270,9 +273,11 @@ struct MemoryDetailView: View {
 
     private func link(_ ticket: Ticket) -> some View {
         NavigationLink(value: ticket) {
-            TicketPreview(ticket: ticket)
+            TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
+                .trackCenteredRow(id: ticket.id, into: $centredId)
+                .ticketInspect()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TicketCardButtonStyle())
     }
 
     // MARK: - Row partitioning

@@ -24,8 +24,13 @@ struct TemplateTile: View {
     private let thumbWidth: CGFloat = 204
     private let thumbHeight: CGFloat = 118
 
+    @State private var isGreeting: Bool = false
+
     var body: some View {
-        Button(action: onTap) {
+        Button(action: {
+            onTap()
+            triggerGreeting()
+        }) {
             SelectionTile(
                 isSelected: isSelected,
                 verticalPadding: 32
@@ -39,6 +44,12 @@ struct TemplateTile: View {
                             )
                         )
                         .frame(width: thumbWidth, height: thumbHeight)
+                        .rotation3DEffect(
+                            .degrees(isGreeting ? 8 : 0),
+                            axis: (x: 1, y: 0, z: 0),
+                            perspective: 0.5
+                        )
+                        .animation(.easeInOut(duration: 0.26), value: isGreeting)
 
                         SelectionTileLabel(text: title, isSelected: isSelected)
                     }
@@ -50,6 +61,15 @@ struct TemplateTile: View {
             }
         }
         .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: isSelected)
+    }
+
+    private func triggerGreeting() {
+        guard !UIAccessibility.isReduceMotionEnabled else { return }
+        isGreeting = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.26) {
+            isGreeting = false
+        }
     }
 
     // MARK: - Info button

@@ -28,6 +28,9 @@ struct AllTicketsView: View {
     @EnvironmentObject private var store: TicketsStore
     @State private var showFunnel = false
     @State private var sort: TicketSortOption? = nil
+    /// ID of the ticket closest to vertical centre of the screen. Drives
+    /// the shimmer's `isActive` so only the focused card consumes motion.
+    @State private var centredId: UUID?
 
     var body: some View {
         NavigationStack {
@@ -50,6 +53,7 @@ struct AllTicketsView: View {
                     .refreshable {
                         await store.load()
                         Analytics.track(.galleryRefreshed(ticketCount: store.tickets.count))
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
                 }
             }
@@ -135,8 +139,15 @@ struct AllTicketsView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 20) {
             Spacer(minLength: 0)
+
+            SevenPointStar()
+                .fill(Color.Text.tertiary)
+                .frame(width: 56, height: 56)
+                .overlay(
+                    TicketShimmerView(mode: .softGlow, isActive: true)
+                )
 
             Text("Your gallery starts here")
                 .font(.title2.bold())
@@ -229,9 +240,11 @@ struct AllTicketsView: View {
 
     private func ticketLink(_ ticket: Ticket) -> some View {
         NavigationLink(value: ticket) {
-            TicketPreview(ticket: ticket)
+            TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
+                .trackCenteredRow(id: ticket.id, into: $centredId)
+                .ticketInspect()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(TicketCardButtonStyle())
     }
 
     // MARK: - Row partitioning

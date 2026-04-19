@@ -446,7 +446,7 @@ private struct CameraRollView: View {
         let isVertical = previewTicket.orientation == .vertical
 
         return VStack {
-            TicketPreview(ticket: previewTicket)
+            TicketPreview(ticket: previewTicket, isCentered: true)
                 .aspectRatio(isVertical ? 260/455 : 455/260, contentMode: .fit)
                 // Vertical tickets cap at 200pt wide to mirror the 0.5×
                 // downscale applied in `ExportRenderView` — real frame

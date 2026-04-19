@@ -37,6 +37,9 @@ struct CategoryTile: View {
         .buttonStyle(.plain)
         .disabled(!isAvailable)
         .opacity(isAvailable ? 1 : 0.5)
+        .scaleEffect(isSelected ? 1.04 : 1.0)
+        .animation(MotionTokens.impulse, value: isSelected)
+        .sensoryFeedback(.selection, trigger: isSelected)
     }
 
     // MARK: - Thumbnail

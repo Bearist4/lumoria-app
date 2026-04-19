@@ -29,6 +29,7 @@ struct Lumoria_AppApp: App {
     @AppStorage("appearance.iconName") private var storedIconName: String = ""
     @AppStorage("auth.hasCache") private var authHasCache: Bool = false
     @AppStorage("auth.lastKnownAuthenticated") private var authLastKnown: Bool = false
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         _ = analyticsBootstrap
@@ -99,6 +100,13 @@ struct Lumoria_AppApp: App {
                     Task { await notificationPrefs.load() }
                 } else {
                     Task { await pushService.signedOut() }
+                }
+            }
+            .onChange(of: scenePhase, initial: true) { _, newPhase in
+                switch newPhase {
+                case .active:     TiltMotionManager.shared.start()
+                case .background: TiltMotionManager.shared.stop()
+                default:          break
                 }
             }
         }

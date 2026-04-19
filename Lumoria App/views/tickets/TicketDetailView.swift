@@ -48,7 +48,7 @@ struct TicketDetailView: View {
             header
         } content: {
             VStack(alignment: .leading, spacing: 24) {
-                TicketPreview(ticket: currentTicket)
+                TicketPreview(ticket: currentTicket, isCentered: true)
                     .padding(.horizontal, currentTicket.orientation == .horizontal ? 16 : 64)
 
                 detailsCard
@@ -88,6 +88,7 @@ struct TicketDetailView: View {
             isPresented: $showDeleteConfirm
         ) {
             Button("Delete ticket", role: .destructive) {
+                UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 Task {
                     let wasInMemory = !currentTicket.memoryIds.isEmpty
                     await ticketsStore.delete(currentTicket)
@@ -96,6 +97,7 @@ struct TicketDetailView: View {
                         template: ticket.kind.analyticsTemplate,
                         wasInMemory: wasInMemory
                     ))
+                    UIAccessibility.post(notification: .announcement, argument: String(localized: "Deleted."))
                     dismiss()
                 }
             }

@@ -73,7 +73,10 @@ struct MemoriesView: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 16)
                     }
-                    .refreshable { await store.load() }
+                    .refreshable {
+                        await store.load()
+                        UINotificationFeedbackGenerator().notificationOccurred(.success)
+                    }
                 }
 
                 if let error = store.errorMessage {

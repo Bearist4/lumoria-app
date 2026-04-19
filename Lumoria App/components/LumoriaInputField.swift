@@ -46,6 +46,7 @@ struct LumoriaInputField: View {
 
     @State private var isRevealed = false
     @State private var showEmojiPicker = false
+    @FocusState private var isFocused: Bool
 
     // Nulls contentType under Maestro so iOS autofill / strong-password
     // takeover doesn't intercept keystrokes on SecureField.
@@ -134,6 +135,8 @@ struct LumoriaInputField: View {
             }
         }
         .opacity(state == .disabled ? 0.4 : 1)
+        .offset(y: isFocused ? -2 : 0)
+        .animation(MotionTokens.impulse, value: isFocused)
     }
 
     // MARK: - Input
@@ -161,9 +164,12 @@ struct LumoriaInputField: View {
         .background(backgroundColor)
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius)
-                .stroke(borderColor, lineWidth: 1)
+                .stroke(borderColor, lineWidth: isFocused ? 2 : 1)
+                .scaleEffect(isFocused ? 1.0 : 1.02)
+                .animation(MotionTokens.impulse, value: isFocused)
         )
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .sensoryFeedback(.selection, trigger: isFocused)
     }
 
     private var singleLineInput: some View {
@@ -181,6 +187,7 @@ struct LumoriaInputField: View {
             .font(.body)
             .foregroundStyle(textColor)
             .textContentType(effectiveContentType)
+            .focused($isFocused)
 
             if isSecure {
                 revealButton
@@ -198,6 +205,7 @@ struct LumoriaInputField: View {
             .keyboardType(keyboardType)
             .autocapitalization(.none)
             .autocorrectionDisabled()
+            .focused($isFocused)
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .topLeading)

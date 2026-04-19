@@ -24,6 +24,8 @@ struct AuthView: View {
     @State private var unverifiedEmail: String?
     @State private var resendStatus: String?
 
+    @State private var logoAppeared = false
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -32,6 +34,8 @@ struct AuthView: View {
             Text(verbatim: "Lumoria")
                 .font(.title.weight(.semibold))
                 .padding(.bottom, 48)
+                .offset(y: logoAppeared ? 0 : -12)
+                .opacity(logoAppeared ? 1 : 0)
 
             // Fields
             VStack(spacing: 12) {
@@ -105,6 +109,9 @@ struct AuthView: View {
             } else if let email = unverifiedEmail {
                 Text("Tap the link we sent to \(email) to activate your account, then log in. Check your spam folder if you don't see it.")
             }
+        }
+        .onAppear {
+            withAnimation(MotionTokens.settle) { logoAppeared = true }
         }
     }
 
