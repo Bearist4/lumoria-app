@@ -109,6 +109,7 @@ struct SettingsView: View {
             ) {
                 Button("Stay signed in", role: .cancel) { }
                 Button("Log out", role: .destructive) {
+                    UINotificationFeedbackGenerator().notificationOccurred(.warning)
                     Task { await signOut() }
                 }
             } message: {

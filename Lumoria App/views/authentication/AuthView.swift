@@ -22,6 +22,8 @@ struct AuthView: View {
     @State private var errorMessage: String?
     @State private var signUpConfirmationShown = false
 
+    @State private var logoAppeared = false
+
     var body: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -30,6 +32,8 @@ struct AuthView: View {
             Text(verbatim: "Lumoria")
                 .font(.title.weight(.semibold))
                 .padding(.bottom, 48)
+                .offset(y: logoAppeared ? 0 : -12)
+                .opacity(logoAppeared ? 1 : 0)
 
             // Fields
             VStack(spacing: 12) {
@@ -83,6 +87,9 @@ struct AuthView: View {
             Button("OK", role: .cancel) {}
         } message: {
             Text("We sent a confirmation link to \(email). Open it to activate your account, then sign in here.")
+        }
+        .onAppear {
+            withAnimation(MotionTokens.settle) { logoAppeared = true }
         }
     }
 
