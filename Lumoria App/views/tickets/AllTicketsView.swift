@@ -139,8 +139,15 @@ struct AllTicketsView: View {
     // MARK: - Empty state
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 20) {
             Spacer(minLength: 0)
+
+            SevenPointStar()
+                .fill(Color.Text.tertiary)
+                .frame(width: 56, height: 56)
+                .overlay(
+                    TicketShimmerView(mode: .softGlow, isActive: true)
+                )
 
             Text("Your gallery starts here")
                 .font(.title2.bold())
