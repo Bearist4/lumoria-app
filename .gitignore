@@ -51,5 +51,8 @@ fastlane/test_output
 *.swp
 *.swo
 
+# Claude Code agent state + worktrees
+.claude/
+
 # Secrets
 Amplitude.xcconfig
