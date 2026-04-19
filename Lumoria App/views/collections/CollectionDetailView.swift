@@ -274,17 +274,7 @@ struct MemoryDetailView: View {
     private func link(_ ticket: Ticket) -> some View {
         NavigationLink(value: ticket) {
             TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear
-                            .onChange(of: proxy.frame(in: .global).midY) { _, midY in
-                                let screenMid = UIScreen.main.bounds.midY
-                                if abs(midY - screenMid) < 80 {
-                                    centredId = ticket.id
-                                }
-                            }
-                    }
-                )
+                .trackCenteredRow(id: ticket.id, into: $centredId)
         }
         .buttonStyle(.plain)
     }
