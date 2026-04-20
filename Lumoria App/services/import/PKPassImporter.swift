@@ -37,10 +37,12 @@ enum PKPassImporter {
             throw ImportError.unreadable
         }
 
+        #if DEBUG
         NSLog("[PKPassImporter] PKPass: org=%@ serial=%@ relevantDate=%@ desc=%@",
               pass.organizationName, pass.serialNumber,
               String(describing: pass.relevantDate),
               pass.localizedDescription)
+        #endif
 
         // Pull pass.json out of the ZIP — PassKit doesn't expose the
         // structured field arrays publicly, so we parse the JSON blob
@@ -50,11 +52,13 @@ enum PKPassImporter {
             throw ImportError.unreadable
         }
 
+        #if DEBUG
         if let pretty = try? JSONSerialization.data(
             withJSONObject: json, options: [.prettyPrinted, .sortedKeys]
         ), let s = String(data: pretty, encoding: .utf8) {
             NSLog("[PKPassImporter] pass.json:\n%@", s)
         }
+        #endif
 
         guard let boardingPass = json["boardingPass"] as? [String: Any] else {
             NSLog("[PKPassImporter] no boardingPass key in pass.json")
@@ -76,14 +80,17 @@ enum PKPassImporter {
         }
 
         let fields = Self.collectFields(from: boardingPass)
+        #if DEBUG
         for (key, field) in fields {
             NSLog("[PKPassImporter] field: key=%@ label=%@ value=%@",
                   key, field.label ?? "<nil>", field.value)
         }
+        #endif
 
         switch expectedKind {
         case .air:
             let input = buildFlight(pass: pass, json: json, fields: fields)
+            #if DEBUG
             NSLog("""
                 [PKPassImporter] flight → airline=%@ flightNumber=%@ \
                 originCode=%@ originName=%@ destCode=%@ destName=%@ \
@@ -94,9 +101,11 @@ enum PKPassImporter {
                 input.destinationCode, input.destinationName,
                 input.gate, input.seat, input.terminal,
                 String(describing: input.departureDate))
+            #endif
             return .flight(input)
         case .train, .other:
             let input = buildTrain(pass: pass, json: json, fields: fields)
+            #if DEBUG
             NSLog("""
                 [PKPassImporter] train → company=%@ trainType=%@ trainNumber=%@ \
                 originCity=%@ destCity=%@ car=%@ seat=%@ date=%@
@@ -105,6 +114,7 @@ enum PKPassImporter {
                 input.originCity, input.destinationCity,
                 input.car, input.seat,
                 String(describing: input.date))
+            #endif
             return .train(input)
         }
     }

@@ -33,6 +33,10 @@ struct ProfileView: View {
     @State private var isSaving = false
     @State private var saveError: String? = nil
 
+    @State private var showDeleteConfirm = false
+    @State private var isDeletingAccount = false
+    @State private var deleteError: String? = nil
+
     private var isNameDirty: Bool   { isEditing && draftName != profileStore.name }
     private var isAvatarDirty: Bool { isEditing && draftAvatarData != nil }
     private var hasChanges: Bool    { isNameDirty || isAvatarDirty }
@@ -71,6 +75,26 @@ struct ProfileView: View {
         .toolbar(.hidden, for: .navigationBar)
         .animation(.easeInOut(duration: 0.2), value: isEditing)
         .onAppear { Analytics.track(.profileViewed) }
+        .alert("Delete your account?", isPresented: $showDeleteConfirm) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                Task { await deleteAccount() }
+            }
+            .disabled(isDeletingAccount)
+        } message: {
+            Text("This permanently removes your profile, tickets, memories, and invites. This cannot be undone.")
+        }
+        .alert(
+            "Couldn't delete your account",
+            isPresented: Binding(
+                get: { deleteError != nil },
+                set: { if !$0 { deleteError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) { deleteError = nil }
+        } message: {
+            Text(deleteError ?? "")
+        }
     }
 
     // MARK: - Top bar
@@ -399,7 +423,7 @@ struct ProfileView: View {
                 },
                 LumoriaMenuItem(title: "Delete my account", kind: .destructive) {
                     showMenu = false
-                    // TODO: confirm + call auth.deleteUser
+                    showDeleteConfirm = true
                 },
             ])
             .padding(.top, 62)
@@ -509,6 +533,37 @@ struct ProfileView: View {
                 domain: .auth,
                 code: (error as NSError).code.description,
                 viewContext: "ProfileView.save"
+            ))
+        }
+    }
+
+    // MARK: - Account deletion
+
+    /// Calls the `delete-account` edge function. The server wipes every
+    /// user-scoped row, then auth.admin.deleteUser removes the auth row,
+    /// which fires `.signedOut` on the auth listener and tears the rest
+    /// of the local state down.
+    private func deleteAccount() async {
+        guard !isDeletingAccount else { return }
+        isDeletingAccount = true
+        defer { isDeletingAccount = false }
+
+        do {
+            try await supabase.functions.invoke(
+                "delete-account",
+                options: FunctionInvokeOptions(
+                    body: ["confirmation": "DELETE"]
+                )
+            )
+            try? await supabase.auth.signOut()
+        } catch {
+            deleteError = String(
+                localized: "Couldn’t delete your account. \(error.localizedDescription) If the problem persists, contact support."
+            )
+            Analytics.track(.appError(
+                domain: .auth,
+                code: (error as NSError).code.description,
+                viewContext: "ProfileView.deleteAccount"
             ))
         }
     }
