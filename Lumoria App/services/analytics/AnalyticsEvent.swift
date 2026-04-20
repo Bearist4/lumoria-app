@@ -123,6 +123,15 @@ enum AnalyticsEvent {
     case legalLinkOpened(linkType: LegalLinkTypeProp)
     case profileViewed
 
+    // MARK: — Onboarding
+
+    case onboardingShown
+    case onboardingStarted
+    case onboardingSkipped(atStep: OnboardingStepProp)
+    case onboardingStepCompleted(step: OnboardingStepProp)
+    case onboardingCompleted(durationSeconds: Int)
+    case onboardingReplayed
+
     // MARK: — Error
 
     case appError(domain: AppErrorDomainProp, code: String, viewContext: String?)
@@ -227,6 +236,14 @@ extension AnalyticsEvent {
         case .notificationMarkedRead: return "Notification Marked Read"
         case .legalLinkOpened: return "Legal Link Opened"
         case .profileViewed: return "Profile Viewed"
+
+        // Onboarding
+        case .onboardingShown: return "Onboarding Shown"
+        case .onboardingStarted: return "Onboarding Started"
+        case .onboardingSkipped: return "Onboarding Skipped"
+        case .onboardingStepCompleted: return "Onboarding Step Completed"
+        case .onboardingCompleted: return "Onboarding Completed"
+        case .onboardingReplayed: return "Onboarding Replayed"
 
         // Error
         case .appError: return "App Error"
@@ -464,6 +481,16 @@ extension AnalyticsEvent {
             return ["link_type": type.rawValue]
         case .profileViewed:
             return [:]
+
+        // Onboarding
+        case .onboardingShown, .onboardingStarted, .onboardingReplayed:
+            return [:]
+        case .onboardingSkipped(let step):
+            return ["at_step": step.rawValue]
+        case .onboardingStepCompleted(let step):
+            return ["step": step.rawValue]
+        case .onboardingCompleted(let seconds):
+            return ["duration_seconds": seconds]
 
         // Error
         case .appError(let domain, let code, let ctx):

@@ -75,4 +75,46 @@ struct AnalyticsEventTests {
         #expect(props["export_resolution"] == nil)
         #expect(props["export_format"] == nil)
     }
+
+    @Test("onboardingShown has the right name and empty props")
+    func onboardingShownShape() {
+        let event = AnalyticsEvent.onboardingShown
+        #expect(event.name == "Onboarding Shown")
+        #expect(event.properties.isEmpty)
+    }
+
+    @Test("onboardingStarted has the right name")
+    func onboardingStartedShape() {
+        let event = AnalyticsEvent.onboardingStarted
+        #expect(event.name == "Onboarding Started")
+        #expect(event.properties.isEmpty)
+    }
+
+    @Test("onboardingSkipped carries the step")
+    func onboardingSkippedShape() {
+        let event = AnalyticsEvent.onboardingSkipped(atStep: .welcome)
+        #expect(event.name == "Onboarding Skipped")
+        #expect(event.properties["at_step"] as? String == "welcome")
+    }
+
+    @Test("onboardingStepCompleted carries the step")
+    func onboardingStepCompletedShape() {
+        let event = AnalyticsEvent.onboardingStepCompleted(step: .ticket)
+        #expect(event.name == "Onboarding Step Completed")
+        #expect(event.properties["step"] as? String == "ticket")
+    }
+
+    @Test("onboardingCompleted carries duration")
+    func onboardingCompletedShape() {
+        let event = AnalyticsEvent.onboardingCompleted(durationSeconds: 42)
+        #expect(event.name == "Onboarding Completed")
+        #expect(event.properties["duration_seconds"] as? Int == 42)
+    }
+
+    @Test("onboardingReplayed has the right name")
+    func onboardingReplayedShape() {
+        let event = AnalyticsEvent.onboardingReplayed
+        #expect(event.name == "Onboarding Replayed")
+        #expect(event.properties.isEmpty)
+    }
 }
