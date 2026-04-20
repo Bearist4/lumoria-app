@@ -56,6 +56,8 @@
 	<string>public.app-category.lifestyle</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Lumoria saves your exported tickets to your photo library.</string>
 	<key>UIAppFonts</key>
