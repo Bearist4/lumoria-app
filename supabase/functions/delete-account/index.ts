@@ -6,7 +6,9 @@
 // account".
 //
 // Flow:
-//   1. Verify the caller's JWT with the anon client and extract user_id.
+//   1. Gateway validates the caller's JWT (verify_jwt=true on deploy).
+//      We decode the same token here to pull `sub` without a round-trip
+//      to the auth server.
 //   2. Require an explicit `{ "confirmation": "DELETE" }` body so a
 //      replayed or accidentally-fired invocation cannot wipe an account.
 //   3. Delete user-scoped rows in dependency order using a service-role
@@ -19,7 +21,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 function json(status: number, body: Record<string, unknown>): Response {
@@ -27,6 +28,23 @@ function json(status: number, body: Record<string, unknown>): Response {
         status,
         headers: { "Content-Type": "application/json" },
     });
+}
+
+/// Decodes the JWT payload without verifying — the gateway's
+/// `verify_jwt: true` has already checked signature + expiry before we
+/// run, so extracting the `sub` claim here is equivalent to trusting
+/// what the gateway trusted.
+function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
+    const parts = jwt.split(".");
+    if (parts.length !== 3) return null;
+    try {
+        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
+        const json = atob(padded);
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
 }
 
 Deno.serve(async (req: Request) => {
@@ -39,18 +57,11 @@ Deno.serve(async (req: Request) => {
         return json(401, { error: "unauthorized" });
     }
     const jwt = authHeader.slice("Bearer ".length);
-
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        global: { headers: { Authorization: `Bearer ${jwt}` } },
-        auth: { autoRefreshToken: false, persistSession: false },
-    });
-    const { data: userData, error: userError } = await userClient.auth.getUser();
-    if (userError || !userData.user) {
+    const payload = decodeJwtPayload(jwt);
+    const userId = typeof payload?.sub === "string" ? payload.sub : null;
+    if (!userId) {
         return json(401, { error: "invalid_jwt" });
     }
-    const userId = userData.user.id;
-    const avatarPath = (userData.user.user_metadata as Record<string, unknown> | null)
-        ?.["avatar_path"] as string | undefined;
 
     let body: { confirmation?: string } = {};
     try {
@@ -65,6 +76,21 @@ Deno.serve(async (req: Request) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false },
     });
+
+    // Grab user metadata so we can remove the avatar ciphertext from
+    // storage. If the lookup fails we still proceed with the delete —
+    // a stale avatar file is preferable to a half-deleted account.
+    let avatarPath: string | undefined;
+    try {
+        const { data } = await admin.auth.admin.getUserById(userId);
+        const meta = data?.user?.user_metadata as Record<string, unknown> | undefined;
+        const maybePath = meta?.["avatar_path"];
+        if (typeof maybePath === "string" && maybePath.length > 0) {
+            avatarPath = maybePath;
+        }
+    } catch {
+        avatarPath = undefined;
+    }
 
     try {
         const { data: userMemories } = await admin
