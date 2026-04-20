@@ -123,6 +123,10 @@ enum MapPinTypeProp: String, CaseIterable {
     case origin, destination
 }
 
+enum OnboardingStepProp: String, CaseIterable {
+    case welcome, memory, ticket, export
+}
+
 /// Environment tag applied to every event as a universal property.
 enum AnalyticsEnvironment: String {
     case dev, prod
