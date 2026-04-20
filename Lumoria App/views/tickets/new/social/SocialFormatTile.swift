@@ -18,7 +18,10 @@ struct SocialFormatTile: View {
     let isLoading: Bool
     let action: () -> Void
 
-    private let previewHeight: CGFloat = 298
+    // Fixed preview-box dimensions from Figma FormatCard (1109:32533). Every
+    // format renders into this 167×298 box via aspect-fit, so tiles stay
+    // visually uniform regardless of canvas ratio.
+    private let previewSize = CGSize(width: 167, height: 298)
     private let previewCorner: CGFloat = 14
 
     var body: some View {
@@ -27,9 +30,9 @@ struct SocialFormatTile: View {
                 preview
                 label
             }
-            .frame(maxWidth: .infinity)
             .padding(.horizontal, 16)
             .padding(.vertical, 24)
+            .frame(width: 199, height: 378.889)
             .background(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color.Background.elevated)
@@ -41,20 +44,20 @@ struct SocialFormatTile: View {
 
     @ViewBuilder
     private var preview: some View {
-        let scale = previewHeight / format.canvasSize.height
-        let previewWidth = format.canvasSize.width * scale
+        // Aspect-fit the format canvas into the preview box.
+        let widthScale  = previewSize.width  / format.canvasSize.width
+        let heightScale = previewSize.height / format.canvasSize.height
+        let scale       = min(widthScale, heightScale)
 
         ZStack {
-            RoundedRectangle(cornerRadius: previewCorner, style: .continuous)
-                .fill(Color.white)
-
             renderView
                 .frame(width: format.canvasSize.width,
                        height: format.canvasSize.height)
                 .scaleEffect(scale, anchor: .center)
-                .frame(width: previewWidth, height: previewHeight)
+                .frame(width: format.canvasSize.width * scale,
+                       height: format.canvasSize.height * scale)
         }
-        .frame(width: previewWidth, height: previewHeight)
+        .frame(width: previewSize.width, height: previewSize.height)
         .clipShape(RoundedRectangle(cornerRadius: previewCorner, style: .continuous))
         .overlay {
             if isLoading {
