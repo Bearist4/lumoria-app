@@ -25,6 +25,7 @@ enum OrientationProp: String, CaseIterable {
 enum ExportDestinationProp: String, CaseIterable {
     case camera_roll, whatsapp, messenger, discord
     case instagram, twitter, threads, snapchat, facebook
+    case social_square, social_story, social_facebook, social_instagram, social_x
 }
 
 enum ExportFormatProp: String, CaseIterable {

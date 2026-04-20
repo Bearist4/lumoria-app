@@ -59,4 +59,20 @@ struct AnalyticsEventTests {
         #expect(event.properties["invite_token_hash"] as? String == "abc0123456789def")
         #expect(event.properties["invite_token"] == nil)
     }
+
+    @Test("ticketExported for social formats emits social_ destination keys")
+    func ticketExportedSocialShape() {
+        let event = AnalyticsEvent.ticketExported(
+            destination: .social_story,
+            resolution: nil, crop: nil, format: nil,
+            includeBackground: nil, includeWatermark: nil,
+            durationMs: 240
+        )
+        #expect(event.name == "Ticket Exported")
+        let props = event.properties
+        #expect(props["export_destination"] as? String == "social_story")
+        #expect(props["duration_ms"] as? Int == 240)
+        #expect(props["export_resolution"] == nil)
+        #expect(props["export_format"] == nil)
+    }
 }
