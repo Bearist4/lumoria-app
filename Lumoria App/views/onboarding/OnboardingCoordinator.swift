@@ -70,12 +70,14 @@ final class OnboardingCoordinator: ObservableObject {
 
     // MARK: - User actions
 
-    func start() {
+    func start() async {
         setWelcomeSeen(true)
-        showWelcome = false
         startedAt = Date()
-        Task { await OnboardingEvents.onboardingStarted.donate() }
         Analytics.track(.onboardingStarted)
+        // Donate before dismissing the sheet so the MemoryTip's rule
+        // sees the event the moment the Memories view re-renders.
+        await OnboardingEvents.onboardingStarted.donate()
+        showWelcome = false
     }
 
     func skip() {
@@ -85,14 +87,17 @@ final class OnboardingCoordinator: ObservableObject {
         Analytics.track(.onboardingSkipped(atStep: .welcome))
     }
 
-    func reset() {
+    func reset() async {
         setWelcomeSeen(false)
         setSkipped(false)
         setCompleted(false)
         startedAt = nil
         pendingMemoryToOpen = nil
 
-        Task { try? Tips.resetDatastore() }
+        // Await the datastore wipe before re-opening the sheet so a
+        // quick Start tap doesn't donate into a datastore that's about
+        // to be cleared.
+        try? Tips.resetDatastore()
 
         Analytics.track(.onboardingReplayed)
         showWelcome = true
@@ -104,23 +109,23 @@ final class OnboardingCoordinator: ObservableObject {
     /// Only takes effect inside an active tour (post-start, pre-complete).
     func donateMemoryCreated(_ memory: Memory) {
         guard isInTour else { return }
-        Task { await OnboardingEvents.firstMemoryCreated.donate() }
-        pendingMemoryToOpen = memory
         Analytics.track(.onboardingStepCompleted(step: .memory))
+        pendingMemoryToOpen = memory
+        Task { await OnboardingEvents.firstMemoryCreated.donate() }
     }
 
     /// Called by `SuccessStep.onAppear`.
     func donateTicketCreated() {
         guard isInTour else { return }
-        Task { await OnboardingEvents.firstTicketCreated.donate() }
         Analytics.track(.onboardingStepCompleted(step: .ticket))
+        Task { await OnboardingEvents.firstTicketCreated.donate() }
     }
 
     /// Called when the user taps the Export tile during the tour.
     func donateExportOpened() {
         guard isInTour else { return }
-        Task { await OnboardingEvents.onboardingComplete.donate() }
         Analytics.track(.onboardingStepCompleted(step: .export))
+        Task { await OnboardingEvents.onboardingComplete.donate() }
 
         let duration: Int
         if let startedAt {

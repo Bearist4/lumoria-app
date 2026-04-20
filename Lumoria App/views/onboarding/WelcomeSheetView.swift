@@ -86,7 +86,7 @@ struct WelcomeSheetView: View {
     private var ctaStack: some View {
         VStack(spacing: 8) {
             Button {
-                coordinator.start()
+                Task { await coordinator.start() }
             } label: {
                 Text("Start")
                     .font(.system(size: 17, weight: .semibold))

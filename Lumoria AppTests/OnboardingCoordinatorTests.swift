@@ -26,7 +26,7 @@ struct OnboardingCoordinatorTests {
     }
 
     @Test("fresh user with zero data shows welcome")
-    func eligibilityFreshUser() {
+    func eligibilityFreshUser() async {
         let c = fresh()
         c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
         #expect(c.showWelcome == true)
@@ -35,7 +35,7 @@ struct OnboardingCoordinatorTests {
     }
 
     @Test("existing user with memories is silently completed")
-    func eligibilityExistingUser() {
+    func eligibilityExistingUser() async {
         let c = fresh()
         c.evaluateEligibility(memoriesCount: 2, ticketsCount: 0)
         #expect(c.showWelcome == false)
@@ -43,7 +43,7 @@ struct OnboardingCoordinatorTests {
     }
 
     @Test("skip sets flags and suppresses future evaluations")
-    func skipPath() {
+    func skipPath() async {
         let c = fresh()
         c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
         c.skip()
@@ -56,24 +56,24 @@ struct OnboardingCoordinatorTests {
     }
 
     @Test("start sets welcomeSeen and stamps startedAt")
-    func startPath() {
+    func startPath() async {
         let c = fresh()
         c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        c.start()
+        await c.start()
         #expect(c.welcomeSeen == true)
         #expect(c.showWelcome == false)
         #expect(c.startedAt != nil)
     }
 
     @Test("reset clears flags and reopens welcome")
-    func resetPath() {
+    func resetPath() async {
         let c = fresh()
         c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        c.start()
+        await c.start()
         c.donateExportOpened()
         #expect(c.completed == true)
 
-        c.reset()
+        await c.reset()
         #expect(c.welcomeSeen == false)
         #expect(c.completed == false)
         #expect(c.skipped == false)
@@ -81,7 +81,7 @@ struct OnboardingCoordinatorTests {
     }
 
     @Test("donations only count during an active tour")
-    func donationsGatedByStart() {
+    func donationsGatedByStart() async {
         let c = fresh()
         let memoryA = Memory(
             id: UUID(), userId: UUID(),
@@ -92,7 +92,7 @@ struct OnboardingCoordinatorTests {
         #expect(c.pendingMemoryToOpen == nil)
 
         c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        c.start()
+        await c.start()
         let memoryB = Memory(
             id: UUID(), userId: UUID(),
             name: "m2", colorFamily: "sky", emoji: nil,

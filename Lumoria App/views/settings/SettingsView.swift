@@ -55,9 +55,6 @@ struct SettingsView: View {
                         settingsRow(icon: "paintbrush",     title: "Appearance",       right: .chevron) {
                             path.append(.appearance)
                         }
-                        settingsRow(icon: "gift",           title: "Referral / Invite", right: .chevron) {
-                            path.append(.referral)
-                        }
                     }
 
                     sectionCard {
@@ -65,7 +62,7 @@ struct SettingsView: View {
                             path.append(.helpCenter)
                         }
                         settingsRow(icon: "arrow.counterclockwise", title: "Replay onboarding", right: .chevron) {
-                            onboardingCoordinator.reset()
+                            Task { await onboardingCoordinator.reset() }
                         }
                     }
 
@@ -77,10 +74,6 @@ struct SettingsView: View {
                         settingsRow(icon: "lock.shield",    title: "Privacy Policy",   right: .external) {
                             Analytics.track(.legalLinkOpened(linkType: .privacy))
                             openURL("https://lumoria.app/privacy")
-                        }
-                        settingsRow(icon: "lifepreserver",  title: "Contact support",  right: .external) {
-                            Analytics.track(.legalLinkOpened(linkType: .support))
-                            openURL("mailto:support@lumoria.app")
                         }
                     }
 
