@@ -54,5 +54,8 @@ fastlane/test_output
 # Claude Code agent state + worktrees
 .claude/
 
+# Superpowers brainstorm server state
+.superpowers/
+
 # Secrets
 Amplitude.xcconfig
