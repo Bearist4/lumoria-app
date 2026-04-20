@@ -16,6 +16,10 @@ final class MemoriesStore: ObservableObject {
     @Published private(set) var isLoading: Bool = false
     @Published var errorMessage: String? = nil
 
+    /// Set from `ContentView` after both are in the env. Weak so the
+    /// coordinator's lifetime isn't pinned to the store.
+    weak var onboardingCoordinator: OnboardingCoordinator?
+
     #if DEBUG
     /// Preview-only flag: once `seedForPreview` runs, `load()` becomes a
     /// no-op so the unauthenticated preview path can't blank the seeded
@@ -110,6 +114,8 @@ final class MemoriesStore: ObservableObject {
                 Analytics.track(.firstMemoryCreated(colorFamily: colorProp))
                 Analytics.updateUserProperties(["has_created_first_memory": true])
             }
+
+            onboardingCoordinator?.donateMemoryCreated(inserted)
 
             return inserted
         } catch {
