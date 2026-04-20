@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import TipKit
 
 struct MemoriesView: View {
 
@@ -13,6 +14,7 @@ struct MemoriesView: View {
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var notificationsStore: NotificationsStore
     @EnvironmentObject private var pushService: PushNotificationService
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @State private var showNewMemory = false
     @State private var showNotificationCenter = false
     @State private var pendingNotification: LumoriaNotification? = nil
@@ -86,6 +88,11 @@ struct MemoriesView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Memory.self) { m in
                 MemoryDetailView(memory: m)
+            }
+            .onChange(of: onboardingCoordinator.pendingMemoryToOpen) { _, memory in
+                guard let memory else { return }
+                navigationPath.append(memory)
+                onboardingCoordinator.pendingMemoryToOpen = nil
             }
             .task { await store.load() }
             .sheet(isPresented: $showNewMemory) {
@@ -189,7 +196,8 @@ struct MemoriesView: View {
                 LumoriaIconButton(systemImage: "plus") {
                     showNewMemory = true
                 }
-            }
+                .popoverTip(MemoryTip())
+}
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
