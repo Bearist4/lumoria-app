@@ -64,6 +64,11 @@ struct ContentView: View {
             WelcomeSheetView()
                 .environmentObject(onboardingCoordinator)
         }
+        .onChange(of: onboardingCoordinator.showWelcome) { _, isShowing in
+            // Welcome sheet must present over the Memories tab so the
+            // MemoryTip popover has its anchor after dismissal.
+            if isShowing { selectedTab = 0 }
+        }
         .onChange(of: onboardingCoordinator.pendingMemoryToOpen) { _, memory in
             guard memory != nil else { return }
             selectedTab = 0
