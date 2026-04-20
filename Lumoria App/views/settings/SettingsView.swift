@@ -23,6 +23,7 @@ enum SettingsDestination: Hashable {
 struct SettingsView: View {
 
     @EnvironmentObject private var profileStore: ProfileStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     #if DEBUG
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memoriesStore: MemoriesStore
@@ -62,6 +63,9 @@ struct SettingsView: View {
                     sectionCard {
                         settingsRow(icon: "questionmark.circle", title: "Help center", right: .chevron) {
                             path.append(.helpCenter)
+                        }
+                        settingsRow(icon: "arrow.counterclockwise", title: "Replay onboarding", right: .chevron) {
+                            onboardingCoordinator.reset()
                         }
                     }
 
