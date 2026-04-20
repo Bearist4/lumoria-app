@@ -179,12 +179,17 @@ struct NewTicketFormStep: View {
             }
         }()
 
+        // Always overwrite — picking a new airport should never inherit
+        // the previous airport's code. `location.subtitle` carries the
+        // cascaded IATA resolution (DB match → regex → first-three-letter
+        // fallback), so it is reliably non-nil for anything resolvable;
+        // the `?? ""` only triggers on search failures.
         if toOriginFields {
-            if let iata = location.subtitle { funnel.form.originCode = iata }
+            funnel.form.originCode = location.subtitle ?? ""
             funnel.form.originName = name
             funnel.form.originLocation = cityCountry
         } else {
-            if let iata = location.subtitle { funnel.form.destinationCode = iata }
+            funnel.form.destinationCode = location.subtitle ?? ""
             funnel.form.destinationName = name
             funnel.form.destinationLocation = cityCountry
         }

@@ -24,7 +24,8 @@ struct AnalyticsEventTests {
             fieldFillCount: 8,
             hasOriginLocation: true,
             hasDestinationLocation: true,
-            ticketsLifetime: 5
+            ticketsLifetime: 5,
+            source: .gallery
         )
         #expect(event.name == "Ticket Created")
         let props = event.properties
@@ -35,6 +36,7 @@ struct AnalyticsEventTests {
         #expect(props["field_fill_count"] as? Int == 8)
         #expect(props["has_origin_location"] as? Bool == true)
         #expect(props["tickets_lifetime"] as? Int == 5)
+        #expect(props["source"] as? String == "gallery")
     }
 
     @Test("loginSucceeded carries email domain but never email")

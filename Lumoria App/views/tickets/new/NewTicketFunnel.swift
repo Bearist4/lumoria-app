@@ -7,6 +7,7 @@
 
 import Combine
 import Foundation
+import MapKit
 import SwiftUI
 
 // MARK: - Category
@@ -57,13 +58,23 @@ enum TicketCategory: String, CaseIterable, Identifiable {
 // MARK: - Step
 
 enum NewTicketStep: Int, CaseIterable, Comparable {
-    case category, template, orientation, form, style, success
+    case category    = 0
+    case template    = 1
+    case orientation = 2
+    /// Import slot — only reached when the funnel opens with
+    /// `importSource != nil`. Self-dismisses to `.form` once parsing
+    /// finishes, or when the user taps "Fill manually".
+    case `import`    = 3
+    case form        = 4
+    case style       = 5
+    case success     = 6
 
     var title: String {
         switch self {
         case .category:    return String(localized: "Select a category")
         case .template:    return String(localized: "Pick a template")
         case .orientation: return String(localized: "Choose an orientation")
+        case .import:      return String(localized: "Import your ticket")
         case .form:        return String(localized: "Fill your ticket’s information")
         case .style:       return String(localized: "Choose the style of your ticket")
         case .success:     return ""
@@ -71,9 +82,14 @@ enum NewTicketStep: Int, CaseIterable, Comparable {
     }
 
     var subtitle: String? {
-        self == .category
-            ? String(localized: "Choose the type of ticket you want to create.")
-            : nil
+        switch self {
+        case .category:
+            return String(localized: "Choose the type of ticket you want to create.")
+        case .import:
+            return String(localized: "Pick a file and we’ll prefill what we can.")
+        default:
+            return nil
+        }
     }
 
     /// Whether the step's body should fill the available height instead of
@@ -81,11 +97,22 @@ enum NewTicketStep: Int, CaseIterable, Comparable {
     /// need to share remaining space.
     var prefersFullHeight: Bool {
         self == .orientation
+            || self == .import
+            || self == .style
+            || self == .success
     }
 
     static func < (a: NewTicketStep, b: NewTicketStep) -> Bool {
         a.rawValue < b.rawValue
     }
+}
+
+// MARK: - Import source
+
+/// Origin of a ticket import. Drives which parser the import step runs
+/// and which `TicketSourceProp` fires on save.
+enum ImportSource: String, CaseIterable, Hashable {
+    case wallet
 }
 
 // MARK: - Form input
@@ -268,11 +295,37 @@ final class NewTicketFunnel: ObservableObject {
     /// Resolved against `template.styles`; nil before a template is picked.
     @Published var selectedStyleId: String? = nil
 
+    // MARK: Import
+
+    /// Non-nil when the funnel was launched from an import entry point.
+    /// Inserts the `.import` step after orientation and tags the
+    /// `TicketCreated` analytics event on save.
+    @Published var importSource: ImportSource? = nil
+    /// One-shot flag: set by `applyImportFailure()` so the form step can
+    /// surface a "couldn't detect fields" banner on first appearance.
+    @Published var importFailureBanner: Bool = false
+    /// Pre-delivered `.pkpass` payload when the funnel was launched via
+    /// the share sheet (Wallet / Mail / AirDrop). The import step
+    /// auto-parses this on appear and never shows the file picker.
+    /// Consumed once — cleared once the parser runs.
+    @Published var pendingPassData: Data? = nil
+
     // MARK: Persistence
 
     @Published var isSaving: Bool = false
     @Published var createdTicket: Ticket? = nil
     @Published var errorMessage: String? = nil
+
+    // MARK: Editing
+
+    /// When non-nil, `persist(using:)` updates this ticket in place
+    /// instead of inserting a new one. Set via `prefill(from:)`.
+    @Published private(set) var editingTicketId: UUID? = nil
+    private var editingOriginal: Ticket? = nil
+
+    /// True once the caller has requested an edit flow. The view uses
+    /// this to skip the create-analytics fire on appear.
+    var isEditing: Bool { editingTicketId != nil }
 
     // MARK: - Availability
 
@@ -301,6 +354,10 @@ final class NewTicketFunnel: ObservableObject {
         case .category:    return category?.isAvailable == true
         case .template:    return template != nil
         case .orientation: return true
+        // Import step advances programmatically once parsing finishes —
+        // the bottom "Next" button stays disabled so the user can't skip
+        // ahead without picking a file or tapping "Fill manually".
+        case .import:      return false
         case .form:
             switch template {
             case .express: return trainForm.isExpressValid
@@ -319,7 +376,8 @@ final class NewTicketFunnel: ObservableObject {
         switch step {
         case .category:    step = .template
         case .template:    step = .orientation
-        case .orientation: step = .form
+        case .orientation: step = importSource != nil ? .import : .form
+        case .import:      step = .form
         case .form:        step = hasStylesStep ? .style : .success
         case .style:       step = .success
         case .success:     return
@@ -331,10 +389,98 @@ final class NewTicketFunnel: ObservableObject {
         case .category:    return
         case .template:    step = .category
         case .orientation: step = .template
-        case .form:        step = .orientation
+        case .import:      step = .orientation
+        case .form:        step = importSource != nil ? .import : .orientation
         case .style:       step = .form
         case .success:     step = hasStylesStep ? .style : .form
         }
+    }
+
+    // MARK: - Import apply
+
+    /// Writes a parsed importer result onto the appropriate form input
+    /// and advances to `.form`. Silently ignores kind mismatches — the
+    /// import UI layer already guards transit-type vs. template before
+    /// calling in, so this is a defensive fallthrough.
+    func applyImported(_ result: ImportResult) {
+        switch result {
+        case .flight(let f):
+            form = f
+        case .train(let t):
+            trainForm = t
+            // Train station fields bind to a full `TicketLocation`
+            // with lat/lng, but pkpass files only carry station names.
+            // Resolve them via MapKit so the picker shows the station
+            // and the ticket lands on the memory map.
+            Task { await resolveTrainStations() }
+        }
+        importFailureBanner = false
+        step = .form
+    }
+
+    private func resolveTrainStations() async {
+        if trainForm.originStationLocation == nil {
+            let query = trainForm.originStation.isEmpty
+                ? trainForm.originCity
+                : trainForm.originStation
+            if let loc = await Self.lookupStation(named: query) {
+                trainForm.originStationLocation = loc
+                trainForm.originStation = loc.name
+                if let city = loc.city, !city.isEmpty {
+                    trainForm.originCity = city
+                }
+            }
+        }
+        if trainForm.destinationStationLocation == nil {
+            let query = trainForm.destinationStation.isEmpty
+                ? trainForm.destinationCity
+                : trainForm.destinationStation
+            if let loc = await Self.lookupStation(named: query) {
+                trainForm.destinationStationLocation = loc
+                trainForm.destinationStation = loc.name
+                if let city = loc.city, !city.isEmpty {
+                    trainForm.destinationCity = city
+                }
+            }
+        }
+    }
+
+    private static func lookupStation(named name: String) async -> TicketLocation? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = trimmed
+        request.resultTypes = [.pointOfInterest]
+        request.pointOfInterestFilter =
+            MKPointOfInterestFilter(including: [.publicTransport])
+        do {
+            let response = try await MKLocalSearch(request: request).start()
+            guard let item = response.mapItems.first else { return nil }
+            let coord = item.placemark.coordinate
+            let clean = StationSearchModel.cleanName(item.name ?? trimmed)
+            return TicketLocation(
+                name: clean,
+                subtitle: nil,
+                city: item.placemark.locality,
+                country: item.placemark.country,
+                countryCode: item.placemark.isoCountryCode,
+                lat: coord.latitude,
+                lng: coord.longitude,
+                kind: .station
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    /// Called when the user bails on the import (parser returned nil, or
+    /// they tapped "Fill manually"). Drops `importSource` so the form
+    /// step's Back button returns to orientation rather than re-entering
+    /// the import picker, and raises the one-shot banner.
+    func applyImportFailure() {
+        importFailureBanner = true
+        importSource = nil
+        step = .form
     }
 
     // MARK: - Payload build
@@ -347,6 +493,10 @@ final class NewTicketFunnel: ObservableObject {
         let dateLong  = Self.longDate(f.departureDate)
         let dateShort = Self.shortDate(f.departureDate)
         let depTime   = Self.time(f.departureTime)
+        // Plane templates render a "Boards" field that is always departureTime − 30min.
+        // Not user-entered, not read from PKPass — derived here so the form stays
+        // simple and the rendered ticket is always internally consistent.
+        let boardTime = Self.time(f.departureTime.addingTimeInterval(-30 * 60))
         let flightNumber = f.composedFlightNumber
         let ticketNumber = f.aircraft.isEmpty
             ? flightNumber
@@ -364,7 +514,7 @@ final class NewTicketFunnel: ObservableObject {
                 date: dateLong,
                 gate: f.gate,
                 seat: f.seat,
-                boardingTime: depTime
+                boardingTime: boardTime
             ))
         case .studio:
             return .studio(StudioTicket(
@@ -397,7 +547,7 @@ final class NewTicketFunnel: ObservableObject {
                 flightDuration: f.flightDuration,
                 gate: f.gate,
                 seat: f.seat,
-                boardingTime: depTime,
+                boardingTime: boardTime,
                 departureTime: depTime,
                 date: dateShort,
                 fullDate: dateLong
@@ -415,7 +565,7 @@ final class NewTicketFunnel: ObservableObject {
                 destinationLocation: f.destinationLocation,
                 gate: f.gate,
                 seat: f.seat,
-                boardingTime: depTime,
+                boardingTime: boardTime,
                 departureTime: depTime,
                 date: dateShort,
                 fullDate: dateLong
@@ -431,7 +581,7 @@ final class NewTicketFunnel: ObservableObject {
                 destinationName: f.destinationName,
                 gate: f.gate,
                 seat: f.seat,
-                boardingTime: depTime,
+                boardingTime: boardTime,
                 departureTime: depTime,
                 terminal: f.terminal
             ))
@@ -493,9 +643,19 @@ final class NewTicketFunnel: ObservableObject {
 
     // MARK: - Persistence
 
-    /// Persists the current selections as a ticket in the store. Sets
-    /// `createdTicket` on success; `errorMessage` on failure.
+    /// Persists the current selections. Creates a new ticket when the
+    /// funnel was started fresh, updates in place when started via
+    /// `prefill(from:)`. Sets `createdTicket` on success so the
+    /// success step's reveal animation runs either way.
     func persist(using store: TicketsStore) async {
+        if editingTicketId != nil {
+            await updateExisting(using: store)
+        } else {
+            await createNew(using: store)
+        }
+    }
+
+    private func createNew(using store: TicketsStore) async {
         guard createdTicket == nil else { return }
         guard let payload = buildPayload() else {
             errorMessage = String(localized: "Missing ticket data.")
@@ -521,6 +681,226 @@ final class NewTicketFunnel: ObservableObject {
             errorMessage = nil
         } else {
             errorMessage = store.errorMessage ?? "Couldn’t save ticket."
+        }
+    }
+
+    private func updateExisting(using store: TicketsStore) async {
+        guard createdTicket == nil else { return }
+        guard let updated = buildUpdatedTicket() else {
+            errorMessage = String(localized: "Missing ticket data.")
+            return
+        }
+        isSaving = true
+        defer { isSaving = false }
+
+        let ok = await store.update(updated)
+        if ok {
+            createdTicket = updated
+            errorMessage = nil
+        } else {
+            errorMessage = store.errorMessage ?? "Couldn’t save changes."
+        }
+    }
+
+    /// Builds the edited ticket struct without touching the store. Used
+    /// by the edit flow to hand a prepared ticket back to the presenter
+    /// so the save + loader + refresh can run on the host view, not
+    /// inside the (possibly already-dismissed) funnel.
+    func buildUpdatedTicket() -> Ticket? {
+        guard let payload = buildPayload(),
+              let original = editingOriginal else { return nil }
+        let isTrainTemplate = template == .express || template == .orient
+        return Ticket(
+            id: original.id,
+            createdAt: original.createdAt,
+            updatedAt: Date(),
+            orientation: orientation,
+            payload: payload,
+            memoryIds: original.memoryIds,
+            originLocation: isTrainTemplate
+                ? trainForm.originStationLocation
+                : form.originAirport,
+            destinationLocation: isTrainTemplate
+                ? trainForm.destinationStationLocation
+                : form.destinationAirport,
+            styleId: selectedStyleId ?? template?.defaultStyle.id
+        )
+    }
+
+    // MARK: - Prefill (edit flow)
+
+    /// Populates the funnel with an existing ticket's values and lands
+    /// the user on the form step. Subsequent `persist` calls update
+    /// the ticket in place rather than creating a new one.
+    func prefill(from ticket: Ticket) {
+        editingTicketId = ticket.id
+        editingOriginal = ticket
+
+        template = ticket.kind
+        category = TicketCategory.allCases.first { $0.templates.contains(ticket.kind) }
+        orientation = ticket.orientation
+        selectedStyleId = ticket.styleId
+
+        form = FlightFormInput()
+        trainForm = TrainFormInput()
+
+        switch ticket.payload {
+        case .afterglow(let t):
+            form.airline = t.airline
+            form.flightNumber = t.flightNumber
+            form.originCode = t.origin
+            form.originName = t.originCity
+            form.destinationCode = t.destination
+            form.destinationName = t.destinationCity
+            form.departureDate = Self.longDateFormatter.date(from: t.date) ?? Date()
+            // Afterglow only persists boardingTime (= departure − 30min); add it back
+            // so the form's departureTime matches what the user originally entered.
+            let afterglowBoard = Self.timeFormatter.date(from: t.boardingTime) ?? Date()
+            form.departureTime = afterglowBoard.addingTimeInterval(30 * 60)
+            form.gate = t.gate
+            form.seat = t.seat
+            form.originAirport = ticket.originLocation
+            form.destinationAirport = ticket.destinationLocation
+
+        case .studio(let t):
+            form.airline = t.airline
+            form.flightNumber = t.flightNumber
+            form.cabinClass = t.cabinClass
+            form.originCode = t.origin
+            form.originName = t.originName
+            form.originLocation = t.originLocation
+            form.destinationCode = t.destination
+            form.destinationName = t.destinationName
+            form.destinationLocation = t.destinationLocation
+            form.departureDate = Self.longDateFormatter.date(from: t.date) ?? Date()
+            form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            form.gate = t.gate
+            form.seat = t.seat
+            form.originAirport = ticket.originLocation
+            form.destinationAirport = ticket.destinationLocation
+
+        case .heritage(let t):
+            form.airline = t.airline
+            form.cabinClass = t.cabinClass
+            form.cabinDetail = t.cabinDetail
+            form.originCode = t.origin
+            form.originName = t.originName
+            form.originLocation = t.originLocation
+            form.destinationCode = t.destination
+            form.destinationName = t.destinationName
+            form.destinationLocation = t.destinationLocation
+            form.flightDuration = t.flightDuration
+            form.gate = t.gate
+            form.seat = t.seat
+            form.departureDate = Self.longDateFormatter.date(from: t.fullDate) ?? Date()
+            form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            Self.unpackTicketNumber(t.ticketNumber, into: &form)
+            form.originAirport = ticket.originLocation
+            form.destinationAirport = ticket.destinationLocation
+
+        case .terminal(let t):
+            form.airline = t.airline
+            form.cabinClass = t.cabinClass
+            form.originCode = t.origin
+            form.originName = t.originName
+            form.originLocation = t.originLocation
+            form.destinationCode = t.destination
+            form.destinationName = t.destinationName
+            form.destinationLocation = t.destinationLocation
+            form.gate = t.gate
+            form.seat = t.seat
+            form.departureDate = Self.longDateFormatter.date(from: t.fullDate) ?? Date()
+            form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            Self.unpackTicketNumber(t.ticketNumber, into: &form)
+            form.originAirport = ticket.originLocation
+            form.destinationAirport = ticket.destinationLocation
+
+        case .prism(let t):
+            form.airline = t.airline
+            form.originCode = t.origin
+            form.originName = t.originName
+            form.destinationCode = t.destination
+            form.destinationName = t.destinationName
+            form.gate = t.gate
+            form.seat = t.seat
+            form.terminal = t.terminal
+            form.departureDate = Self.longDateFormatter.date(from: t.date) ?? Date()
+            form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            Self.unpackTicketNumber(t.ticketNumber, into: &form)
+            form.originAirport = ticket.originLocation
+            form.destinationAirport = ticket.destinationLocation
+
+        case .express(let t):
+            trainForm.trainType = t.trainType
+            trainForm.trainNumber = t.trainNumber
+            trainForm.cabinClass = t.cabinClass
+            trainForm.originCity = t.originCity
+            trainForm.originCityKanji = t.originCityKanji
+            trainForm.destinationCity = t.destinationCity
+            trainForm.destinationCityKanji = t.destinationCityKanji
+            trainForm.date = Self.trainDateFormatter.date(from: t.date) ?? Date()
+            trainForm.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            trainForm.arrivalTime = Self.timeFormatter.date(from: t.arrivalTime) ?? Date()
+            trainForm.car = t.car
+            trainForm.seat = t.seat
+            trainForm.ticketNumber = t.ticketNumber
+            trainForm.originStationLocation = ticket.originLocation
+            trainForm.destinationStationLocation = ticket.destinationLocation
+
+        case .orient(let t):
+            trainForm.company = t.company
+            trainForm.cabinClass = t.cabinClass
+            trainForm.originCity = t.originCity
+            trainForm.originStation = t.originStation
+            trainForm.destinationCity = t.destinationCity
+            trainForm.destinationStation = t.destinationStation
+            trainForm.passenger = t.passenger
+            trainForm.ticketNumber = t.ticketNumber
+            trainForm.date = Self.longDateFormatter.date(from: t.date) ?? Date()
+            trainForm.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            trainForm.car = t.carriage
+            trainForm.seat = t.seat
+            trainForm.originStationLocation = ticket.originLocation
+            trainForm.destinationStationLocation = ticket.destinationLocation
+
+        case .night(let t):
+            trainForm.company = t.company
+            trainForm.trainType = t.trainType
+            trainForm.trainNumber = t.trainCode
+            trainForm.originCity = t.originCity
+            trainForm.originStation = t.originStation
+            trainForm.destinationCity = t.destinationCity
+            trainForm.destinationStation = t.destinationStation
+            trainForm.passenger = t.passenger
+            trainForm.ticketNumber = t.ticketNumber
+            trainForm.car = t.car
+            trainForm.berth = t.berth
+            // Night combines "dd MMM · HH:mm" into the payload's `date`.
+            let parts = t.date.components(separatedBy: " · ")
+            if let d = parts.first, let parsed = Self.shortDateFormatter.date(from: d) {
+                trainForm.date = parsed
+            }
+            if parts.count >= 2, let parsed = Self.timeFormatter.date(from: parts[1]) {
+                trainForm.departureTime = parsed
+            }
+            trainForm.originStationLocation = ticket.originLocation
+            trainForm.destinationStationLocation = ticket.destinationLocation
+        }
+
+        step = .form
+    }
+
+    /// Splits "ABC 1234 · A321" back into `flightNumber` + `aircraft`.
+    /// Mirrors `buildPayload`'s composition for the plane templates that
+    /// concatenate the two with " · ".
+    private static func unpackTicketNumber(
+        _ raw: String,
+        into form: inout FlightFormInput
+    ) {
+        let parts = raw.components(separatedBy: " · ")
+        form.flightNumber = parts.first ?? raw
+        if parts.count > 1 {
+            form.aircraft = parts[1]
         }
     }
 

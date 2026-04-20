@@ -100,6 +100,10 @@ struct LumoriaLocationField: View {
             }
             MapPreview(location: selected)
         }
+        .onChange(of: selected, initial: true) { _, sel in
+            guard let sel, model.query.isEmpty else { return }
+            model.query = sel.title
+        }
     }
 
     // MARK: Label

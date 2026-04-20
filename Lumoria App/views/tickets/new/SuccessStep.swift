@@ -11,6 +11,9 @@ import SwiftUI
 struct NewTicketSuccessStep: View {
 
     @ObservedObject var funnel: NewTicketFunnel
+    /// Edit flow only — the Done button writes the edited ticket here
+    /// before dismissing so the presenter runs the save + loader.
+    var pendingEdit: Binding<Ticket?>? = nil
     /// Dismisses the whole funnel. Supplied by the container.
     var onBackHome: () -> Void
 
@@ -24,6 +27,7 @@ struct NewTicketSuccessStep: View {
             heroText
 
             previewCard
+                .frame(maxHeight: .infinity)
 
             if let error = funnel.errorMessage {
                 errorBanner(error)
@@ -62,6 +66,13 @@ struct NewTicketSuccessStep: View {
                 }
             }()
 
+            let source: TicketSourceProp = {
+                switch funnel.importSource {
+                case .wallet: return .wallet
+                case .none:   return .gallery
+                }
+            }()
+
             Analytics.track(.ticketCreated(
                 category: category,
                 template: templateProp,
@@ -70,7 +81,8 @@ struct NewTicketSuccessStep: View {
                 fieldFillCount: fieldCount,
                 hasOriginLocation: hasOrigin,
                 hasDestinationLocation: hasDest,
-                ticketsLifetime: lifetime
+                ticketsLifetime: lifetime,
+                source: source
             ))
 
             Analytics.updateUserProperties([
@@ -112,13 +124,9 @@ struct NewTicketSuccessStep: View {
 
     private var heroText: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Your ticket is ready.")
+            Text("All done!")
                 .font(.largeTitle.bold())
                 .foregroundStyle(heroGradient)
-
-            Text("Give it a home.")
-                .font(.largeTitle.bold())
-                .foregroundStyle(Color.Text.primary)
         }
     }
 
@@ -127,22 +135,48 @@ struct NewTicketSuccessStep: View {
     @ViewBuilder
     private var previewCard: some View {
         Group {
-            if let saved = funnel.createdTicket {
-                TicketSaveRevealView(orientation: saved.orientation) {
-                    TicketPreview(ticket: saved, isCentered: true)
-                }
-                .id(saved.id)
-                .padding(saved.orientation == .horizontal ? 16 : 64)
+            if funnel.isEditing {
+                editPreviewCard
             } else {
-                TicketSaveSlotPlaceholder()
-                    .padding(16)
+                createPreviewCard
             }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.Background.elevated)
         )
+    }
+
+    @ViewBuilder
+    private var createPreviewCard: some View {
+        if let saved = funnel.createdTicket {
+            TicketSaveRevealView(orientation: saved.orientation) {
+                TicketPreview(ticket: saved, isCentered: true)
+            }
+            .id(saved.id)
+            .padding(saved.orientation == .horizontal ? 16 : 64)
+        } else {
+            TicketSaveSlotPlaceholder()
+                .padding(16)
+        }
+    }
+
+    /// Edit flow — no printer animation, just the current (in-progress)
+    /// ticket rendered at hero size. Tapping Done hands the prepared
+    /// ticket back to the presenter; the loader appears on the detail
+    /// view, not here.
+    @ViewBuilder
+    private var editPreviewCard: some View {
+        if let payload = funnel.buildPayload() {
+            let preview = Ticket(
+                orientation: funnel.orientation,
+                payload: payload,
+                styleId: funnel.selectedStyleId
+            )
+            TicketPreview(ticket: preview, isCentered: true)
+                .padding(preview.orientation == .horizontal ? 16 : 64)
+        }
     }
 
     /// Fallback preview while the Supabase insert is in-flight. Must
@@ -159,62 +193,35 @@ struct NewTicketSuccessStep: View {
         )
     }
 
-    // MARK: - Actions grid
+    // MARK: - Actions
 
+    @ViewBuilder
     private var actionsGrid: some View {
-        VStack(spacing: 16) {
-            HStack(spacing: 16) {
-                actionTile(
-                    title: "Add to memory",
-                    systemImage: "folder.fill.badge.plus",
-                    background: Color(hex: "EBF7FF"),
-                    height: 167,
-                    action: { showAddToMemory = true }
-                )
-                actionTile(
-                    title: "Export",
-                    systemImage: "square.and.arrow.up",
-                    background: Color(hex: "FFEEE4"),
-                    height: 167,
-                    action: { showExport = true }
-                )
+        if funnel.isEditing {
+            // Edit flow — Done hands the prepared ticket to the
+            // presenter (via `pendingEdit`) and dismisses immediately.
+            // The presenter runs the save + loader so the user only
+            // sees one loading state, outside the funnel.
+            Button("Done") {
+                pendingEdit?.wrappedValue = funnel.buildUpdatedTicket()
+                onBackHome()
             }
-            actionTile(
-                title: "Invite a friend",
-                systemImage: "person.fill.badge.plus",
-                background: Color(hex: "E3F6DE"),
-                height: 120,
-                action: { /* TODO: invite flow */ }
-            )
-        }
-    }
+            .lumoriaButtonStyle(.primary, size: .large)
+        } else {
+            VStack(spacing: 12) {
+                Button("Export Ticket") {
+                    showExport = true
+                }
+                .lumoriaButtonStyle(.secondary, size: .large)
+                .disabled(funnel.createdTicket == nil)
 
-    private func actionTile(
-        title: String,
-        systemImage: String,
-        background: Color,
-        height: CGFloat,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            VStack(spacing: 16) {
-                Image(systemName: systemImage)
-                    .font(.title)
-                    .foregroundStyle(Color.Text.primary)
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(Color.Text.primary)
+                Button("Add to Memory") {
+                    showAddToMemory = true
+                }
+                .lumoriaButtonStyle(.primary, size: .large)
+                .disabled(funnel.createdTicket == nil)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: height)
-            .background(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(background)
-            )
         }
-        .buttonStyle(.plain)
-        .disabled(funnel.createdTicket == nil)
-        .opacity(funnel.createdTicket == nil ? 0.5 : 1)
     }
 
     // MARK: - Banners

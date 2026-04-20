@@ -15,8 +15,13 @@ struct ContentView: View {
     @StateObject private var memoriesStore = MemoriesStore()
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var notificationsStore = NotificationsStore()
+    @EnvironmentObject private var walletImport: WalletImportCoordinator
 
     @State private var selectedTab: Int = 0
+    /// `.pkpass` bytes delivered via the share extension. When non-nil
+    /// the funnel is presented over whatever tab the user is on, so the
+    /// import flow doesn't depend on `AllTicketsView` being visible.
+    @State private var pendingImportPassData: Data? = nil
 
     var body: some View {
         // iOS 18+ `Tab` API — renders the new liquid-glass floating
@@ -49,9 +54,33 @@ struct ContentView: View {
             await profileStore.load()
             await notificationsStore.load()
         }
+        .onChange(of: walletImport.pending) { _, data in
+            guard let data else { return }
+            pendingImportPassData = data
+            walletImport.pending = nil
+        }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { pendingImportPassData != nil },
+                set: { if !$0 { pendingImportPassData = nil } }
+            )
+        ) {
+            // `.fullScreenCover` builds an isolated hierarchy — store
+            // environment objects must be re-injected or the success
+            // step's "Add to Memory" sheet and others crash on read.
+            NewTicketFunnelView(
+                initialImportSource: .wallet,
+                initialPassData: pendingImportPassData
+            )
+            .environmentObject(ticketsStore)
+            .environmentObject(memoriesStore)
+            .environmentObject(profileStore)
+            .environmentObject(notificationsStore)
+        }
     }
 }
 
 #Preview {
     ContentView()
+        .environmentObject(WalletImportCoordinator())
 }

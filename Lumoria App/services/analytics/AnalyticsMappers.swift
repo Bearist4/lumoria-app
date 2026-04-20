@@ -57,11 +57,15 @@ extension TicketOrientation {
 
 extension NewTicketStep {
     /// Wire format string for the `funnel_step_reached` property.
+    /// `.import` folds into `.form` so the Amplitude tracking plan keeps
+    /// its existing shape; the source distinction lives on the separate
+    /// `source` property via `TicketSourceProp`.
     var analyticsProp: FunnelStepProp {
         switch self {
         case .category:    return .category
         case .template:    return .template
         case .orientation: return .orientation
+        case .import:      return .form
         case .form:        return .form
         case .style:       return .style
         case .success:     return .success

@@ -15,21 +15,24 @@ struct NewTicketStyleStep: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             previewCard
+                .frame(maxHeight: .infinity)
 
-            Text("Available styles")
-                .font(.title2.bold())
-                .foregroundStyle(Color.Text.primary)
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Available styles")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.Text.primary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    ForEach(funnel.availableStyles) { variant in
-                        StyleTile(
-                            title: variant.label,
-                            palette: variant.swatch,
-                            isSelected: isSelected(variant),
-                            onTap: { funnel.selectedStyleId = variant.id }
-                        )
-                        .frame(width: 189)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(funnel.availableStyles) { variant in
+                            StyleTile(
+                                title: variant.label,
+                                palette: variant.swatch,
+                                isSelected: isSelected(variant),
+                                onTap: { funnel.selectedStyleId = variant.id }
+                            )
+                            .frame(width: 189)
+                        }
                     }
                 }
             }
@@ -61,13 +64,15 @@ struct NewTicketStyleStep: View {
                 payload: payload,
                 styleId: funnel.selectedStyleId
             )
-            TicketPreview(ticket: ticket, isCentered: true)
-                .padding(funnel.orientation == .horizontal ? 16 : 64)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .fill(Color.Background.elevated)
-                )
+            ZStack {
+                TicketPreview(ticket: ticket, isCentered: true)
+                    .padding(funnel.orientation == .horizontal ? 16 : 64)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.Background.elevated)
+            )
         }
     }
 }

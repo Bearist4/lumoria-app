@@ -27,6 +27,10 @@ struct AllTicketsView: View {
 
     @EnvironmentObject private var store: TicketsStore
     @State private var showFunnel = false
+    /// Primes `NewTicketFunnelView.initialImportSource` before presenting
+    /// the fullScreenCover. Reset to `nil` inside the cover's onDismiss
+    /// so a subsequent "Create from scratch" tap opens the manual flow.
+    @State private var pendingImportSource: ImportSource? = nil
     @State private var sort: TicketSortOption? = nil
     /// ID of the ticket closest to vertical centre of the screen. Drives
     /// the shimmer's `isActive` so only the focused card consumes motion.
@@ -71,8 +75,11 @@ struct AllTicketsView: View {
             .navigationDestination(for: Ticket.self) { ticket in
                 TicketDetailView(ticket: ticket)
             }
-            .fullScreenCover(isPresented: $showFunnel) {
-                NewTicketFunnelView()
+            .fullScreenCover(
+                isPresented: $showFunnel,
+                onDismiss: { pendingImportSource = nil }
+            ) {
+                NewTicketFunnelView(initialImportSource: pendingImportSource)
                     .environmentObject(store)
             }
         }
@@ -96,7 +103,13 @@ struct AllTicketsView: View {
                         menuItems: sortMenuItems
                     )
                 }
-                LumoriaIconButton(systemImage: "plus") { showFunnel = true }
+                LumoriaIconButton(
+                    systemImage: "plus",
+                    action: {
+                        pendingImportSource = nil
+                        showFunnel = true
+                    }
+                )
             }
         }
         .padding(.horizontal, 16)

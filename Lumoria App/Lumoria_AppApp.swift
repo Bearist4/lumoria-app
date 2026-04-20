@@ -24,6 +24,7 @@ struct Lumoria_AppApp: App {
     @StateObject private var authManager = AuthManager()
     @StateObject private var pushService = PushNotificationService.shared
     @StateObject private var notificationPrefs = NotificationPrefsStore()
+    @StateObject private var walletImport = WalletImportCoordinator()
     @AppStorage("appearance.mode") private var storedMode: String = AppearanceMode.system.rawValue
     @AppStorage("appearance.highContrast") private var highContrast: Bool = false
     @AppStorage("appearance.iconName") private var storedIconName: String = ""
@@ -75,6 +76,7 @@ struct Lumoria_AppApp: App {
                         .environmentObject(authManager)
                         .environmentObject(pushService)
                         .environmentObject(notificationPrefs)
+                        .environmentObject(walletImport)
                 } else if shouldShowLanding {
                     AuthNavigationView()
                         .environmentObject(authManager)
@@ -104,13 +106,43 @@ struct Lumoria_AppApp: App {
             }
             .onChange(of: scenePhase, initial: true) { _, newPhase in
                 switch newPhase {
-                case .active:     TiltMotionManager.shared.start()
+                case .active:
+                    TiltMotionManager.shared.start()
+                    drainPendingWalletImport()
                 case .background: TiltMotionManager.shared.stop()
                 default:          break
                 }
             }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Safety net for the Share Extension → main app hand-off. If the
+    /// extension's `openURL:` call didn't round-trip for any reason
+    /// (scene was already foregrounded, KVC dispatch no-op'd, etc.),
+    /// the pkpass bytes are still sitting in the App Group container.
+    /// Pick them up whenever the main app becomes active.
+    private func drainPendingWalletImport() {
+        let groupId = "group.bearista.Lumoria-App"
+        guard let container = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: groupId) else {
+            NSLog("[Lumoria] drain: containerURL nil (App Group missing on main app)")
+            return
+        }
+        let file = container.appendingPathComponent("pending-pass.pkpass")
+        guard FileManager.default.fileExists(atPath: file.path) else {
+            NSLog("[Lumoria] drain: no pending pass at %@", file.path)
+            return
+        }
+        guard let data = try? Data(contentsOf: file) else {
+            NSLog("[Lumoria] drain: failed to read %@", file.path)
+            return
+        }
+        // Remove before enqueue so a re-entrant .active (common during
+        // launch → settle) doesn't enqueue the same bytes twice.
+        try? FileManager.default.removeItem(at: file)
+        NSLog("[Lumoria] drain: enqueued %ld bytes", data.count)
+        walletImport.enqueue(data)
     }
 
     /// Forces the asset-catalog "contrast=high" variant on every active
@@ -131,6 +163,48 @@ struct Lumoria_AppApp: App {
     /// Auth callbacks complete the PKCE exchange; invite links stash the token
     /// so the auth flow can claim it once the invitee has a session.
     private func handleIncomingURL(_ url: URL) {
+        // .pkpass hand-offs from Wallet's share sheet (or Mail / AirDrop)
+        // arrive here as a file URL pointing into our Inbox. Read the
+        // bytes synchronously before the scope closes, then route to
+        // the wallet-import coordinator — AllTicketsView presents the
+        // funnel with the pass pre-loaded.
+        if url.isFileURL, url.pathExtension.lowercased() == "pkpass" {
+            let didStart = url.startAccessingSecurityScopedResource()
+            defer {
+                if didStart { url.stopAccessingSecurityScopedResource() }
+            }
+            if let data = try? Data(contentsOf: url) {
+                walletImport.enqueue(data)
+            }
+            return
+        }
+
+        // Share extension handoff — the extension wrote the pass into
+        // the shared App Group container and opened a URL to wake the
+        // main app. Accept either the universal link (iOS 26 routes
+        // this reliably from share extensions) or the custom scheme.
+        let normalizedHost = url.host?
+            .lowercased()
+            .replacingOccurrences(of: "www.", with: "", options: .anchored)
+        let isImportUniversal = url.scheme?.lowercased() == "https"
+            && normalizedHost == "getlumoria.app"
+            && url.path.lowercased() == "/import/pkpass"
+        let isImportCustom = url.scheme == "lumoria"
+            && url.host == "import"
+            && url.path == "/pkpass"
+        if isImportUniversal || isImportCustom {
+            let groupId = "group.bearista.Lumoria-App"
+            if let container = FileManager.default
+                .containerURL(forSecurityApplicationGroupIdentifier: groupId) {
+                let file = container.appendingPathComponent("pending-pass.pkpass")
+                if let data = try? Data(contentsOf: file) {
+                    walletImport.enqueue(data)
+                }
+                try? FileManager.default.removeItem(at: file)
+            }
+            return
+        }
+
         let scheme = url.scheme ?? "unknown"
         let host = url.host
         let isAuthCallback = host?.lowercased() == "getlumoria.app"

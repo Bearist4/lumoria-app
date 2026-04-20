@@ -41,7 +41,8 @@ enum AnalyticsEvent {
     case ticketCreated(category: TicketCategoryProp, template: TicketTemplateProp,
                        orientation: OrientationProp, styleId: String?,
                        fieldFillCount: Int, hasOriginLocation: Bool,
-                       hasDestinationLocation: Bool, ticketsLifetime: Int)
+                       hasDestinationLocation: Bool, ticketsLifetime: Int,
+                       source: TicketSourceProp)
     case firstTicketCreated(category: TicketCategoryProp, template: TicketTemplateProp)
     case ticketCreationFailed(stepReached: FunnelStepProp, errorType: String)
     case ticketFunnelAbandoned(stepReached: FunnelStepProp, timeInFunnelMs: Int)
@@ -291,7 +292,7 @@ extension AnalyticsEvent {
         case .ticketStyleSelected(let tmpl, let styleId):
             return ["ticket_template": tmpl.rawValue, "style_id": styleId]
         case .ticketCreated(let cat, let tmpl, let orient, let styleId, let count,
-                            let hasOrigin, let hasDest, let lifetime):
+                            let hasOrigin, let hasDest, let lifetime, let source):
             var p: [String: Any] = [
                 "ticket_category": cat.rawValue,
                 "ticket_template": tmpl.rawValue,
@@ -300,6 +301,7 @@ extension AnalyticsEvent {
                 "has_origin_location": hasOrigin,
                 "has_destination_location": hasDest,
                 "tickets_lifetime": lifetime,
+                "source": source.rawValue,
             ]
             if let styleId { p["style_id"] = styleId }
             return p

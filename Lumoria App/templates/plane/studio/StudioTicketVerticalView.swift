@@ -186,18 +186,14 @@ struct StudioTicketVerticalView: View {
     // MARK: - Footer details (Date / Gate / Seat / Departs)
 
     private func detailsSection(scale s: CGFloat) -> some View {
-        HStack(alignment: .bottom) {
-            HStack(spacing: 16 * s) {
-                detailCell(label: "Date",    value: ticket.date,          scale: s)
-                pillDivider(scale: s)
-                detailCell(label: "Gate",    value: ticket.gate,          scale: s)
-                pillDivider(scale: s)
-                detailCell(label: "Seat",    value: ticket.seat,          scale: s)
-                pillDivider(scale: s)
-                detailCell(label: "Departs", value: ticket.departureTime, scale: s)
-            }
-
-            Spacer()
+        // Four cells distributed evenly across the footer row. Matches
+        // the Figma (node-id 1:1557) — no pill dividers, equal columns,
+        // each cell left-aligned within its share of the row.
+        HStack(spacing: 0) {
+            detailCell(label: "Date",    value: ticket.date,          scale: s)
+            detailCell(label: "Gate",    value: ticket.gate,          scale: s)
+            detailCell(label: "Seat",    value: ticket.seat,          scale: s)
+            detailCell(label: "Departs", value: ticket.departureTime, scale: s)
         }
     }
 
@@ -212,13 +208,9 @@ struct StudioTicketVerticalView: View {
                 .font(.system(size: 10.98 * s, weight: .bold))
                 .foregroundStyle(style.textPrimary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.6)
         }
-    }
-
-    private func pillDivider(scale s: CGFloat) -> some View {
-        Capsule()
-            .fill(style.textPrimary.opacity(0.1))
-            .frame(width: 0.78 * s, height: 21.18 * s)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Bottom "Made with Lumoria" strip

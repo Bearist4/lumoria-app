@@ -34,6 +34,18 @@ struct TicketDetailView: View {
 
     @State private var showExport = false
     @State private var showDeleteConfirm = false
+    @State private var showEdit = false
+    /// Bumped after the edit flow dismisses so the scroll container
+    /// rebuilds with the refreshed store data. SwiftUI's `.id` change
+    /// is the most reliable way to drop cached sub-view state.
+    @State private var refreshToken: UUID = UUID()
+    /// Gates the post-edit loader overlay.
+    @State private var isReloading: Bool = false
+    /// Populated by the edit funnel just before it dismisses. The
+    /// presenter (this view) is responsible for running `store.update`
+    /// + `store.load` so the loader is only shown once, outside the
+    /// funnel.
+    @State private var pendingEdit: Ticket? = nil
 
     var body: some View {
         // Scroll-fading blur so the header dim is invisible until the
@@ -55,7 +67,17 @@ struct TicketDetailView: View {
                     .padding(.horizontal, 16)
             }
             .padding(.vertical, 16)
+            .id(refreshToken)
         }
+        .blur(radius: isReloading ? 8 : 0)
+        .allowsHitTesting(!isReloading)
+        .overlay {
+            if isReloading {
+                LumoriaLoader()
+                    .transition(.opacity)
+            }
+        }
+        .animation(MotionTokens.editorial, value: isReloading)
         .background(Color.Background.default.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
@@ -82,6 +104,30 @@ struct TicketDetailView: View {
         }
         .sheet(isPresented: $showExport) {
             ExportSheet(ticket: currentTicket)
+        }
+        .fullScreenCover(isPresented: $showEdit, onDismiss: {
+            // Edit flow handoff: the funnel's Done button wrote the
+            // prepared ticket to `pendingEdit` before dismissing. Run
+            // the save + app-wide reload with the loader visible on the
+            // detail view. Reloading both stores keeps upstream surfaces
+            // (memories, gallery) in sync so popping back shows the
+            // edited ticket everywhere, not just here.
+            guard let updated = pendingEdit else { return }
+            pendingEdit = nil
+            isReloading = true
+            Task {
+                _ = await ticketsStore.update(updated)
+                await ticketsStore.load()
+                await memoriesStore.load()
+                refreshToken = UUID()
+                isReloading = false
+            }
+        }) {
+            NewTicketFunnelView(
+                initialTicket: currentTicket,
+                pendingEdit: $pendingEdit
+            )
+            .environmentObject(ticketsStore)
         }
         .alert(
             "Delete this ticket?",
@@ -157,7 +203,7 @@ struct TicketDetailView: View {
     private var headerMenuItems: [LumoriaMenuItem] {
         [
             .init(title: "Edit") {
-                // TODO: route to edit flow
+                showEdit = true
             },
             .init(title: "Export…") {
                 showExport = true

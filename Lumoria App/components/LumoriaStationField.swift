@@ -111,6 +111,14 @@ struct LumoriaStationField: View {
                     .padding(.top, 2)
             }
         }
+        // Sync the inner search model's query with an externally-set
+        // `selected` value (e.g. from the edit-funnel prefill path).
+        .onChange(of: selected, initial: true) { _, sel in
+            guard let sel, model.query.isEmpty else { return }
+            model.query = [sel.city, sel.name]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+        }
     }
 
     // MARK: Label

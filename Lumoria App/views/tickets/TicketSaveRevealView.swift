@@ -25,7 +25,8 @@ struct TicketSaveRevealView<Content: View>: View {
     let orientation: TicketOrientation
     @ViewBuilder let content: () -> Content
 
-    @State private var hasEmerged: Bool = false
+    /// 0 = ticket fully above slot, 1 = ticket flat at y=0.
+    @State private var emergeProgress: Double = 0
     @State private var hasFlipped: Bool = false
     @State private var hasSlammed: Bool = false
     @State private var slotVisible: Bool = true
@@ -34,13 +35,28 @@ struct TicketSaveRevealView<Content: View>: View {
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    private let travel: CGFloat = 400
+
     var body: some View {
         ZStack {
+            // Caption sits at the BOTTOM of the z-stack so the ticket
+            // prints over it as it emerges.
+            if captionVisible {
+                Text("Your ticket is being printed…")
+                    .font(.footnote)
+                    .foregroundStyle(Color.Text.secondary)
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+            }
+
+            // Ticket — prints over the caption.
             content()
                 .rotationEffect(.degrees(ticketRotation))
                 .offset(y: ticketOffsetY)
                 .scaleEffect(hasSlammed ? 1.03 : 1.0)
 
+            // Slot line sits on top so the ticket appears to emerge from
+            // behind it at the leading edge of the preview card.
             if slotVisible {
                 VStack(spacing: 0) {
                     Rectangle()
@@ -52,16 +68,8 @@ struct TicketSaveRevealView<Content: View>: View {
                 .transition(.opacity)
                 .allowsHitTesting(false)
             }
-
-            if captionVisible {
-                Text("Your ticket is being printed…")
-                    .font(.footnote)
-                    .foregroundStyle(Color.Text.secondary)
-                    .transition(.opacity)
-                    .allowsHitTesting(false)
-            }
         }
-        .frame(maxWidth: .infinity, minHeight: 360)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .onAppear(perform: run)
     }
@@ -75,14 +83,22 @@ struct TicketSaveRevealView<Content: View>: View {
 
     private var ticketOffsetY: CGFloat {
         guard !reduceMotion else { return 0 }
-        return hasEmerged ? 0 : -380
+        return CGFloat(-travel) * CGFloat(1 - emergeProgress)
     }
 
     // MARK: - Sequence
 
+    /// Timeline:
+    ///   t=0.00  slot + caption visible, no ticket
+    ///   t=0.35  smooth intro: 0 → 5 % (engage ticks)
+    ///   t=0.50  stutter: 6 %, 7 %, 8 %, 9 % in ~80 ms beats
+    ///   t=0.82  smooth feed: 9 % → 100 %
+    ///   t=1.65  flip 90° → 0° (horizontal only)
+    ///   t=2.10  slam (overshoot + medium haptic)
+    ///   t=2.40  slot + caption dissolve
     private func run() {
         guard !reduceMotion else {
-            hasEmerged = true
+            emergeProgress = 1
             hasFlipped = true
             slotVisible = false
             captionVisible = false
@@ -91,37 +107,79 @@ struct TicketSaveRevealView<Content: View>: View {
             return
         }
 
-        // Small initial delay so the slot-only state registers visually.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-            withAnimation(.easeOut(duration: 0.65)) {
-                hasEmerged = true
+        // Smooth intro: 0 → 5 % over 150 ms.
+        schedule(0.35) {
+            withAnimation(.easeOut(duration: 0.15)) { emergeProgress = 0.05 }
+        }
+        tick(at: 0.35, intensity: 0.7)
+        tick(at: 0.40, intensity: 0.6)
+
+        // Stutter: 6 % / 7 % / 8 % / 9 %, each 40 ms apart. Short
+        // `.easeOut` per step makes each jump feel abrupt.
+        let stutterStart = 0.52
+        let stutterStep = 0.085
+        for (i, p) in [0.06, 0.07, 0.08, 0.09].enumerated() {
+            let at = stutterStart + Double(i) * stutterStep
+            schedule(at) {
+                withAnimation(.easeOut(duration: 0.035)) { emergeProgress = p }
             }
-            HapticPalette.playSavePattern()
+            tick(at: at, intensity: 0.55)
         }
 
-        // Hold the rotated-out state, then flip + fade slot/caption.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.35) {
+        // Smooth feed: 9 % → 100 % over 820 ms.
+        let feedStart = stutterStart + 4 * stutterStep + 0.05
+        schedule(feedStart) {
+            withAnimation(.easeOut(duration: 0.82)) { emergeProgress = 1.0 }
+        }
+        tick(at: feedStart + 0.15, intensity: 0.4)
+        tick(at: feedStart + 0.35, intensity: 0.4)
+        tick(at: feedStart + 0.55, intensity: 0.45)
+        tick(at: feedStart + 0.75, intensity: 0.5)
+
+        // Flip 90° → 0° for horizontal tickets.
+        let flipStart = feedStart + 0.85
+        schedule(flipStart) {
             withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
                 hasFlipped = true
             }
-            withAnimation(.easeOut(duration: 0.28)) {
-                slotVisible = false
-                captionVisible = false
-            }
         }
+        tick(at: flipStart, intensity: 0.55)
+        tick(at: flipStart + 0.12, intensity: 0.5)
 
-        // Slam: tiny overshoot + medium haptic once fully flat.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.85) {
+        // Slam.
+        let slamStart = flipStart + 0.45
+        schedule(slamStart) {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            withAnimation(.easeOut(duration: 0.08)) {
-                hasSlammed = true
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            withAnimation(.easeOut(duration: 0.08)) { hasSlammed = true }
+            schedule(0.08) {
                 withAnimation(.spring(response: 0.22, dampingFraction: 0.55)) {
                     hasSlammed = false
                 }
-                announce()
             }
+        }
+
+        // Slot + caption dissolve AFTER the slam settles.
+        let dissolveStart = slamStart + 0.30
+        schedule(dissolveStart) {
+            withAnimation(.easeOut(duration: 0.45)) {
+                slotVisible = false
+                captionVisible = false
+            }
+            announce()
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func schedule(_ delay: TimeInterval, _ action: @escaping () -> Void) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: action)
+    }
+
+    private func tick(at delay: TimeInterval, intensity: CGFloat) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            let gen = UIImpactFeedbackGenerator(style: .rigid)
+            gen.prepare()
+            gen.impactOccurred(intensity: intensity)
         }
     }
 
@@ -149,6 +207,6 @@ struct TicketSaveSlotPlaceholder: View {
                 .font(.footnote)
                 .foregroundStyle(Color.Text.secondary)
         }
-        .frame(maxWidth: .infinity, minHeight: 360)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

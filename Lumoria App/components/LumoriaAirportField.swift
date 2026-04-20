@@ -40,9 +40,11 @@ final class AirportSearchModel: NSObject, ObservableObject, MKLocalSearchComplet
 
     /// Resolves an autocomplete suggestion into a concrete `TicketLocation`
     /// by running a full `MKLocalSearch` and reading the first map item.
-    /// IATA is resolved through a 3-tier fallback: regex parse of the
-    /// MapKit-provided name, then a coordinate lookup against the bundled
-    /// `AirportDatabase`. Returns nil only if the search itself fails.
+    /// IATA resolution uses a cascade: regex on the MapKit-provided name,
+    /// then the bundled `AirportDatabase` by coordinate, then a last-ditch
+    /// fallback that takes the first three letters of the cleaned name so
+    /// the field is never left blank. Returns nil only if the search
+    /// itself fails.
     func resolve(_ completion: MKLocalSearchCompletion) async -> TicketLocation? {
         let request = MKLocalSearch.Request(completion: completion)
         request.resultTypes = [.pointOfInterest]
@@ -63,9 +65,16 @@ final class AirportSearchModel: NSObject, ObservableObject, MKLocalSearchComplet
             // resolves to CDG even when MapKit omits the parenthetical code.
             let dbMatch = AirportDatabase.nearest(to: coord)
 
+            // 3. Last-resort fallback — first three letters of the cleaned
+            // name, uppercased. Better than a blank code slot on the ticket;
+            // the user is free to edit it later if they care.
+            let resolvedIATA = dbMatch?.iata
+                ?? parsedIATA
+                ?? Self.fallbackIATA(from: cleanedName)
+
             return TicketLocation(
                 name: dbMatch?.name ?? cleanedName,
-                subtitle: dbMatch?.iata ?? parsedIATA,
+                subtitle: resolvedIATA,
                 city: dbMatch?.city ?? item.placemark.locality,
                 country: dbMatch?.country ?? item.placemark.country,
                 countryCode: dbMatch?.countryCode ?? item.placemark.isoCountryCode,
@@ -76,6 +85,16 @@ final class AirportSearchModel: NSObject, ObservableObject, MKLocalSearchComplet
         } catch {
             return nil
         }
+    }
+
+    /// First three alphabetic characters of the cleaned name, uppercased.
+    /// Example: "Narita International" → "NAR". A crude guess, but keeps
+    /// the code slot from reading blank when neither the regex parse nor
+    /// the DB lookup resolves an IATA.
+    static func fallbackIATA(from cleanedName: String) -> String? {
+        let letters = cleanedName.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        guard letters.count >= 3 else { return nil }
+        return String(String(String.UnicodeScalarView(letters.prefix(3))).uppercased())
     }
 
     /// Pulls a 3-letter uppercase code out of an airport name — covers the
@@ -128,6 +147,15 @@ struct LumoriaAirportField: View {
                     .lineSpacing(2)
                     .padding(.top, 2)
             }
+        }
+        // Sync the inner search model's query with an externally-set
+        // `selected` value (e.g. from the edit-funnel prefill path). The
+        // `isEmpty` guard keeps user-typed text from being clobbered.
+        .onChange(of: selected, initial: true) { _, sel in
+            guard let sel, model.query.isEmpty else { return }
+            model.query = [sel.subtitle, sel.name]
+                .compactMap { $0 }
+                .joined(separator: " · ")
         }
     }
 

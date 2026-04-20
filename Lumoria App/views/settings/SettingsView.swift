@@ -16,6 +16,8 @@ enum SettingsDestination: Hashable {
     case appearance
     case referral
     case plan
+    case helpCenter
+    case helpArticle(String)
 }
 
 struct SettingsView: View {
@@ -54,6 +56,12 @@ struct SettingsView: View {
                         }
                         settingsRow(icon: "gift",           title: "Referral / Invite", right: .chevron) {
                             path.append(.referral)
+                        }
+                    }
+
+                    sectionCard {
+                        settingsRow(icon: "questionmark.circle", title: "Help center", right: .chevron) {
+                            path.append(.helpCenter)
                         }
                     }
 
@@ -122,6 +130,16 @@ struct SettingsView: View {
                 case .appearance:    AppearanceView()
                 case .referral:      InviteView()
                 case .plan:          placeholderView("Plan")
+                case .helpCenter:
+                    HelpCenterView { article in
+                        path.append(.helpArticle(article.id))
+                    }
+                case .helpArticle(let id):
+                    if let article = HelpCenterContent.article(id: id) {
+                        HelpArticleView(article: article)
+                    } else {
+                        placeholderView("Article not found")
+                    }
                 }
             }
         }

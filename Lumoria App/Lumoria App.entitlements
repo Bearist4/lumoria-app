@@ -11,6 +11,7 @@
 	<key>com.apple.developer.associated-domains</key>
 	<array>
 		<string>applinks:getlumoria.app</string>
+		<string>applinks:www.getlumoria.app</string>
 	</array>
 </dict>
 </plist>
