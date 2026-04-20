@@ -8,6 +8,7 @@
 import Supabase
 import SwiftUI
 import SwiftData
+import TipKit
 
 // Analytics bootstrapping. Runs once at process start, before any view
 // is constructed. Missing API key falls back to NoopAnalyticsService.
@@ -16,6 +17,10 @@ private let analyticsBootstrap: Void = {
         Analytics.configure(service)
     }
     Analytics.track(.sdkInitialized)
+    try? Tips.configure([
+        .displayFrequency(.immediate),
+        .datastoreLocation(.applicationDefault),
+    ])
 }()
 
 @main
@@ -25,6 +30,7 @@ struct Lumoria_AppApp: App {
     @StateObject private var pushService = PushNotificationService.shared
     @StateObject private var notificationPrefs = NotificationPrefsStore()
     @StateObject private var walletImport = WalletImportCoordinator()
+    @StateObject private var onboardingCoordinator = OnboardingCoordinator()
     @AppStorage("appearance.mode") private var storedMode: String = AppearanceMode.system.rawValue
     @AppStorage("appearance.highContrast") private var highContrast: Bool = false
     @AppStorage("appearance.iconName") private var storedIconName: String = ""
@@ -77,6 +83,7 @@ struct Lumoria_AppApp: App {
                         .environmentObject(pushService)
                         .environmentObject(notificationPrefs)
                         .environmentObject(walletImport)
+                        .environmentObject(onboardingCoordinator)
                 } else if shouldShowLanding {
                     AuthNavigationView()
                         .environmentObject(authManager)
