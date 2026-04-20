@@ -23,10 +23,10 @@ enum OnboardingEvents {
 
 struct MemoryTip: Tip {
     var title: Text {
-        Text("onboarding.tip.memory.title")
+        Text("Create a memory")
     }
     var message: Text? {
-        Text("onboarding.tip.memory.message")
+        Text("A trip, a show, anything. Give it a name.")
     }
     var rules: [Rule] {
         #Rule(OnboardingEvents.onboardingStarted) { $0.donations.count > 0 }
@@ -38,10 +38,10 @@ struct MemoryTip: Tip {
 
 struct TicketTip: Tip {
     var title: Text {
-        Text("onboarding.tip.ticket.title")
+        Text("Add a ticket")
     }
     var message: Text? {
-        Text("onboarding.tip.ticket.message")
+        Text("Pick a style. Fill in the details.")
     }
     var rules: [Rule] {
         #Rule(OnboardingEvents.firstMemoryCreated) { $0.donations.count > 0 }
@@ -53,10 +53,10 @@ struct TicketTip: Tip {
 
 struct ExportTip: Tip {
     var title: Text {
-        Text("onboarding.tip.export.title")
+        Text("Share it")
     }
     var message: Text? {
-        Text("onboarding.tip.export.message")
+        Text("Post it, send it, or save it to camera roll.")
     }
     var rules: [Rule] {
         #Rule(OnboardingEvents.firstTicketCreated) { $0.donations.count > 0 }
