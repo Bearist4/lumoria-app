@@ -72,15 +72,24 @@ struct HelpArticleView: View {
             .fill(Color.Background.elevated)
             .aspectRatio(408.0 / 458.0, contentMode: .fit)
             .overlay {
-                if let name = article.videoName,
-                   let url = Bundle.main.url(forResource: name, withExtension: "mp4") {
-                    VideoPlayer(player: AVPlayer(url: url))
+                if let name = article.videoName, let url = videoURL(named: name) {
+                    BezeledVideoPlayer(url: url)
                         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
                 } else {
                     placeholderHero
                 }
             }
             .frame(maxWidth: .infinity)
+    }
+
+    /// Looks up a bundled video asset by name, tolerant of `.mp4` or `.mov`.
+    private func videoURL(named name: String) -> URL? {
+        for ext in ["mp4", "mov"] {
+            if let url = Bundle.main.url(forResource: name, withExtension: ext) {
+                return url
+            }
+        }
+        return nil
     }
 
     private var placeholderHero: some View {
@@ -126,6 +135,68 @@ struct HelpArticleView: View {
 
 #Preview {
     NavigationStack {
-        HelpArticleView(article: HelpCenterContent.createTicket)
+        HelpArticleView(article: HelpCenterContent.browseCollection)
+    }
+}
+
+// MARK: - Bezeled video player
+
+/// Renders an iPhone bezel image with the video inlaid over the screen
+/// region of the frame. Playback starts after a 3-second delay on appear.
+private struct BezeledVideoPlayer: View {
+    let url: URL
+
+    /// Which bezel color to render behind the video.
+    private let bezelAsset: String = "bezels/iphone/gray"
+
+    /// Bezel artwork is 1206×2622 with a ~96pt radius around the device
+    /// screen. These numbers are proportions of the full bezel image;
+    /// they crop the video to the visible screen area so the status-bar
+    /// notch and rounded corners never peek through.
+    private let screenInsets = EdgeInsets(top: 0.015, leading: 0.037, bottom: 0.015, trailing: 0.037)
+    private let screenCornerRatio: CGFloat = 0.072
+
+    @State private var player: AVPlayer = AVPlayer()
+    @State private var didStart = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            let w = proxy.size.width
+            let h = proxy.size.height
+            let screenCornerRadius = min(w, h) * screenCornerRatio
+
+            ZStack {
+                VideoPlayer(player: player)
+                    .frame(
+                        width: w * (1 - screenInsets.leading - screenInsets.trailing),
+                        height: h * (1 - screenInsets.top - screenInsets.bottom)
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: screenCornerRadius, style: .continuous))
+
+                Image(bezelAsset)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: w, height: h)
+                    .allowsHitTesting(false)
+            }
+            .frame(width: w, height: h)
+        }
+        .aspectRatio(1206.0 / 2622.0, contentMode: .fit)
+        .onAppear { scheduleStart() }
+        .onDisappear {
+            player.pause()
+            didStart = false
+        }
+    }
+
+    private func scheduleStart() {
+        guard !didStart else { return }
+        didStart = true
+        let item = AVPlayerItem(url: url)
+        player.replaceCurrentItem(with: item)
+        player.isMuted = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            player.play()
+        }
     }
 }

@@ -151,7 +151,7 @@ enum HelpCenterContent {
             )
         ],
         outro: "If your gallery is still empty, you'll see the seven-point star and a gentle nudge — your gallery starts with one tap.",
-        videoName: nil
+        videoName: "Sort"
     )
 
     static let editTicket = HelpArticle(
