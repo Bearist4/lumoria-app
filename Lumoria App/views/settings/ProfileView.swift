@@ -549,9 +549,16 @@ struct ProfileView: View {
         defer { isDeletingAccount = false }
 
         do {
+            // Grab a fresh session explicitly so we know which token the
+            // edge function receives. Supabase Swift's shared Functions
+            // client is normally kept in sync via the auth listener, but
+            // passing the access token in headers removes any ambiguity
+            // if that wiring hasn't propagated yet.
+            let session = try await supabase.auth.session
             try await supabase.functions.invoke(
                 "delete-account",
                 options: FunctionInvokeOptions(
+                    headers: ["Authorization": "Bearer \(session.accessToken)"],
                     body: ["confirmation": "DELETE"]
                 )
             )

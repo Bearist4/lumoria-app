@@ -6,9 +6,12 @@
 // account".
 //
 // Flow:
-//   1. Gateway validates the caller's JWT (verify_jwt=true on deploy).
-//      We decode the same token here to pull `sub` without a round-trip
-//      to the auth server.
+//   1. Verify the caller's JWT ourselves against the project JWKS. We
+//      cannot use the gateway's built-in `verify_jwt` because this
+//      project uses ES256 asymmetric signing keys, which the gateway
+//      rejects as UNAUTHORIZED_UNSUPPORTED_TOKEN_ALGORITHM. The deploy
+//      therefore sets `verify_jwt: false` and does the signature check
+//      here with `jose.jwtVerify` + `createRemoteJWKSet`.
 //   2. Require an explicit `{ "confirmation": "DELETE" }` body so a
 //      replayed or accidentally-fired invocation cannot wipe an account.
 //   3. Delete user-scoped rows in dependency order using a service-role
@@ -19,9 +22,16 @@
 // an auth user orphaned from their data.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { jwtVerify, createRemoteJWKSet } from "https://esm.sh/jose@5.9.6";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+// Supabase's asymmetric JWT public keys. Cached by `jose` inside the
+// isolate so repeated invocations don't re-fetch on every request.
+const JWKS = createRemoteJWKSet(
+    new URL(`${SUPABASE_URL}/auth/v1/.well-known/jwks.json`),
+);
 
 function json(status: number, body: Record<string, unknown>): Response {
     return new Response(JSON.stringify(body), {
@@ -30,44 +40,48 @@ function json(status: number, body: Record<string, unknown>): Response {
     });
 }
 
-/// Decodes the JWT payload without verifying — the gateway's
-/// `verify_jwt: true` has already checked signature + expiry before we
-/// run, so extracting the `sub` claim here is equivalent to trusting
-/// what the gateway trusted.
-function decodeJwtPayload(jwt: string): Record<string, unknown> | null {
-    const parts = jwt.split(".");
-    if (parts.length !== 3) return null;
-    try {
-        const b64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-        const padded = b64 + "=".repeat((4 - b64.length % 4) % 4);
-        const json = atob(padded);
-        return JSON.parse(json);
-    } catch {
-        return null;
-    }
-}
-
 Deno.serve(async (req: Request) => {
+    console.log("[delete-account] hit", {
+        method: req.method,
+        hasAuth: req.headers.has("Authorization"),
+    });
+
     if (req.method !== "POST") {
         return json(405, { error: "method_not_allowed" });
     }
 
     const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader.startsWith("Bearer ")) {
-        return json(401, { error: "unauthorized" });
+    if (!/^bearer\s+/i.test(authHeader)) {
+        return json(401, {
+            error: "unauthorized",
+            reason: "missing_bearer",
+        });
     }
-    const jwt = authHeader.slice("Bearer ".length);
-    const payload = decodeJwtPayload(jwt);
-    const userId = typeof payload?.sub === "string" ? payload.sub : null;
-    if (!userId) {
-        return json(401, { error: "invalid_jwt" });
+    const jwt = authHeader.replace(/^bearer\s+/i, "");
+
+    let userId: string;
+    try {
+        const { payload } = await jwtVerify(jwt, JWKS, {
+            issuer: `${SUPABASE_URL}/auth/v1`,
+        });
+        if (typeof payload.sub !== "string") {
+            return json(401, { error: "invalid_jwt", reason: "no_sub_claim" });
+        }
+        userId = payload.sub;
+    } catch (e) {
+        console.log("[delete-account] jwt verify failed", String(e));
+        return json(401, {
+            error: "invalid_jwt",
+            reason: "verify_failed",
+            detail: String(e),
+        });
     }
 
     let body: { confirmation?: string } = {};
     try {
         body = await req.json();
     } catch {
-        // empty / malformed body falls through to the confirmation check
+        // fall through to the confirmation check
     }
     if (body.confirmation !== "DELETE") {
         return json(400, { error: "confirmation_required" });
@@ -165,8 +179,10 @@ Deno.serve(async (req: Request) => {
             });
         }
 
+        console.log("[delete-account] ok", { userId });
         return json(200, { ok: true });
     } catch (e) {
+        console.error("[delete-account] delete_failed", String(e));
         return json(500, { error: "delete_failed", detail: String(e) });
     }
 });
