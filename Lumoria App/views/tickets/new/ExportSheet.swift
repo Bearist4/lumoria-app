@@ -29,7 +29,7 @@ struct ExportSheet: View {
     // IM share state
     @State private var isPreparingIMShare = false
 
-    enum Phase { case destinations, cameraRoll }
+    enum Phase { case destinations, cameraRoll, social }
 
     var body: some View {
         ZStack {
@@ -47,6 +47,11 @@ struct ExportSheet: View {
                     onInstantMessaging: {
                         Analytics.track(.exportDestinationSelected(destination: .whatsapp))
                         Task { await handleIMShare() }
+                    },
+                    onSocial: {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            phase = .social
+                        }
                     }
                 )
                 .transition(.asymmetric(
@@ -55,6 +60,20 @@ struct ExportSheet: View {
                 ))
             case .cameraRoll:
                 CameraRollView(
+                    ticket: ticket,
+                    onBack: {
+                        withAnimation(.easeInOut(duration: 0.25)) {
+                            phase = .destinations
+                        }
+                    },
+                    onExported: { dismiss() }
+                )
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing),
+                    removal: .move(edge: .trailing)
+                ))
+            case .social:
+                SocialView(
                     ticket: ticket,
                     onBack: {
                         withAnimation(.easeInOut(duration: 0.25)) {
@@ -188,6 +207,7 @@ private struct DestinationsView: View {
     let onClose: () -> Void
     let onCameraRoll: () -> Void
     let onInstantMessaging: () -> Void
+    let onSocial: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -209,9 +229,9 @@ private struct DestinationsView: View {
                         iconRow: AnyView(socialIconRow(.social)),
                         title: "Social Media",
                         subtitle: "Post your Lumoria ticket in your story or as a post.",
-                        isEnabled: false,
-                        isComingSoon: true,
-                        action: {}
+                        isEnabled: true,
+                        isComingSoon: false,
+                        action: onSocial
                     )
                     destinationCard(
                         iconRow: AnyView(socialIconRow(.messaging)),
