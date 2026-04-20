@@ -16,6 +16,7 @@ struct ContentView: View {
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var notificationsStore = NotificationsStore()
     @EnvironmentObject private var walletImport: WalletImportCoordinator
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     @State private var selectedTab: Int = 0
     /// `.pkpass` bytes delivered via the share extension. When non-nil
@@ -49,10 +50,23 @@ struct ContentView: View {
         .environmentObject(profileStore)
         .environmentObject(notificationsStore)
         .task {
+            memoriesStore.onboardingCoordinator = onboardingCoordinator
             await memoriesStore.load()
             await ticketsStore.load()
             await profileStore.load()
             await notificationsStore.load()
+            onboardingCoordinator.evaluateEligibility(
+                memoriesCount: memoriesStore.memories.count,
+                ticketsCount: ticketsStore.tickets.count
+            )
+        }
+        .sheet(isPresented: $onboardingCoordinator.showWelcome) {
+            WelcomeSheetView()
+                .environmentObject(onboardingCoordinator)
+        }
+        .onChange(of: onboardingCoordinator.pendingMemoryToOpen) { _, memory in
+            guard memory != nil else { return }
+            selectedTab = 0
         }
         .onChange(of: walletImport.pending) { _, data in
             guard let data else { return }
