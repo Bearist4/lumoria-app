@@ -6,12 +6,12 @@
 //  social export. Matches Figma frames 1107:25827 (vertical ticket)
 //  and 1774:85647 (horizontal ticket).
 //
-//  Layout:
+//  Layout (canvas-absolute coordinates):
 //    - White canvas.
-//    - Hero ticket in the upper ~58%.
-//    - Full-width cropped detail band in the lower ~42% — shows the
-//      bottom half of the same ticket, blown up, cropped to an inset
-//      rounded rectangle so the watermark + airline row are readable.
+//    - Top gray-50 frame:    (24, 24)  1032 × 782  radius 64
+//        · Vertical ticket:  (321, 50) 390 × 683  (centered horizontally)
+//        · Horizontal ticket: (64, 53) 1183 × 676 (overflows right, clipped)
+//    - Bottom gray-50 frame: (24, 830) 1032 × 505  radius 64 (decorative)
 //
 
 import SwiftUI
@@ -22,52 +22,103 @@ struct FacebookRenderView: View {
 
     private let canvas = CGSize(width: 1080, height: 1359)
 
-    private var ticketAspect: CGFloat {
-        ticket.orientation == .horizontal ? 455.0 / 260.0 : 260.0 / 455.0
+    private let padding: CGFloat = 24
+    private let gap: CGFloat = 24
+    private let topFrameHeight: CGFloat = 782
+    private let cornerRadius: CGFloat = 64
+
+    private var topFrameOrigin: CGPoint { CGPoint(x: padding, y: padding) }
+    private var topFrameSize: CGSize {
+        CGSize(width: canvas.width - padding * 2, height: topFrameHeight)
+    }
+    private var bottomFrameOrigin: CGPoint {
+        CGPoint(x: padding, y: padding + topFrameHeight + gap)
+    }
+    private var bottomFrameSize: CGSize {
+        let h = canvas.height - padding * 2 - gap - topFrameHeight
+        return CGSize(width: canvas.width - padding * 2, height: h)
     }
 
-    private var heroSize: CGSize {
-        let maxHeight = canvas.height * 0.48
-        let maxWidth  = canvas.width * 0.78
-        switch ticket.orientation {
-        case .horizontal:
-            let w = min(maxWidth, maxHeight * ticketAspect)
+    private var isVertical: Bool { ticket.orientation == .vertical }
+    private var ticketAspect: CGFloat {
+        isVertical ? 260.0 / 455.0 : 455.0 / 260.0
+    }
+
+    // MARK: - Top ticket (centered)
+    //  Vertical:   390 wide  (683 tall)
+    //  Horizontal: 892 wide  (~510 tall)
+
+    private var topTicketSize: CGSize {
+        if isVertical {
+            let w: CGFloat = 390
             return CGSize(width: w, height: w / ticketAspect)
-        case .vertical:
-            let h = maxHeight
-            return CGSize(width: h * ticketAspect, height: h)
+        } else {
+            let w: CGFloat = 892
+            return CGSize(width: w, height: w / ticketAspect)
         }
     }
-    private let heroTopInset: CGFloat = 80
 
-    private let detailHeight: CGFloat = 440
-    private let detailSideInset: CGFloat = 40
+    // MARK: - Bottom ticket (overflows frame, clipped)
+    //  Vertical:   780 wide, bottom-aligned with 90pt bottom padding
+    //  Horizontal: full frame width, top-aligned with 90pt top padding
+
+    private let bottomTicketPadding: CGFloat = 90
+
+    private var bottomTicketSize: CGSize {
+        if isVertical {
+            let w: CGFloat = 780
+            return CGSize(width: w, height: w / ticketAspect)
+        } else {
+            let w = bottomFrameSize.width
+            return CGSize(width: w, height: w / ticketAspect)
+        }
+    }
+
+    private var bottomTicketCenter: CGPoint {
+        let x = bottomFrameSize.width / 2
+        let y: CGFloat
+        if isVertical {
+            // Bottom-aligned: ticket bottom sits 90pt above frame bottom.
+            y = bottomFrameSize.height - bottomTicketPadding - bottomTicketSize.height / 2
+        } else {
+            // Top-aligned: ticket top sits 90pt below frame top.
+            y = bottomTicketPadding + bottomTicketSize.height / 2
+        }
+        return CGPoint(x: x, y: y)
+    }
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack(alignment: .topLeading) {
             Color.white
 
-            // Hero
-            TicketPreview(ticket: ticket)
-                .aspectRatio(ticketAspect, contentMode: .fit)
-                .frame(width: heroSize.width, height: heroSize.height)
-                .environment(\.ticketFillsNotchCutouts, false)
-                .shadow(color: Color.black.opacity(0.12), radius: 32, x: 0, y: 16)
-                .position(x: canvas.width / 2,
-                          y: heroTopInset + heroSize.height / 2)
+            // Top frame — centered ticket
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.Background.elevated)
 
-            // Detail band (cropped bottom slice)
-            TicketPreview(ticket: ticket)
-                .aspectRatio(ticketAspect, contentMode: .fit)
-                .frame(width: (canvas.width - detailSideInset * 2) * 1.6,
-                       height: detailHeight * 1.6)
-                .offset(y: detailHeight * 0.55)
-                .frame(width: canvas.width - detailSideInset * 2,
-                       height: detailHeight, alignment: .top)
-                .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-                .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 10)
-                .position(x: canvas.width / 2,
-                          y: canvas.height - detailHeight / 2 - 80)
+                TicketPreview(ticket: ticket)
+                    .aspectRatio(ticketAspect, contentMode: .fit)
+                    .frame(width: topTicketSize.width, height: topTicketSize.height)
+                    .environment(\.ticketFillsNotchCutouts, false)
+            }
+            .frame(width: topFrameSize.width, height: topFrameSize.height)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .offset(x: topFrameOrigin.x, y: topFrameOrigin.y)
+
+            // Bottom frame — edge-anchored oversized ticket, clipped
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color.Background.elevated)
+
+                TicketPreview(ticket: ticket)
+                    .aspectRatio(ticketAspect, contentMode: .fit)
+                    .frame(width: bottomTicketSize.width, height: bottomTicketSize.height)
+                    .environment(\.ticketFillsNotchCutouts, false)
+                    .position(x: bottomTicketCenter.x, y: bottomTicketCenter.y)
+            }
+            .frame(width: bottomFrameSize.width, height: bottomFrameSize.height)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .offset(x: bottomFrameOrigin.x, y: bottomFrameOrigin.y)
         }
         .frame(width: canvas.width, height: canvas.height)
         .clipped()

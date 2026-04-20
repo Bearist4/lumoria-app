@@ -182,6 +182,8 @@ struct ExpressTicketVerticalView: View {
                 .font(.system(size: 11 * s, weight: .bold))
                 .foregroundStyle(style.textPrimary)
                 .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .allowsTightening(true)
         }
     }
 

@@ -6,14 +6,22 @@
 //  Matches Figma frames 1107:25832 (vertical ticket) and 1774:85649
 //  (horizontal ticket).
 //
-//  Layout:
-//    - White canvas.
-//    - Hero ticket in the upper ~55% of the frame.
-//    - Two supplementary compositions in the lower ~35%:
-//        · cropped bottom-slice of the same ticket (shows perforation
-//          + "Made with" pill detail)
-//        · rotated isometric mini-ticket (decorative, ~12° tilt)
-//    - Watermark is embedded in the hero ticket's own template.
+//  Layout (canvas-absolute coordinates):
+//    - Hero frame:       (32, 64)    1016 × 1323  — gray-50, radius 64,
+//                                                   hero ticket centered.
+//    - Bottom-left:      (32, 1419)  492 × 469/501 — gray-50, radius 64.
+//                        Hero-size ticket pinned so:
+//                          · Vertical ticket: bottom-left corner 60pt
+//                            from the frame's bottom + left.
+//                          · Horizontal ticket: top-left corner 60pt
+//                            from the frame's top + left.
+//                        Ticket overflows the frame and is clipped by
+//                        the frame's corner radius.
+//    - Bottom-right:     (556, 1419) 492 × 469/501 — gray-50, radius 64.
+//                        Smaller ticket centered with an isometric
+//                        transform (rotate 45°, scale y 50%).
+//
+//  Gray-50 = `Color.Background.elevated` in the design tokens.
 //
 
 import SwiftUI
@@ -24,65 +32,152 @@ struct StoryRenderView: View {
 
     private let canvas = CGSize(width: 1080, height: 1920)
 
+    private var isVertical: Bool { ticket.orientation == .vertical }
     private var ticketAspect: CGFloat {
         ticket.orientation == .horizontal ? 455.0 / 260.0 : 260.0 / 455.0
     }
 
-    private var heroSize: CGSize {
-        let maxHeight = canvas.height * 0.55
-        let maxWidth  = canvas.width * 0.82
-        switch ticket.orientation {
-        case .horizontal:
-            let w = min(maxWidth, maxHeight * ticketAspect)
-            return CGSize(width: w, height: w / ticketAspect)
-        case .vertical:
-            let h = maxHeight
-            return CGSize(width: h * ticketAspect, height: h)
+    // MARK: - Frame geometry
+
+    private let heroFrameOrigin = CGPoint(x: 32, y: 64)
+    private let heroFrameSize   = CGSize(width: 1016, height: 1323)
+
+    private let bottomLeftOrigin  = CGPoint(x: 32,  y: 1419)
+    private let bottomRightOrigin = CGPoint(x: 556, y: 1419)
+
+    private var bottomFrameSize: CGSize {
+        isVertical
+            ? CGSize(width: 492, height: 469)
+            : CGSize(width: 492, height: 501)
+    }
+
+    // MARK: - Hero ticket
+
+    private var heroTicketSize: CGSize {
+        isVertical ? CGSize(width: 650, height: 1138)
+                   : CGSize(width: 910, height: 520)
+    }
+
+    // MARK: - Bottom-left ticket (same size as hero, clipped)
+
+    private let bottomLeftPadding: CGFloat = 60
+
+    /// Origin of the ticket in the bottom-left frame's local coordinate
+    /// space. Vertical tickets pin their bottom-left corner 60pt from the
+    /// frame's bottom+left, so the ticket extends UP past the frame top.
+    /// Horizontal tickets pin their top-left corner 60pt from the frame's
+    /// top+left, so the ticket extends DOWN past the frame bottom.
+    private var bottomLeftTicketOffset: CGPoint {
+        if isVertical {
+            return CGPoint(
+                x: bottomLeftPadding,
+                y: bottomFrameSize.height - heroTicketSize.height - bottomLeftPadding
+            )
+        } else {
+            return CGPoint(x: bottomLeftPadding, y: bottomLeftPadding)
         }
     }
-    private let heroTopInset: CGFloat = 140
 
-    private let detailSize  = CGSize(width: 520, height: 300)
-    private let rotatedSize = CGSize(width: 440, height: 260)
-    private let supplementaryTop: CGFloat = 1320
-    private let rotatedAngle: Double = -12
+    // MARK: - Bottom-right ticket (isometric, centered)
+
+    /// Per-user spec: 365pt wide for vertical tickets. Horizontal scales
+    /// proportionally (~56% of hero width) to ~511pt.
+    private var isometricTicketSize: CGSize {
+        if isVertical {
+            let w: CGFloat = 400
+            return CGSize(width: w, height: w / ticketAspect)
+        } else {
+            let w: CGFloat = 700
+            return CGSize(width: w, height: w / ticketAspect)
+        }
+    }
+
+    private let cornerRadius: CGFloat = 64
+
+    // MARK: - Body
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack(alignment: .topLeading) {
             Color.white
 
             // Hero
-            TicketPreview(ticket: ticket)
-                .aspectRatio(ticketAspect, contentMode: .fit)
-                .frame(width: heroSize.width, height: heroSize.height)
-                .environment(\.ticketFillsNotchCutouts, false)
-                .shadow(color: Color.black.opacity(0.12), radius: 40, x: 0, y: 20)
-                .position(x: canvas.width / 2,
-                          y: heroTopInset + heroSize.height / 2)
+            grayFrame(size: heroFrameSize) {
+                TicketPreview(ticket: ticket)
+                    .aspectRatio(ticketAspect, contentMode: .fit)
+                    .frame(width: heroTicketSize.width,
+                           height: heroTicketSize.height)
+                    .environment(\.ticketFillsNotchCutouts, false)
+                    .position(x: heroFrameSize.width / 2,
+                              y: heroFrameSize.height / 2)
+            }
+            .offset(x: heroFrameOrigin.x, y: heroFrameOrigin.y)
 
-            // Cropped detail (bottom slice)
-            TicketPreview(ticket: ticket)
-                .aspectRatio(ticketAspect, contentMode: .fit)
-                .frame(width: detailSize.width * 1.6,
-                       height: detailSize.height * 1.6)
-                .offset(y: detailSize.height * 0.55)
-                .frame(width: detailSize.width, height: detailSize.height, alignment: .top)
-                .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-                .shadow(color: Color.black.opacity(0.08), radius: 16, x: 0, y: 8)
-                .position(x: canvas.width * 0.34,
-                          y: supplementaryTop + detailSize.height / 2)
+            // Bottom-left — hero-size ticket anchored per orientation, clipped
+            grayFrame(size: bottomFrameSize) {
+                TicketPreview(ticket: ticket)
+                    .aspectRatio(ticketAspect, contentMode: .fit)
+                    .frame(width: heroTicketSize.width,
+                           height: heroTicketSize.height)
+                    .environment(\.ticketFillsNotchCutouts, false)
+                    .offset(x: bottomLeftTicketOffset.x,
+                            y: bottomLeftTicketOffset.y)
+                    .frame(width: bottomFrameSize.width,
+                           height: bottomFrameSize.height,
+                           alignment: .topLeading)
+            }
+            .offset(x: bottomLeftOrigin.x, y: bottomLeftOrigin.y)
 
-            // Rotated isometric mini
-            TicketPreview(ticket: ticket)
-                .aspectRatio(ticketAspect, contentMode: .fit)
-                .frame(width: rotatedSize.width, height: rotatedSize.height)
-                .rotationEffect(.degrees(rotatedAngle))
-                .shadow(color: Color.black.opacity(0.12), radius: 20, x: 0, y: 10)
-                .position(x: canvas.width * 0.72,
-                          y: supplementaryTop + rotatedSize.height / 2 + 20)
+            // Bottom-right — isometric ticket anchored per orientation:
+            // vertical pushes toward bottom-left, horizontal toward
+            // top-left (user-confirmed spec).
+            grayFrame(size: bottomFrameSize) {
+                TicketPreview(ticket: ticket)
+                    .aspectRatio(ticketAspect, contentMode: .fit)
+                    .frame(width: isometricTicketSize.width,
+                           height: isometricTicketSize.height)
+                    .environment(\.ticketFillsNotchCutouts, false)
+                    .modifier(IsometricViewModifier())
+                    .shadow(color: Color.black.opacity(0.12),
+                            radius: 24, x: 0, y: 12)
+                    .position(x: bottomFrameSize.width * 0.35,
+                              y: isVertical
+                                  ? bottomFrameSize.height * 0.65
+                                  : bottomFrameSize.height * 0.35)
+            }
+            .offset(x: bottomRightOrigin.x, y: bottomRightOrigin.y)
         }
         .frame(width: canvas.width, height: canvas.height)
         .clipped()
+    }
+
+    // MARK: - Gray-50 rounded frame container
+
+    @ViewBuilder
+    private func grayFrame<Content: View>(
+        size: CGSize,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .fill(Color.Background.elevated)
+
+            content()
+        }
+        .frame(width: size.width, height: size.height)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+}
+
+// MARK: - Isometric projection modifier
+
+/// 45° rotation followed by a 50% vertical squash — classic isometric
+/// projection. Applied after the ticket's intrinsic layout so the
+/// bounding box is the ticket's own rect, not the transformed footprint.
+private struct IsometricViewModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .rotationEffect(Angle(degrees: 45), anchor: .center)
+            .scaleEffect(x: 1.0, y: 0.5, anchor: .center)
     }
 }
 
@@ -98,14 +193,14 @@ private var previewVertical: Ticket {
         ?? TicketsStore.sampleTickets[0]
 }
 
-#Preview("Story — horizontal") {
-    StoryRenderView(ticket: previewHorizontal)
+#Preview("Story — vertical") {
+    StoryRenderView(ticket: previewVertical)
         .scaleEffect(0.2)
         .frame(width: 216, height: 384)
 }
 
-#Preview("Story — vertical") {
-    StoryRenderView(ticket: previewVertical)
+#Preview("Story — horizontal") {
+    StoryRenderView(ticket: previewHorizontal)
         .scaleEffect(0.2)
         .frame(width: 216, height: 384)
 }

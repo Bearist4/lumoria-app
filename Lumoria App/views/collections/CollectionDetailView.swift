@@ -16,6 +16,7 @@ struct MemoryDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memoriesStore: MemoriesStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
@@ -78,6 +79,7 @@ struct MemoryDetailView: View {
             NewTicketFunnelView()
                 .environmentObject(ticketsStore)
                 .environmentObject(memoriesStore)
+                .environmentObject(onboardingCoordinator)
         }
         .sheet(isPresented: $showAddExistingTicket) {
             AddExistingTicketSheet(memoryId: memory.id)

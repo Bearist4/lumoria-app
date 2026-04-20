@@ -81,7 +81,9 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
                     )
                 )),
                 interactionModes: []
-            )
+            ) {
+                Marker(location.name, coordinate: location.coordinate)
+            }
             .mapStyle(.standard(elevation: .flat, pointsOfInterest: .all))
             .allowsHitTesting(false)
 

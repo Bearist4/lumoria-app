@@ -26,6 +26,7 @@ struct TicketDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memoriesStore: MemoriesStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     @State private var showNewMemory = false
     @State private var showAddToMemory = false
@@ -128,6 +129,7 @@ struct TicketDetailView: View {
                 pendingEdit: $pendingEdit
             )
             .environmentObject(ticketsStore)
+            .environmentObject(onboardingCoordinator)
         }
         .alert(
             "Delete this ticket?",

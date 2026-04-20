@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import TipKit
 
 struct NewTicketSuccessStep: View {
 
@@ -18,6 +19,7 @@ struct NewTicketSuccessStep: View {
     var onBackHome: () -> Void
 
     @EnvironmentObject private var ticketsStore: TicketsStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     @State private var showAddToMemory: Bool = false
     @State private var showExport: Bool = false
@@ -94,6 +96,8 @@ struct NewTicketSuccessStep: View {
                 Analytics.track(.firstTicketCreated(category: category, template: templateProp))
                 Analytics.updateUserProperties(["has_created_first_ticket": true])
             }
+
+            onboardingCoordinator.donateTicketCreated()
         }
         .onChange(of: funnel.errorMessage) { _, err in
             guard let err else { return }
@@ -211,9 +215,11 @@ struct NewTicketSuccessStep: View {
             VStack(spacing: 12) {
                 Button("Export Ticket") {
                     showExport = true
+                    onboardingCoordinator.donateExportOpened()
                 }
                 .lumoriaButtonStyle(.secondary, size: .large)
                 .disabled(funnel.createdTicket == nil)
+                .popoverTip(ExportTip())
 
                 Button("Add to Memory") {
                     showAddToMemory = true

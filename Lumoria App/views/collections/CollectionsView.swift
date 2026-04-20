@@ -115,6 +115,7 @@ struct MemoriesView: View {
             .fullScreenCover(isPresented: $showNewTicketFunnel) {
                 NewTicketFunnelView()
                     .environmentObject(ticketsStore)
+                    .environmentObject(onboardingCoordinator)
             }
             .sheet(item: $activeTemplateKind) { kind in
                 TemplateDetailsSheet(kind: kind)

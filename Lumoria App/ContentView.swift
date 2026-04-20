@@ -90,6 +90,7 @@ struct ContentView: View {
             .environmentObject(memoriesStore)
             .environmentObject(profileStore)
             .environmentObject(notificationsStore)
+            .environmentObject(onboardingCoordinator)
         }
     }
 }

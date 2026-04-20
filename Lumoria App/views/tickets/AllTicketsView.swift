@@ -26,6 +26,7 @@ enum TicketSortOption {
 struct AllTicketsView: View {
 
     @EnvironmentObject private var store: TicketsStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @State private var showFunnel = false
     /// Primes `NewTicketFunnelView.initialImportSource` before presenting
     /// the fullScreenCover. Reset to `nil` inside the cover's onDismiss
@@ -81,6 +82,7 @@ struct AllTicketsView: View {
             ) {
                 NewTicketFunnelView(initialImportSource: pendingImportSource)
                     .environmentObject(store)
+                    .environmentObject(onboardingCoordinator)
             }
         }
     }
