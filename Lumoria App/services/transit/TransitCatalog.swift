@@ -149,9 +149,13 @@ enum TransitCatalogLoader {
     /// Known bundled catalogs. Add a new case + bundle the matching
     /// JSON file when a new city is imported.
     enum City: String, CaseIterable, Identifiable, Hashable {
-        case vienna  = "Vienna"
-        case newYork = "NewYork"
-        case paris   = "Paris"
+        case vienna    = "Vienna"
+        case newYork   = "NewYork"
+        case paris     = "Paris"
+        case nantes    = "Nantes"
+        case lyon      = "Lyon"
+        case bordeaux  = "Bordeaux"
+        case marseille = "Marseille"
 
         var id: String { rawValue }
         var resourceName: String { rawValue }
@@ -160,9 +164,13 @@ enum TransitCatalogLoader {
         /// use — "NYC" for New York, "Wien" for Vienna.
         var aliases: [String] {
             switch self {
-            case .vienna:  return ["Vienna", "Wien"]
-            case .newYork: return ["New York", "NYC", "New York City", "NewYork"]
-            case .paris:   return ["Paris", "Île-de-France", "Ile-de-France"]
+            case .vienna:    return ["Vienna", "Wien"]
+            case .newYork:   return ["New York", "NYC", "New York City", "NewYork"]
+            case .paris:     return ["Paris", "Île-de-France", "Ile-de-France"]
+            case .nantes:    return ["Nantes", "Nantes Métropole"]
+            case .lyon:      return ["Lyon", "Grand Lyon", "Lyon Métropole"]
+            case .bordeaux:  return ["Bordeaux", "Bordeaux Métropole"]
+            case .marseille: return ["Marseille", "Aix-Marseille-Provence"]
             }
         }
     }

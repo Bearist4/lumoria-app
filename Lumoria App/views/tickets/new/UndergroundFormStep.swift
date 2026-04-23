@@ -140,17 +140,25 @@ struct NewUndergroundFormStep: View {
 
     private func cityLabel(for city: TransitCatalogLoader.City) -> String {
         switch city {
-        case .vienna:  return "Vienna"
-        case .newYork: return "New York"
-        case .paris:   return "Paris"
+        case .vienna:    return "Vienna"
+        case .newYork:   return "New York"
+        case .paris:     return "Paris"
+        case .nantes:    return "Nantes"
+        case .lyon:      return "Lyon"
+        case .bordeaux:  return "Bordeaux"
+        case .marseille: return "Marseille"
         }
     }
 
     private func cityFlag(for city: TransitCatalogLoader.City) -> String {
         switch city {
-        case .vienna:  return "🇦🇹"
-        case .newYork: return "🇺🇸"
-        case .paris:   return "🇫🇷"
+        case .vienna:    return "🇦🇹"
+        case .newYork:   return "🇺🇸"
+        case .paris,
+             .nantes,
+             .lyon,
+             .bordeaux,
+             .marseille: return "🇫🇷"
         }
     }
 
@@ -231,7 +239,7 @@ struct NewUndergroundFormStep: View {
             Text("We couldn't find a route between these stations.")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.Text.primary)
-            Text("Both stations need to be in a city with a bundled transit catalog (Vienna for now). Try picking stations served by the same metro network.")
+            Text("Both stations need to be served by the same transit network. Try picking stations that share a metro, tram or bus line.")
                 .font(.footnote)
                 .foregroundStyle(Color.Text.secondary)
                 .fixedSize(horizontal: false, vertical: true)
