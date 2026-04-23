@@ -271,7 +271,7 @@ struct LumoriaInputField: View {
     private var textColor: Color {
         switch state {
         case .disabled: return Color.Text.disabled
-        default:        return .black
+        default:        return Color.Text.primary
         }
     }
 

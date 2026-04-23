@@ -27,7 +27,7 @@ struct TicketTemplateKindTests {
 
     @Test("categoryLabel buckets trains vs planes")
     func categoryLabelBuckets() {
-        let trains: Set<TicketTemplateKind> = [.express, .orient, .night]
+        let trains: Set<TicketTemplateKind> = [.express, .orient, .night, .post, .glow]
         let planes: Set<TicketTemplateKind> = [.afterglow, .studio, .heritage, .terminal, .prism]
         for kind in TicketTemplateKind.allCases {
             if trains.contains(kind) {
@@ -223,7 +223,7 @@ struct TicketStyleCatalogTests {
 
     @Test("single-variant templates return hasStyleVariants = false")
     func singleVariantTemplates() {
-        for kind in [TicketTemplateKind.afterglow, .heritage, .terminal, .prism, .express, .orient, .night] {
+        for kind in [TicketTemplateKind.afterglow, .heritage, .terminal, .prism, .express, .orient, .night, .post, .glow, .concert] {
             #expect(!kind.hasStyleVariants)
         }
     }

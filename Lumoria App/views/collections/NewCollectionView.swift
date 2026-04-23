@@ -14,9 +14,11 @@ struct NewMemoryView: View {
     @State private var title: String = ""
     @State private var selectedColor: ColorOption? = nil
     @State private var emoji: String? = nil
+    @State private var startDate: Date? = nil
+    @State private var endDate: Date? = nil
 
     /// Invoked when the user taps Create.
-    var onCreate: ((String, ColorOption?, String?) -> Void)? = nil
+    var onCreate: ((String, ColorOption?, String?, Date?, Date?) -> Void)? = nil
 
     var body: some View {
         ScrollView {
@@ -24,6 +26,7 @@ struct NewMemoryView: View {
                 intro
                 titleField
                 emojiColorRow
+                dateRow
             }
             .padding(.horizontal, Spacing.s6)
             .padding(.top, 72)
@@ -85,6 +88,13 @@ struct NewMemoryView: View {
                     emoji: $emoji,
                     isRequired: false
                 )
+                // Tapping either picker right after typing the title
+                // should drop the keyboard so the presented sheet /
+                // popover isn't hidden behind it. `simultaneousGesture`
+                // lets the field still handle its own tap to present.
+                .simultaneousGesture(
+                    TapGesture().onEnded { Self.dismissKeyboard() }
+                )
 
                 LumoriaDropdown(
                     label: "Color",
@@ -101,12 +111,44 @@ struct NewMemoryView: View {
                             .foregroundStyle(Color.Text.primary)
                     }
                 }
+                .simultaneousGesture(
+                    TapGesture().onEnded { Self.dismissKeyboard() }
+                )
             }
+            // SwiftUI renders VStack children in document order, so a
+            // later sibling draws on top of overlays that extend out of
+            // earlier ones. Raising the row's z-index keeps the
+            // dropdown's open list above this caption — the dropdown
+            // visibly covers the caption while open instead of slipping
+            // behind it.
+            .zIndex(1)
 
             Text("Add an emoji and a color to personalize your memory.")
                 .font(.caption2)
                 .foregroundStyle(Color(hex: "525252"))
         }
+    }
+
+    // MARK: - Start / end date row
+
+    private var dateRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 16) {
+                LumoriaDateField(label: "Start date", date: $startDate)
+                LumoriaDateField(label: "End date",   date: $endDate)
+            }
+
+            Text("Add a start and end date to track your memory.")
+                .font(.caption2)
+                .foregroundStyle(Color(hex: "525252"))
+        }
+    }
+
+    private static func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
     }
 
     // MARK: - Primary CTA
@@ -116,7 +158,9 @@ struct NewMemoryView: View {
             onCreate?(
                 title.trimmingCharacters(in: .whitespaces),
                 selectedColor,
-                emoji
+                emoji,
+                startDate,
+                endDate
             )
             dismiss()
         } label: {

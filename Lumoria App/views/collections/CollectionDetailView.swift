@@ -30,8 +30,22 @@ struct MemoryDetailView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            tintBackground
+            // Base surface is the app default (white). Scroll-view
+            // overscroll at the bottom reveals this directly — no
+            // tinted bleed behind the bouncing card.
+            Color.Background.default
                 .ignoresSafeArea()
+
+            // Tint is pinned to the top of the screen (not the scroll
+            // content), so the title area keeps its colour even while
+            // scrolling. Height is generous enough to cover the safe
+            // area + top bar + title; any extra length is hidden by
+            // the content card that overlays it from its rounded top
+            // downward.
+            tintBackground
+                .frame(height: 420)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .ignoresSafeArea(edges: [.top, .horizontal])
                 .animation(.easeInOut(duration: 0.35), value: activeColorFamily)
 
             StickyBlurHeader(
@@ -125,7 +139,6 @@ struct MemoryDetailView: View {
 
     private var menuItems: [LumoriaMenuItem] {
         [
-            .init(title: "New ticket…") { showNewTicket = true },
             .init(title: "Add existing ticket…") {
                 showAddExistingTicket = true
             },
@@ -165,6 +178,13 @@ struct MemoryDetailView: View {
             }
             .disabled(!hasAnyLocation)
             .opacity(hasAnyLocation ? 1 : 0.5)
+
+            LumoriaIconButton(
+                systemImage: "plus",
+                position: .onSurface
+            ) {
+                showNewTicket = true
+            }
 
             LumoriaIconButton(
                 systemImage: "ellipsis",
@@ -227,11 +247,10 @@ struct MemoryDetailView: View {
 
     private var emptyBody: some View {
         VStack(spacing: 8) {
-            Spacer(minLength: 0)
-
             Text("This memory is empty. Add a ticket to begin.")
                 .font(.title2.bold())
                 .foregroundStyle(Color.Text.tertiary)
+                .multilineTextAlignment(.center)
 
             VStack(spacing: 0) {
                 HStack(spacing: 4) {
@@ -245,12 +264,10 @@ struct MemoryDetailView: View {
             .font(.body)
             .foregroundStyle(Color.Text.tertiary)
             .multilineTextAlignment(.center)
-
-            Spacer(minLength: 0)
         }
         .padding(.horizontal, 40)
-        .padding(.vertical, 16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.top, 48)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     // MARK: - Grid

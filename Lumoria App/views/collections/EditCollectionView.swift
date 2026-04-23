@@ -19,10 +19,14 @@ struct EditMemoryView: View {
     @State private var title: String
     @State private var selectedColor: ColorOption?
     @State private var emoji: String?
+    @State private var startDate: Date?
+    @State private var endDate: Date?
 
     private let originalTitle: String
     private let originalColor: ColorOption?
     private let originalEmoji: String?
+    private let originalStartDate: Date?
+    private let originalEndDate: Date?
 
     init(
         memory: Memory,
@@ -34,14 +38,20 @@ struct EditMemoryView: View {
         let title = memory.name
         let color = memory.colorOption
         let emoji = memory.emoji
+        let startDate = memory.startDate
+        let endDate = memory.endDate
 
         _title = State(initialValue: title)
         _selectedColor = State(initialValue: color)
         _emoji = State(initialValue: emoji)
+        _startDate = State(initialValue: startDate)
+        _endDate = State(initialValue: endDate)
 
         self.originalTitle = title
         self.originalColor = color
         self.originalEmoji = emoji
+        self.originalStartDate = startDate
+        self.originalEndDate = endDate
     }
 
     var body: some View {
@@ -50,6 +60,7 @@ struct EditMemoryView: View {
                 intro
                 titleField
                 emojiColorRow
+                dateRow
             }
             .padding(.horizontal, Spacing.s6)
             .padding(.top, 72)
@@ -136,6 +147,11 @@ struct EditMemoryView: View {
                     }
                 }
             }
+            // Raise the row's z-index so the color picker's open list
+            // draws on top of the caption below (SwiftUI renders later
+            // VStack siblings above earlier ones' out-of-bounds
+            // overlays by default).
+            .zIndex(1)
 
             Text(assistiveCopy)
                 .font(.caption2)
@@ -158,6 +174,39 @@ struct EditMemoryView: View {
         (emojiDirty || colorDirty) ? Color(hex: "8A4500") : Color(hex: "525252")
     }
 
+    // MARK: - Start / end date row
+
+    private var dateRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 16) {
+                LumoriaDateField(
+                    label: "Start date",
+                    date: $startDate,
+                    state: startDateDirty ? .warning : .default
+                )
+                LumoriaDateField(
+                    label: "End date",
+                    date: $endDate,
+                    state: endDateDirty ? .warning : .default
+                )
+            }
+
+            Text(dateAssistiveCopy)
+                .font(.caption2)
+                .foregroundStyle(dateAssistiveColor)
+        }
+    }
+
+    private var dateAssistiveCopy: String {
+        (startDateDirty || endDateDirty)
+            ? String(localized: "You edited this field but your changes have not been saved yet.")
+            : String(localized: "Add a start and end date to track your memory.")
+    }
+
+    private var dateAssistiveColor: Color {
+        (startDateDirty || endDateDirty) ? Color(hex: "8A4500") : Color(hex: "525252")
+    }
+
     // MARK: - Primary CTA
 
     private var saveButton: some View {
@@ -177,7 +226,9 @@ struct EditMemoryView: View {
                 memory,
                 name: title.trimmingCharacters(in: .whitespaces),
                 colorFamily: color.family,
-                emoji: emoji
+                emoji: emoji,
+                startDate: startDate,
+                endDate: endDate
             )
             dismiss()
         }
@@ -198,8 +249,16 @@ struct EditMemoryView: View {
         emoji != originalEmoji
     }
 
+    private var startDateDirty: Bool {
+        startDate != originalStartDate
+    }
+
+    private var endDateDirty: Bool {
+        endDate != originalEndDate
+    }
+
     private var hasChanges: Bool {
-        titleDirty || colorDirty || emojiDirty
+        titleDirty || colorDirty || emojiDirty || startDateDirty || endDateDirty
     }
 
     private var canSave: Bool {

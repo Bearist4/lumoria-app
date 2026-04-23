@@ -13,7 +13,17 @@ import SwiftUI
 
 struct AddToMemorySheet: View {
 
-    let ticket: Ticket
+    /// One or more tickets to add or remove as a group. Multi-leg
+    /// underground journeys pass every persisted leg so picking a
+    /// memory stores them all at once; all other templates pass a
+    /// single ticket and the sheet behaves exactly as before.
+    let tickets: [Ticket]
+
+    /// Convenience for the single-ticket callers (plane / train /
+    /// concert) — keeps the old `AddToMemorySheet(ticket:)` call site
+    /// working.
+    init(ticket: Ticket) { self.tickets = [ticket] }
+    init(tickets: [Ticket]) { self.tickets = tickets }
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
@@ -109,24 +119,28 @@ struct AddToMemorySheet: View {
 
     // MARK: - Helpers
 
-    /// Latest snapshot of the ticket (picks up any memory edits the store
-    /// has applied since this sheet was presented).
-    private var currentTicket: Ticket {
-        ticketsStore.ticket(with: ticket.id) ?? ticket
+    /// Latest snapshots of the tracked tickets — picks up any memory
+    /// edits the store has applied since the sheet was presented.
+    private var currentTickets: [Ticket] {
+        tickets.map { ticketsStore.ticket(with: $0.id) ?? $0 }
     }
 
+    /// A memory is considered "member" when EVERY tracked ticket is
+    /// in it. Mixed states fall back to non-member so the tap adds the
+    /// missing ones instead of pulling everything out.
     private func isMember(of memory: Memory) -> Bool {
-        currentTicket.memoryIds.contains(memory.id)
+        currentTickets.allSatisfy { $0.memoryIds.contains(memory.id) }
     }
 
-    /// Tickets already in the memory, with the currently-being-added
-    /// ticket pinned to the top when it's a member. The card shows
-    /// whatever is here as the deck — up to 5 get rendered.
+    /// Tickets already in the memory, with the current group pinned
+    /// to the top when all its members are in. The card shows whatever
+    /// is here as the deck — up to 5 get rendered.
     private func visibleTickets(in memory: Memory) -> [Ticket] {
         let existing = ticketsStore.tickets(in: memory.id)
         guard isMember(of: memory) else { return existing }
-        var ordered = existing.filter { $0.id != currentTicket.id }
-        ordered.insert(currentTicket, at: 0)
+        let groupIds = Set(currentTickets.map(\.id))
+        var ordered = existing.filter { !groupIds.contains($0.id) }
+        ordered.insert(contentsOf: currentTickets, at: 0)
         return ordered
     }
 
@@ -135,22 +149,43 @@ struct AddToMemorySheet: View {
         return count == 1 ? "1 ticket" : "\(count) tickets"
     }
 
+    /// Toggles every tracked ticket's membership as a group. If all
+    /// were already members, removes the group; otherwise adds every
+    /// ticket that wasn't in. Analytics fires one event summarising
+    /// the batch rather than one per ticket.
     private func toggle(_ m: Memory) async {
-        let wasMember = isMember(of: m)
-        await ticketsStore.toggleMembership(ticketId: ticket.id, memoryId: m.id)
-        if wasMember {
+        let wasFullMember = isMember(of: m)
+        for t in currentTickets {
+            let isIn = t.memoryIds.contains(m.id)
+            if wasFullMember {
+                // Remove every member.
+                if isIn {
+                    await ticketsStore.toggleMembership(ticketId: t.id, memoryId: m.id)
+                }
+            } else {
+                // Add every non-member (leave existing members alone).
+                if !isIn {
+                    await ticketsStore.toggleMembership(ticketId: t.id, memoryId: m.id)
+                }
+            }
+        }
+
+        if wasFullMember {
             Analytics.track(.ticketRemovedFromMemory(
                 memoryIdHash: AnalyticsIdentity.hashUUID(m.id)
             ))
+            toastMessage = currentTickets.count == 1
+                ? "Removed from \(m.name)"
+                : "Removed \(currentTickets.count) tickets from \(m.name)"
         } else {
             let newCount = ticketsStore.tickets(in: m.id).count
             Analytics.track(.ticketAddedToMemory(
                 memoryIdHash: AnalyticsIdentity.hashUUID(m.id),
                 newTicketCount: newCount
             ))
+            toastMessage = currentTickets.count == 1
+                ? "Ticket added to \(m.name)"
+                : "\(currentTickets.count) tickets added to \(m.name)"
         }
-        toastMessage = wasMember
-            ? "Removed from \(m.name)"
-            : "Ticket added to \(m.name)"
     }
 }

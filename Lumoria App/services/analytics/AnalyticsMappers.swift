@@ -15,9 +15,14 @@ extension TicketCategory {
         switch self {
         case .plane:         return .plane
         case .train:         return .train
-        case .parksGardens:  return .parks_gardens
-        case .publicTransit: return .public_transit
         case .concert:       return .concert
+        case .event:         return .event
+        case .food:          return .food
+        case .movie:         return .movie
+        case .museum:        return .museum
+        case .sport:         return .sport
+        case .garden:        return .garden
+        case .publicTransit: return .public_transit
         }
     }
 }
@@ -34,6 +39,10 @@ extension TicketTemplateKind {
         case .express:   return .express
         case .orient:    return .orient
         case .night:     return .night
+        case .post:      return .post
+        case .glow:        return .glow
+        case .concert:     return .concert
+        case .underground: return .underground
         }
     }
 
@@ -42,8 +51,12 @@ extension TicketTemplateKind {
         switch self {
         case .afterglow, .studio, .terminal, .heritage, .prism:
             return .plane
-        case .express, .orient, .night:
+        case .express, .orient, .night, .post, .glow:
             return .train
+        case .concert:
+            return .concert
+        case .underground:
+            return .public_transit
         }
     }
 }

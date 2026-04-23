@@ -13,29 +13,25 @@ struct HelpCenterView: View {
     let onArticleSelected: (HelpArticle) -> Void
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.Background.default.ignoresSafeArea()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                topBar
+                    .padding(.top, 6)
+                    .padding(.bottom, 8)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Text("Help center")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(Color.Text.primary)
-                        .padding(.top, 64)
-                        .padding(.bottom, 8)
+                Text("Help center")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Color.Text.primary)
+                    .padding(.bottom, 8)
 
-                    ForEach(HelpSection.allCases, id: \.self) { section in
-                        sectionGroup(section)
-                    }
+                ForEach(HelpSection.allCases, id: \.self) { section in
+                    sectionGroup(section)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 120)
             }
-
-            topBar
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 120)
         }
+        .background(Color.Background.default.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
     }
 

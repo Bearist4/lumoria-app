@@ -14,6 +14,7 @@ enum SettingsDestination: Hashable {
     case profile
     case notifications
     case appearance
+    case map
     case referral
     case plan
     case helpCenter
@@ -37,12 +38,7 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack(path: $path) {
-            StickyBlurHeader(maxBlurRadius: 8, fadeExtension: 48) {
-                // No top-bar controls on the root settings screen — a thin
-                // spacer is enough for the blur to cover the status bar area
-                // once content scrolls under it.
-                Color.clear.frame(height: 8)
-            } content: {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
@@ -54,6 +50,9 @@ struct SettingsView: View {
                         }
                         settingsRow(icon: "paintbrush",     title: "Appearance",       right: .chevron) {
                             path.append(.appearance)
+                        }
+                        settingsRow(icon: "map",            title: "Map",              right: .chevron) {
+                            path.append(.map)
                         }
                     }
 
@@ -125,6 +124,7 @@ struct SettingsView: View {
                 case .profile:       ProfileView()
                 case .notifications: NotificationsView()
                 case .appearance:    AppearanceView()
+                case .map:           MapPreferencesView()
                 case .referral:      InviteView()
                 case .plan:          placeholderView("Plan")
                 case .helpCenter:

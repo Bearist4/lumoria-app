@@ -89,7 +89,7 @@ final class PushNotificationService: NSObject, ObservableObject {
 
     private func uploadTokenIfPossible() async {
         guard let token = cachedToken,
-              let userId = supabase.auth.currentUser?.id,
+              supabase.auth.currentUser != nil,
               !hasUploadedForCurrentSession
         else { return }
 
@@ -99,26 +99,30 @@ final class PushNotificationService: NSObject, ObservableObject {
         let env = "production"
         #endif
 
-        struct Row: Encodable {
-            let token: String
-            let user_id: UUID
-            let platform: String
-            let environment: String
-            let last_seen_at: Date
+        // Registration goes through the `register_device_token` RPC
+        // (SECURITY DEFINER) instead of a direct upsert. A plain upsert
+        // hits `device_tokens.token` — the primary key — and if the row
+        // already belongs to a previous user (sign-out then sign-in on
+        // the same device) the UPDATE policy's USING clause rejects the
+        // call with 42501. The RPC rewrites `user_id = auth.uid()`
+        // server-side so the blessed "this is my device now" flow
+        // works without loosening RLS.
+        struct Args: Encodable {
+            let p_token: String
+            let p_environment: String
+            let p_platform: String
         }
-
-        let row = Row(
-            token: token,
-            user_id: userId,
-            platform: "ios",
-            environment: env,
-            last_seen_at: Date()
-        )
 
         do {
             try await supabase
-                .from("device_tokens")
-                .upsert(row, onConflict: "token")
+                .rpc(
+                    "register_device_token",
+                    params: Args(
+                        p_token: token,
+                        p_environment: env,
+                        p_platform: "ios"
+                    )
+                )
                 .execute()
             hasUploadedForCurrentSession = true
         } catch {

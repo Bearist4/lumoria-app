@@ -51,7 +51,7 @@ struct PrismTicketVerticalView: View {
                     VStack(spacing: 0) {
                         Spacer(minLength: 0)
                         footerBlock(scale: s)
-                            .frame(width: w, height: 110 * s)
+                            .frame(width: w, height: 132 * s)
                     }
                 }
                 .mask(bgMask)

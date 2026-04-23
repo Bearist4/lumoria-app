@@ -360,6 +360,7 @@ private struct CameraRollView: View {
     let onExported: () -> Void
 
     @State private var includeBackground: Bool = true
+    @State private var backgroundStyle: ExportBackgroundStyle = .gradient
     @State private var includeWatermark: Bool = true
     @State private var resolution: Resolution = .standard
     @State private var crop: Crop = .fullTicket
@@ -407,6 +408,9 @@ private struct CameraRollView: View {
                         subtitle: "Your ticket, set against a beautiful scene.",
                         isOn: $includeBackground
                     )
+                    if includeBackground {
+                        backgroundStyleRow
+                    }
                     toggleRow(
                         title: "Watermark",
                         subtitle: "Let people know where the magic came from.",
@@ -465,7 +469,18 @@ private struct CameraRollView: View {
         let previewTicket = ticket
         let isVertical = previewTicket.orientation == .vertical
 
-        return VStack {
+        return ZStack {
+            // Card backdrop: either the selected export background, or a
+            // soft checkered pattern that stands in for the transparent
+            // canvas the user is about to render.
+            Group {
+                if includeBackground {
+                    ExportBackgroundView(style: backgroundStyle)
+                } else {
+                    CheckeredBackgroundView()
+                }
+            }
+
             TicketPreview(ticket: previewTicket, isCentered: true)
                 .aspectRatio(isVertical ? 260/455 : 455/260, contentMode: .fit)
                 // Vertical tickets cap at 200pt wide to mirror the 0.5×
@@ -473,14 +488,11 @@ private struct CameraRollView: View {
                 // constraint (not scaleEffect) so the card hugs the ticket
                 // instead of reserving full-size space around it.
                 .frame(maxWidth: isVertical ? 200 : .infinity)
+                .padding(.vertical, 32)
+                .padding(.horizontal, 26)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .padding(.horizontal, 26)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.Background.elevated)
-        )
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .stroke(Color.Border.default, lineWidth: 1)
@@ -491,6 +503,38 @@ private struct CameraRollView: View {
     }
 
     // MARK: - Rows
+
+    private var backgroundStyleRow: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Background style")
+                    .font(.headline)
+                    .foregroundStyle(Color.Text.primary)
+                Text("Pick the scene your ticket is set against.")
+                    .font(.footnote)
+                    .foregroundStyle(Color.Text.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(ExportBackgroundStyle.allCases) { style in
+                    BackgroundStyleTile(
+                        style: style,
+                        isSelected: backgroundStyle == style
+                    ) {
+                        backgroundStyle = style
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.Background.elevated)
+        )
+    }
 
     private func toggleRow(
         title: LocalizedStringKey,
@@ -630,11 +674,15 @@ private struct CameraRollView: View {
         let exportView = ExportRenderView(
             ticket: ticket,
             includeBackground: includeBackground,
+            backgroundStyle: backgroundStyle,
             includeWatermark: includeWatermark,
             crop: crop
         )
         let renderer = ImageRenderer(content: exportView)
         renderer.scale = resolution.scale * UIScreen.main.scale
+        // Preserve transparency when the user opted out of a background —
+        // only PNG actually carries the alpha channel through.
+        renderer.isOpaque = includeBackground
         return renderer.uiImage
     }
 }
@@ -647,6 +695,7 @@ private struct CameraRollView: View {
 private struct ExportRenderView: View {
     let ticket: Ticket
     let includeBackground: Bool
+    let backgroundStyle: ExportBackgroundStyle
     let includeWatermark: Bool
     let crop: CameraRollView.Crop
 
@@ -664,11 +713,7 @@ private struct ExportRenderView: View {
     var body: some View {
         ZStack {
             if includeBackground {
-                LinearGradient(
-                    colors: [Color(hex: "F5D46A"), Color(hex: "F07AC0")],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+                ExportBackgroundView(style: backgroundStyle)
             } else {
                 Color.clear
             }
@@ -684,6 +729,131 @@ private struct ExportRenderView: View {
         // Propagates down to every template view's `madeWithBadge` so they
         // render (or skip) the embedded Lumoria watermark in unison.
         .environment(\.showsLumoriaWatermark, includeWatermark)
+    }
+}
+
+// MARK: - Background style
+
+enum ExportBackgroundStyle: String, CaseIterable, Identifiable {
+    case grid
+    case gradient
+    case white
+
+    var id: String { rawValue }
+
+    var displayName: LocalizedStringKey {
+        switch self {
+        case .grid:     return "Grid"
+        case .gradient: return "Gradient"
+        case .white:    return "White"
+        }
+    }
+}
+
+/// Renders the chosen export background at whatever size it's placed in.
+struct ExportBackgroundView: View {
+    let style: ExportBackgroundStyle
+
+    var body: some View {
+        switch style {
+        case .grid:
+            GridBackgroundView()
+        case .gradient:
+            LinearGradient(
+                colors: [Color(hex: "F5D46A"), Color(hex: "F07AC0")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        case .white:
+            Color.white
+        }
+    }
+}
+
+/// Soft architectural grid — thin gray lines on an off-white ground.
+private struct GridBackgroundView: View {
+    var body: some View {
+        Canvas { ctx, size in
+            let spacing: CGFloat = max(40, min(size.width, size.height) / 14)
+            let lineColor = Color.black.opacity(0.08)
+            var x: CGFloat = 0
+            while x <= size.width {
+                ctx.fill(
+                    Path(CGRect(x: x, y: 0, width: 1, height: size.height)),
+                    with: .color(lineColor)
+                )
+                x += spacing
+            }
+            var y: CGFloat = 0
+            while y <= size.height {
+                ctx.fill(
+                    Path(CGRect(x: 0, y: y, width: size.width, height: 1)),
+                    with: .color(lineColor)
+                )
+                y += spacing
+            }
+        }
+        .background(Color(hex: "F7F5EF"))
+    }
+}
+
+/// Light checkered pattern that stands in for a transparent canvas
+/// behind the ticket preview when the user has turned off the export
+/// background.
+struct CheckeredBackgroundView: View {
+    var body: some View {
+        Canvas { ctx, size in
+            let square: CGFloat = 12
+            let light = Color.white
+            let dark  = Color(hex: "E5E5E5")
+            let cols = Int(ceil(size.width / square))
+            let rows = Int(ceil(size.height / square))
+            for r in 0..<rows {
+                for c in 0..<cols {
+                    let color = (r + c) % 2 == 0 ? light : dark
+                    let rect = CGRect(
+                        x: CGFloat(c) * square,
+                        y: CGFloat(r) * square,
+                        width: square,
+                        height: square
+                    )
+                    ctx.fill(Path(rect), with: .color(color))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Background style tile
+
+/// Small thumbnail used in the background-style selector row. Renders
+/// a scaled-down version of each background so the user can see what
+/// they're picking.
+private struct BackgroundStyleTile: View {
+    let style: ExportBackgroundStyle
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                ExportBackgroundView(style: style)
+                    .frame(height: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(
+                                isSelected ? Color.Text.primary : Color.Border.hairline,
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    )
+
+                Text(style.displayName)
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(Color.Text.primary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 

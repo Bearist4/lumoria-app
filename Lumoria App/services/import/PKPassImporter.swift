@@ -124,7 +124,17 @@ enum PKPassImporter {
     private static func transitKind(for template: TicketTemplateKind) -> TransitKind {
         switch template {
         case .afterglow, .studio, .terminal, .heritage, .prism: return .air
-        case .express, .orient, .night:                          return .train
+        case .express, .orient, .night, .post, .glow:           return .train
+        // Concert templates have no PKPass wallet flow, but the switch
+        // must be exhaustive. Treat them as `.other` — the caller's
+        // compatibility gate (`expectedKind == .train && transit != .air`)
+        // would let an "other" pass slip through, so callers should
+        // avoid invoking the importer for concert templates. In
+        // practice the wallet entry point never routes here.
+        case .concert:                                              return .other
+        // Underground (subway / metro) passes aren't in the PKPass
+        // wallet ecosystem either; same `.other` bypass applies.
+        case .underground:                                          return .other
         }
     }
 

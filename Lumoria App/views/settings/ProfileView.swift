@@ -43,16 +43,14 @@ struct ProfileView: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            StickyBlurHeader(maxBlurRadius: 8, fadeExtension: 48) {
-                topBar
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-            } content: {
+            ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    topBar
+                        .padding(.top, 6)
+
                     Text("Profile")
                         .font(.largeTitle.bold())
                         .foregroundStyle(Color.Text.primary)
-                        .padding(.top, 8)
 
                     ZStack(alignment: .top) {
                         card

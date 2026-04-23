@@ -31,6 +31,10 @@ struct NewTicketSuccessStep: View {
             previewCard
                 .frame(maxHeight: .infinity)
 
+            if !funnel.autoFilledFields.isEmpty {
+                autoFilledNotice
+            }
+
             if let error = funnel.errorMessage {
                 errorBanner(error)
             }
@@ -38,7 +42,9 @@ struct NewTicketSuccessStep: View {
             actionsGrid
         }
         .sheet(isPresented: $showAddToMemory) {
-            if let ticket = funnel.createdTicket {
+            if !funnel.createdTickets.isEmpty {
+                AddToMemorySheet(tickets: funnel.createdTickets)
+            } else if let ticket = funnel.createdTicket {
                 AddToMemorySheet(ticket: ticket)
             }
         }
@@ -59,9 +65,15 @@ struct NewTicketSuccessStep: View {
 
             let (fieldCount, hasOrigin, hasDest): (Int, Bool, Bool) = {
                 switch template {
-                case .express, .orient, .night:
+                case .express, .orient, .night, .post, .glow:
                     let t = funnel.trainForm
                     return (0, t.originStationLocation != nil, t.destinationStationLocation != nil)
+                case .concert:
+                    let e = funnel.eventForm
+                    return (0, e.venueLocation != nil, false)
+                case .underground:
+                    let u = funnel.undergroundForm
+                    return (0, u.originStation != nil, u.destinationStation != nil)
                 default:
                     let f = funnel.form
                     return (0, f.originAirport != nil, f.destinationAirport != nil)
@@ -154,7 +166,20 @@ struct NewTicketSuccessStep: View {
 
     @ViewBuilder
     private var createPreviewCard: some View {
-        if let saved = funnel.createdTicket {
+        if funnel.createdTickets.count > 1 {
+            // Multi-leg journey (underground with transfers) — scroll
+            // through every persisted ticket so the rider sees each
+            // line's colour / stations / stop count.
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(funnel.createdTickets) { ticket in
+                        TicketPreview(ticket: ticket, isCentered: true)
+                            .padding(.horizontal, 16)
+                    }
+                }
+                .padding(.vertical, 16)
+            }
+        } else if let saved = funnel.createdTicket {
             TicketSaveRevealView(orientation: saved.orientation) {
                 TicketPreview(ticket: saved, isCentered: true)
             }
@@ -238,6 +263,29 @@ struct NewTicketSuccessStep: View {
             Text("Saving your ticket…")
                 .font(.subheadline)
                 .foregroundStyle(Color.Text.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.Background.subtle)
+        )
+    }
+
+    /// Info banner listing the field labels that `NewTicketFunnel`
+    /// filled with placeholder copy on advance, so the user knows what
+    /// we touched and can edit the saved ticket later if they want to
+    /// swap the copy.
+    private var autoFilledNotice: some View {
+        let fields = funnel.autoFilledFields
+            .joined(separator: ", ")
+        return HStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .foregroundStyle(Color.Text.secondary)
+            Text("We filled in \(fields) for you. Edit the ticket later to swap the copy.")
+                .font(.footnote)
+                .foregroundStyle(Color.Text.secondary)
+                .lineLimit(3)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)

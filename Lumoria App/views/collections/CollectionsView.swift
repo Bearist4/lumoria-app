@@ -96,13 +96,15 @@ struct MemoriesView: View {
             }
             .task { await store.load() }
             .sheet(isPresented: $showNewMemory) {
-                NewMemoryView { name, color, emoji in
+                NewMemoryView { name, color, emoji, startDate, endDate in
                     guard let color else { return }
                     Task {
                         await store.create(
                             name: name,
                             colorFamily: color.family,
-                            emoji: emoji
+                            emoji: emoji,
+                            startDate: startDate,
+                            endDate: endDate
                         )
                     }
                 }

@@ -81,6 +81,10 @@ enum TicketStyleCatalog {
         case .express:   return express
         case .orient:    return orient
         case .night:     return night
+        case .post:      return post
+        case .glow:        return glow
+        case .concert:     return concert
+        case .underground: return underground
         }
     }
 
@@ -313,6 +317,121 @@ enum TicketStyleCatalog {
                 background: Color(hex: "0E1731"),    // navy ticket bg
                 textOnSurface: Color(hex: "0E1731"), // navy on gold
                 textOnBackground: Color(hex: "F3ECD9"), // cream on navy
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let post: [TicketStyleVariant] = [
+        // Cream paper with a warm off-white fill, charcoal type and a
+        // hairline rule (the "divider" field drawn across headers +
+        // column separators). Values live here rather than hard-coded
+        // on the view so future variants (grey stock, blue dye) can
+        // extend the array without touching the template body.
+        TicketStyleVariant(
+            id: "post.default",
+            label: "Default",
+            backgroundAsset: "post-bg",
+            textPrimary: Color(hex: "1B1B1B"),
+            textSecondary: Color(hex: "1B1B1B").opacity(0.5),
+            accent: Color(hex: "1B1B1B"),
+            onAccent: Color(hex: "F5EEDC"),
+            divider: Color.black.opacity(0.1),
+            footerFill: .black,
+            footerText: .white,
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: "1B1B1B"),
+                accent: Color(hex: "1B1B1B"),
+                background: Color(hex: "F5EEDC"),
+                textOnSurface: Color(hex: "F5EEDC"),
+                textOnBackground: Color(hex: "1B1B1B"),
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let glow: [TicketStyleVariant] = [
+        // Pitch-black card with a warm bloom; values below drive the
+        // overlay text (background itself is code-drawn via
+        // `GlowBackground`). `accent` is the magenta seed used by the
+        // picker swatch so the tile reads as "warm-on-black".
+        TicketStyleVariant(
+            id: "glow.default",
+            label: "Default",
+            backgroundAsset: "glow-bg",
+            textPrimary: .white,
+            textSecondary: .white.opacity(0.5),
+            accent: Color(hex: "D6258C"),
+            onAccent: .white,
+            divider: Color.white.opacity(0.15),
+            footerFill: .black,
+            footerText: .white,
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: "D6258C"),
+                accent: Color(hex: "D6258C"),
+                background: .black,
+                textOnSurface: .white,
+                textOnBackground: .white,
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let underground: [TicketStyleVariant] = [
+        // Dark-card subway / metro stub. The template draws its own
+        // colours entirely — the line-colour accent comes from the
+        // ticket's payload (`UndergroundTicket.lineColor`), not from
+        // this variant — so the variant exists purely to satisfy the
+        // catalog contract with a neutral dark theme.
+        TicketStyleVariant(
+            id: "underground.default",
+            label: "Default",
+            backgroundAsset: nil,
+            textPrimary: .white,
+            textSecondary: .white.opacity(0.35),
+            accent: Color(hex: "6A4FA0"),
+            onAccent: .white,
+            divider: Color.white.opacity(0.15),
+            footerFill: Color(hex: "15151F"),
+            footerText: .white,
+            footerScheme: .light,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: "15151F"),
+                accent: Color(hex: "6A4FA0"),
+                background: Color(hex: "15151F"),
+                textOnSurface: .white,
+                textOnBackground: .white,
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let concert: [TicketStyleVariant] = [
+        // Dreamy pop-concert stub — baby-pink gradient background asset,
+        // deep maroon body copy and a warm rose accent that drives the
+        // curved artist arc, the heart decorations and the "ADMIT ONE"
+        // pill. Future colourways (Midnight, Glitter, etc.) can just
+        // append to this array.
+        TicketStyleVariant(
+            id: "concert.default",
+            label: "Default",
+            backgroundAsset: "concert-bg",
+            textPrimary: Color(hex: "52002F"),
+            textSecondary: Color(hex: "80004D").opacity(0.75),
+            accent: Color(hex: "F53BAD"),
+            onAccent: Color(hex: "FFF2F7"),
+            divider: Color(hex: "52002F").opacity(0.12),
+            footerFill: Color(hex: "52002F"),
+            footerText: Color(hex: "FFF2F7"),
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: "F53BAD"),
+                accent: Color(hex: "F53BAD"),
+                background: Color(hex: "FFD1E8"),
+                textOnSurface: Color(hex: "FFF2F7"),
+                textOnBackground: Color(hex: "52002F"),
                 layout: .twoZone
             )
         ),

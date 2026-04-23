@@ -62,6 +62,7 @@
 	<string>Lumoria saves your exported tickets to your photo library.</string>
 	<key>UIAppFonts</key>
 	<array>
+		<string>MomoTrustDisplay-Regular.ttf</string>
 		<string>Doto-Black.ttf</string>
 		<string>PlayfairDisplay-Regular.ttf</string>
 		<string>PlayfairDisplay-Italic.ttf</string>

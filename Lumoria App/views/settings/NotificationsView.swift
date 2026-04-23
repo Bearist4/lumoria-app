@@ -27,20 +27,20 @@ struct NotificationsView: View {
     @State private var isCheckingSystemAuth = false
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.Background.default.ignoresSafeArea()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                topBar
+                    .padding(.top, 6)
+                    .padding(.bottom, 8)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Notifications")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(Color.Text.primary)
-                        .padding(.top, 64)
-                        .padding(.bottom, 8)
+                Text("Notifications")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Color.Text.primary)
+                    .padding(.bottom, 8)
 
-                    if !systemAuthorized {
-                        systemDeniedBanner
-                    }
+                if !systemAuthorized {
+                    systemDeniedBanner
+                }
 
                     section(title: "Invites & memories") {
                         toggleRow(
@@ -58,27 +58,23 @@ struct NotificationsView: View {
                         )
                     }
 
-                    section(title: "Memories") {
-                        toggleRow(
-                            title: "On this day",
-                            subtitle: "A look back at a trip from this date, one year later.",
-                            isOn: $onThisDay
-                        )
-                        toggleRow(
-                            title: "Memory milestones",
-                            subtitle: "When your memory reaches something worth celebrating.",
-                            isOn: $memoryMilestones
-                        )
-                    }
+                section(title: "Memories") {
+                    toggleRow(
+                        title: "On this day",
+                        subtitle: "A look back at a trip from this date, one year later.",
+                        isOn: $onThisDay
+                    )
+                    toggleRow(
+                        title: "Memory milestones",
+                        subtitle: "When your memory reaches something worth celebrating.",
+                        isOn: $memoryMilestones
+                    )
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 120)
             }
-
-            topBar
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 120)
         }
+        .background(Color.Background.default.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task {
             await refreshSystemAuth()

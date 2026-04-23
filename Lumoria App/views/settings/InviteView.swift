@@ -26,26 +26,21 @@ struct InviteView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.Background.default.ignoresSafeArea()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                topBar
+                    .padding(.top, 6)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Text("Invite")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(Color.Text.primary)
-                        .padding(.top, 64)
+                Text("Invite")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Color.Text.primary)
 
-                    stateContent
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 120)
+                stateContent
             }
-
-            topBar
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 120)
         }
+        .background(Color.Background.default.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomBar

@@ -41,9 +41,20 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
         VStack(alignment: .leading, spacing: 4) {
             labelRow
             field
-            if isOpen {
-                list
-            } else if let assistiveText {
+                // List floats as an overlay anchored to the field so
+                // opening the dropdown never changes the column's
+                // layout height. Surrounding siblings (e.g. an
+                // assistive caption below a HStack holding this
+                // dropdown) stay put; the list simply draws on top.
+                .overlay(alignment: .topLeading) {
+                    if isOpen {
+                        list
+                            .frame(maxWidth: .infinity)
+                            .offset(y: 54)
+                            .zIndex(1)
+                    }
+                }
+            if let assistiveText, !isOpen {
                 assistive(assistiveText)
             }
         }

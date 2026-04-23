@@ -31,28 +31,23 @@ struct AppearanceView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Color.Background.default.ignoresSafeArea()
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                topBar
+                    .padding(.top, 6)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    Text("Appearance")
-                        .font(.largeTitle.bold())
-                        .foregroundStyle(Color.Text.primary)
-                        .padding(.top, 64)
+                Text("Appearance")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Color.Text.primary)
 
-                    themeSection
-                    accessibilitySection
-                    appIconSection
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 120)
+                themeSection
+                accessibilitySection
+                appIconSection
             }
-
-            topBar
-                .padding(.horizontal, 16)
-                .padding(.top, 6)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 120)
         }
+        .background(Color.Background.default.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             storedIconName = UIApplication.shared.alternateIconName ?? ""

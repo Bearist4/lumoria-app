@@ -51,10 +51,13 @@ struct NewTicketFormStep: View {
 
     var body: some View {
         switch funnel.template {
-        case .express: NewTrainFormStep(funnel: funnel)
-        case .orient:  NewOrientFormStep(funnel: funnel)
-        case .night:   NewNightFormStep(funnel: funnel)
-        default:       planeBody
+        case .express:     NewTrainFormStep(funnel: funnel)
+        case .orient:      NewOrientFormStep(funnel: funnel)
+        case .night:       NewNightFormStep(funnel: funnel)
+        case .post, .glow: NewPostFormStep(funnel: funnel)
+        case .concert:     NewConcertFormStep(funnel: funnel)
+        case .underground: NewUndergroundFormStep(funnel: funnel)
+        default:           planeBody
         }
     }
 
@@ -171,10 +174,10 @@ struct NewTicketFormStep: View {
                 // Afterglow passes `originName` through as `originCity` in
                 // the payload — feed it the city, not the airport name.
                 return location.city ?? location.name
-            case .studio, .heritage, .terminal, .prism, .express, .orient, .night:
-                // Train templates never reach this codepath (their form
-                // doesn't call applyAirport), but the switch must be
-                // exhaustive.
+            case .studio, .heritage, .terminal, .prism, .express, .orient, .night, .post, .glow, .concert, .underground:
+                // Train / concert / underground templates never reach
+                // this codepath (their form doesn't call applyAirport),
+                // but the switch must be exhaustive.
                 return location.name
             }
         }()

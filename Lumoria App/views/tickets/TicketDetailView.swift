@@ -89,13 +89,15 @@ struct TicketDetailView: View {
             ))
         }
         .sheet(isPresented: $showNewMemory) {
-            NewMemoryView { name, color, emoji in
+            NewMemoryView { name, color, emoji, startDate, endDate in
                 guard let color else { return }
                 Task {
                     await memoriesStore.create(
                         name: name,
                         colorFamily: color.family,
-                        emoji: emoji
+                        emoji: emoji,
+                        startDate: startDate,
+                        endDate: endDate
                     )
                 }
             }

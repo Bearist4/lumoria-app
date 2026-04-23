@@ -10,12 +10,14 @@
 import Foundation
 
 enum TicketCategoryProp: String, CaseIterable {
-    case plane, train, parks_gardens, public_transit, concert
+    case plane, train, concert, event, food, movie, museum, sport, garden, public_transit
 }
 
 enum TicketTemplateProp: String, CaseIterable {
     case afterglow, studio, terminal, heritage, prism
-    case express, orient, night
+    case express, orient, night, post, glow
+    case concert
+    case underground
 }
 
 enum OrientationProp: String, CaseIterable {

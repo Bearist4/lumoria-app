@@ -165,6 +165,10 @@ enum TicketCodec {
         case .express(let t):   return try payloadEncoder.encode(t)
         case .orient(let t):    return try payloadEncoder.encode(t)
         case .night(let t):     return try payloadEncoder.encode(t)
+        case .post(let t):      return try payloadEncoder.encode(t)
+        case .glow(let t):        return try payloadEncoder.encode(t)
+        case .concert(let t):     return try payloadEncoder.encode(t)
+        case .underground(let t): return try payloadEncoder.encode(t)
         }
     }
 
@@ -192,6 +196,10 @@ enum TicketCodec {
         case .express:   return .express(  try payloadDecoder.decode(ExpressTicket.self,   from: cleartext))
         case .orient:    return .orient(   try payloadDecoder.decode(OrientTicket.self,    from: cleartext))
         case .night:     return .night(    try payloadDecoder.decode(NightTicket.self,     from: cleartext))
+        case .post:      return .post(     try payloadDecoder.decode(PostTicket.self,      from: cleartext))
+        case .glow:        return .glow(       try payloadDecoder.decode(GlowTicket.self,        from: cleartext))
+        case .concert:     return .concert(    try payloadDecoder.decode(ConcertTicket.self,     from: cleartext))
+        case .underground: return .underground(try payloadDecoder.decode(UndergroundTicket.self, from: cleartext))
         }
     }
 }

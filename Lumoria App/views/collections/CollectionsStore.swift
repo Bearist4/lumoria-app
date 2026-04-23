@@ -73,7 +73,9 @@ final class MemoriesStore: ObservableObject {
     func create(
         name: String,
         colorFamily: String,
-        emoji: String?
+        emoji: String?,
+        startDate: Date? = nil,
+        endDate: Date? = nil
     ) async -> Memory? {
 
         guard let userId = supabase.auth.currentUser?.id else {
@@ -86,7 +88,9 @@ final class MemoriesStore: ObservableObject {
                 userId: userId,
                 name: name,
                 colorFamily: colorFamily,
-                emoji: emoji
+                emoji: emoji,
+                startDate: startDate,
+                endDate: endDate
             )
 
             let row: MemoryRow = try await supabase
@@ -136,7 +140,9 @@ final class MemoriesStore: ObservableObject {
         _ memory: Memory,
         name: String,
         colorFamily: String,
-        emoji: String?
+        emoji: String?,
+        startDate: Date? = nil,
+        endDate: Date? = nil
     ) async {
 
         let nameChanged = memory.name != name
@@ -147,7 +153,9 @@ final class MemoriesStore: ObservableObject {
             let payload = try UpdateMemoryPayload.make(
                 name: name,
                 colorFamily: colorFamily,
-                emoji: emoji
+                emoji: emoji,
+                startDate: startDate,
+                endDate: endDate
             )
 
             try await supabase
@@ -161,6 +169,8 @@ final class MemoriesStore: ObservableObject {
                 m.name = name
                 m.colorFamily = colorFamily
                 m.emoji = emoji
+                m.startDate = startDate
+                m.endDate = endDate
                 memories[idx] = m
             }
             errorMessage = nil

@@ -19,28 +19,38 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
     case express
     case orient
     case night
+    case post
+    case glow
+    case concert
+    case underground
 
     var id: String { rawValue }
 
     /// Human-readable category label for the detail card.
     var displayName: String {
         switch self {
-        case .afterglow: return "Afterglow"
-        case .studio:    return "Studio"
-        case .heritage:  return "Heritage"
-        case .terminal:  return "Terminal"
-        case .prism:     return "Prism"
-        case .express:   return "Express"
-        case .orient:    return "Orient"
-        case .night:     return "Night"
+        case .afterglow:   return "Afterglow"
+        case .studio:      return "Studio"
+        case .heritage:    return "Heritage"
+        case .terminal:    return "Terminal"
+        case .prism:       return "Prism"
+        case .express:     return "Express"
+        case .orient:      return "Orient"
+        case .night:       return "Night"
+        case .post:        return "Post"
+        case .glow:        return "Glow"
+        case .concert:     return "Concert"
+        case .underground: return "Underground"
         }
     }
 
     /// Broad category shown with the glyph on the detail card.
     var categoryLabel: String {
         switch self {
-        case .express, .orient, .night:                           return String(localized: "Train ticket")
-        case .afterglow, .studio, .heritage, .terminal, .prism:   return String(localized: "Plane ticket")
+        case .express, .orient, .night, .post, .glow:            return String(localized: "Train ticket")
+        case .afterglow, .studio, .heritage, .terminal, .prism:  return String(localized: "Plane ticket")
+        case .concert:                                              return String(localized: "Concert ticket")
+        case .underground:                                       return String(localized: "Public transport ticket")
         }
     }
 
@@ -68,6 +78,28 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
                 .init(systemImage: "ticket.fill",          label: "Train type & code"),
                 .init(systemImage: "calendar.badge.clock", label: "Departure date & time"),
                 .init(systemImage: "bed.double.fill",      label: "Car, berth & passenger"),
+            ]
+        case .post, .glow:
+            return [
+                .init(systemImage: "tram.fill",            label: "Departing & arrival cities"),
+                .init(systemImage: "building.columns",     label: "Station names"),
+                .init(systemImage: "calendar.badge.clock", label: "Date & departure time"),
+                .init(systemImage: "ticket.fill",          label: "Train details, car & seat"),
+            ]
+        case .concert:
+            return [
+                .init(systemImage: "music.mic",            label: "Artist & tour name"),
+                .init(systemImage: "building.2.fill",      label: "Venue"),
+                .init(systemImage: "calendar.badge.clock", label: "Date, doors & showtime"),
+                .init(systemImage: "ticket.fill",          label: "Ticket number"),
+            ]
+        case .underground:
+            return [
+                .init(systemImage: "tram.fill",            label: "Origin & destination stations"),
+                .init(systemImage: "point.topleft.down.to.point.bottomright.curvepath",
+                                                             label: "Line (auto-detected)"),
+                .init(systemImage: "calendar",             label: "Date of travel"),
+                .init(systemImage: "ticket.fill",          label: "Ticket number, zones, fare"),
             ]
         default:
             var items: [TemplateRequirement] = [
@@ -185,30 +217,42 @@ enum TicketPayload: Encodable {
     case express(ExpressTicket)
     case orient(OrientTicket)
     case night(NightTicket)
+    case post(PostTicket)
+    case glow(GlowTicket)
+    case concert(ConcertTicket)
+    case underground(UndergroundTicket)
 
     func encode(to encoder: Encoder) throws {
         switch self {
-        case .afterglow(let v): try v.encode(to: encoder)
-        case .studio(let v):    try v.encode(to: encoder)
-        case .heritage(let v):  try v.encode(to: encoder)
-        case .terminal(let v):  try v.encode(to: encoder)
-        case .prism(let v):     try v.encode(to: encoder)
-        case .express(let v):   try v.encode(to: encoder)
-        case .orient(let v):    try v.encode(to: encoder)
-        case .night(let v):     try v.encode(to: encoder)
+        case .afterglow(let v):   try v.encode(to: encoder)
+        case .studio(let v):      try v.encode(to: encoder)
+        case .heritage(let v):    try v.encode(to: encoder)
+        case .terminal(let v):    try v.encode(to: encoder)
+        case .prism(let v):       try v.encode(to: encoder)
+        case .express(let v):     try v.encode(to: encoder)
+        case .orient(let v):      try v.encode(to: encoder)
+        case .night(let v):       try v.encode(to: encoder)
+        case .post(let v):        try v.encode(to: encoder)
+        case .glow(let v):        try v.encode(to: encoder)
+        case .concert(let v):     try v.encode(to: encoder)
+        case .underground(let v): try v.encode(to: encoder)
         }
     }
 
     var kind: TicketTemplateKind {
         switch self {
-        case .afterglow: return .afterglow
-        case .studio:    return .studio
-        case .heritage:  return .heritage
-        case .terminal:  return .terminal
-        case .prism:     return .prism
-        case .express:   return .express
-        case .orient:    return .orient
-        case .night:     return .night
+        case .afterglow:   return .afterglow
+        case .studio:      return .studio
+        case .heritage:    return .heritage
+        case .terminal:    return .terminal
+        case .prism:       return .prism
+        case .express:     return .express
+        case .orient:      return .orient
+        case .night:       return .night
+        case .post:        return .post
+        case .glow:        return .glow
+        case .concert:     return .concert
+        case .underground: return .underground
         }
     }
 }
