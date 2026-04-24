@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TipKit
 
 struct MemoriesView: View {
 
@@ -199,8 +198,7 @@ struct MemoriesView: View {
                 LumoriaIconButton(systemImage: "plus") {
                     showNewMemory = true
                 }
-                .popoverTip(MemoryTip())
-}
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)

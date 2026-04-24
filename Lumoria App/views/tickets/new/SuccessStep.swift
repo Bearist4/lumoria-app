@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import TipKit
 
 struct NewTicketSuccessStep: View {
 
@@ -236,7 +235,6 @@ struct NewTicketSuccessStep: View {
                 }
                 .lumoriaButtonStyle(.secondary, size: .large)
                 .disabled(funnel.createdTicket == nil)
-                .popoverTip(ExportTip())
 
                 Button("Add to Memory") {
                     showAddToMemory = true

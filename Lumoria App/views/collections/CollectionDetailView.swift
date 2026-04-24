@@ -7,7 +7,6 @@
 
 import SwiftUI
 import ProgressiveBlurHeader
-import TipKit
 
 struct MemoryDetailView: View {
 
@@ -191,7 +190,6 @@ struct MemoryDetailView: View {
                 position: .onSurface,
                 menuItems: menuItems
             )
-            .popoverTip(TicketTip())
         }
     }
 
