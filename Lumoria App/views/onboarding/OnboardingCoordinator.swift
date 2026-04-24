@@ -194,31 +194,6 @@ final class OnboardingCoordinator: ObservableObject {
         }
     }
 
-    // MARK: - Legacy compat shims (removed in Tasks 9–16 as call sites migrate)
-
-    /// Still read by CollectionsView / ContentView. Always nil under the new
-    /// flow; removed when those views are rewritten.
-    @Published var pendingMemoryToOpen: Memory? = nil
-
-    /// Replaced by `maybePresentEntry()` (called via a 3s timer in
-    /// ContentView). Kept as a no-op until Task 10.
-    func evaluateEligibility(memoriesCount: Int, ticketsCount: Int) { }
-
-    /// Replaced by `advance(from: .createMemory)` wired in CollectionsStore
-    /// in Task 11.
-    func donateMemoryCreated(_ memory: Memory) { }
-
-    /// Replaced by step-specific advances in Task 16 (allDone + chose).
-    func donateTicketCreated() { }
-    func donateExportOpened() { }
-
-    /// Welcome sheet still uses these two until Task 9 rewrites it.
-    func start() async { await startTutorial() }
-    func skip() { Task { await dismissWelcomeSilently() } }
-
-    /// Settings replay row still calls this until Task 18.
-    func reset() async { await resetForReplay() }
-
     // MARK: - Step → prop
 
     private func prop(for step: OnboardingStep) -> OnboardingStepProp {
