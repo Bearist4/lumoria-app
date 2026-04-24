@@ -2,9 +2,15 @@
 //  OnboardingTipCard.swift
 //  Lumoria App
 //
-//  Blue tip card with title, body, and an X button. Visuals match the
-//  Figma tip component (see 2026-04-24-onboarding-rework-design.md).
-//  The X triggers the leave-tutorial alert on the coordinator.
+//  Blue tip card shown over each overlay step. Exact tokens from the
+//  Figma design (node 1903:103587):
+//    - bg: indigo/600 (#435bd2)
+//    - padding: 16pt
+//    - corner radius: 24pt
+//    - title → description gap: 12pt
+//    - close button: 32pt circle, top-right with 8pt inset
+//    - title: SF Pro Semibold 17 / 22 / -0.43
+//    - description: SF Pro Regular 15 / 20 / -0.23
 //
 
 import SwiftUI
@@ -29,36 +35,48 @@ struct OnboardingTipCard: View {
     let onClose: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if let emoji = copy.leadingEmoji {
-                    Text(emoji).font(.system(size: 20))
+                    Text(emoji)
+                        .font(.system(size: 17))
                 }
                 Text(copy.title)
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                Spacer(minLength: 8)
-                LumoriaIconButton(
-                    systemImage: "xmark",
-                    size: .small,
-                    position: .onDark,
-                    action: onClose
-                )
-                .accessibilityLabel(Text("Leave the tutorial"))
+                    .font(.system(size: 17, weight: .semibold))
+                    .tracking(-0.43)
+                    .lineSpacing(22 - 17) // line-height 22 on 17pt font
+                    .foregroundStyle(Color.Text.OnColor.white)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            // Reserve room for the absolutely-positioned close button on
+            // the first line so the title never overlaps the X.
+            .padding(.trailing, 32)
+
             Text(copy.body)
-                .font(.system(size: 13, weight: .regular))
-                .foregroundStyle(Color.white.opacity(0.85))
+                .font(.system(size: 15, weight: .regular))
+                .tracking(-0.23)
+                .lineSpacing(20 - 15)
+                .foregroundStyle(Color.Text.OnColor.white)
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: 300, alignment: .leading)
+        .padding(16)
+        .frame(width: 302, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(red: 0.294, green: 0.349, blue: 0.933))
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(Color(red: 67/255, green: 91/255, blue: 210/255))
         )
+        .overlay(alignment: .topTrailing) {
+            LumoriaIconButton(
+                systemImage: "xmark",
+                size: .small,
+                position: .onDark,
+                action: onClose
+            )
+            .padding(8)
+            .accessibilityLabel(Text("Leave the tutorial"))
+        }
         .shadow(color: .black.opacity(0.15), radius: 14, y: 6)
     }
 }
