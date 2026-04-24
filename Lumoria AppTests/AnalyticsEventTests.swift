@@ -90,18 +90,25 @@ struct AnalyticsEventTests {
         #expect(event.properties.isEmpty)
     }
 
-    @Test("onboardingSkipped carries the step")
-    func onboardingSkippedShape() {
-        let event = AnalyticsEvent.onboardingSkipped(atStep: .welcome)
-        #expect(event.name == "Onboarding Skipped")
+    @Test("onboardingLeft carries the step")
+    func onboardingLeftShape() {
+        let event = AnalyticsEvent.onboardingLeft(atStep: .welcome)
+        #expect(event.name == "Onboarding Left")
         #expect(event.properties["at_step"] as? String == "welcome")
     }
 
     @Test("onboardingStepCompleted carries the step")
     func onboardingStepCompletedShape() {
-        let event = AnalyticsEvent.onboardingStepCompleted(step: .ticket)
+        let event = AnalyticsEvent.onboardingStepCompleted(step: .createMemory)
         #expect(event.name == "Onboarding Step Completed")
-        #expect(event.properties["step"] as? String == "ticket")
+        #expect(event.properties["step"] as? String == "create_memory")
+    }
+
+    @Test("onboardingResumed + declined events")
+    func onboardingResumeEvents() {
+        #expect(AnalyticsEvent.onboardingResumed.name == "Onboarding Resumed")
+        #expect(AnalyticsEvent.onboardingDeclinedResume.name == "Onboarding Declined Resume")
+        #expect(AnalyticsEvent.onboardingResumed.properties.isEmpty)
     }
 
     @Test("onboardingCompleted carries duration")

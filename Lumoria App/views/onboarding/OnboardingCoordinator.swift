@@ -2,155 +2,239 @@
 //  OnboardingCoordinator.swift
 //  Lumoria App
 //
-//  Owns the state machine for the first-run tour: welcome sheet visibility,
-//  persisted skip/complete flags, TipKit event donations, and the pending
-//  memory that the Memories tab should auto-push after creation. Analytics
-//  are emitted here so the UI stays dumb.
+//  State machine for the first-run tutorial. Hydrates from public.profiles
+//  via ProfileService on auth, exposes @Published UI flags, and a
+//  currentStep enum that host views match against via .onboardingOverlay(step:).
+//  All writes are optimistic locally and fire-and-forget to Supabase.
 //
 
 import Combine
 import Foundation
 import SwiftUI
-import TipKit
+
+enum ExportVariant: String, Sendable {
+    case export
+    case addToMemory
+}
 
 @MainActor
 final class OnboardingCoordinator: ObservableObject {
 
-    // MARK: - Published UI state
+    // MARK: - Persisted (server-backed)
+
+    @Published private(set) var showOnboarding: Bool = false
+    @Published private(set) var currentStep: OnboardingStep = .done
+
+    // MARK: - Transient UI state
 
     @Published var showWelcome: Bool = false
-    @Published var pendingMemoryToOpen: Memory? = nil
+    @Published var showResume: Bool = false
+    @Published var showEndCover: Bool = false
+    @Published var showLeaveAlert: Bool = false
+    @Published var exportOrAddChoice: ExportVariant?
+    /// Set at .pickTemplate advance — whether the chosen template has style
+    /// variants. Consulted at .fillInfo advance to pick the next step.
+    @Published var pendingStyleStep: Bool = false
 
-    // MARK: - Persisted flags (UserDefaults-backed so tests can inject a
-    // throwaway suite).
+    // MARK: - Analytics timing
 
-    @Published private(set) var welcomeSeen: Bool
-    @Published private(set) var skipped: Bool
-    @Published private(set) var completed: Bool
+    private var startedAt: Date?
 
-    /// Stamped when `start()` runs; used to compute the final duration.
-    private(set) var startedAt: Date?
+    // MARK: - Deps
 
-    private let defaults: UserDefaults
+    private let service: ProfileServicing
 
-    private enum Keys {
-        static let welcomeSeen = "onboarding.welcomeSeen"
-        static let skipped     = "onboarding.skipped"
-        static let completed   = "onboarding.completed"
+    init(service: ProfileServicing = ProfileService()) {
+        self.service = service
     }
 
-    // MARK: - Init
+    // MARK: - Hydration
 
-    init(defaults: UserDefaults = .standard) {
-        self.defaults = defaults
-        self.welcomeSeen = defaults.bool(forKey: Keys.welcomeSeen)
-        self.skipped     = defaults.bool(forKey: Keys.skipped)
-        self.completed   = defaults.bool(forKey: Keys.completed)
-    }
-
-    // MARK: - Eligibility
-
-    /// Called by `ContentView` after the stores' initial `.load()` completes.
-    /// If the user already has any memories or tickets they're a returning
-    /// user — silently mark onboarding completed so we never fire tips for
-    /// them. Otherwise open the welcome sheet if they haven't seen it.
-    func evaluateEligibility(memoriesCount: Int, ticketsCount: Int) {
-        if completed || skipped { return }
-
-        if memoriesCount > 0 || ticketsCount > 0 {
-            setCompleted(true)
-            return
+    func loadOnAuth() async {
+        do {
+            let p = try await service.fetch()
+            self.showOnboarding = p.showOnboarding
+            self.currentStep    = p.onboardingStep
+        } catch ProfileServiceError.notFound {
+            self.showOnboarding = true
+            self.currentStep    = .welcome
+        } catch {
+            print("[OnboardingCoordinator] loadOnAuth failed:", error)
+            self.showOnboarding = false
+            self.currentStep    = .done
         }
+    }
 
-        if !welcomeSeen {
+    // MARK: - Entry presentation
+
+    func maybePresentEntry() {
+        guard showOnboarding else { return }
+        switch currentStep {
+        case .welcome:
             showWelcome = true
             Analytics.track(.onboardingShown)
+        case .done:
+            break
+        default:
+            showResume = true
         }
     }
 
     // MARK: - User actions
 
-    func start() async {
-        setWelcomeSeen(true)
+    func startTutorial() async {
         startedAt = Date()
+        showWelcome = false
         Analytics.track(.onboardingStarted)
-        // Donate before dismissing the sheet so the MemoryTip's rule
-        // sees the event the moment the Memories view re-renders.
-        await OnboardingEvents.onboardingStarted.donate()
+        await write(step: .createMemory)
+    }
+
+    func dismissWelcomeSilently() async {
         showWelcome = false
+        Analytics.track(.onboardingLeft(atStep: .welcome))
+        await writeShow(false)
+        await write(step: .done)
     }
 
-    func skip() {
-        setWelcomeSeen(true)
-        setSkipped(true)
-        showWelcome = false
-        Analytics.track(.onboardingSkipped(atStep: .welcome))
+    func resume() async {
+        showResume = false
+        startedAt = Date()
+        Analytics.track(.onboardingResumed)
     }
 
-    func reset() async {
-        setWelcomeSeen(false)
-        setSkipped(false)
-        setCompleted(false)
-        startedAt = nil
-        pendingMemoryToOpen = nil
-
-        // Await the datastore wipe before re-opening the sheet so a
-        // quick Start tap doesn't donate into a datastore that's about
-        // to be cleared.
-        try? Tips.resetDatastore()
-
-        Analytics.track(.onboardingReplayed)
-        showWelcome = true
+    func declineResume() async {
+        showResume = false
+        Analytics.track(.onboardingDeclinedResume)
+        Analytics.track(.onboardingLeft(atStep: prop(for: currentStep)))
+        await writeShow(false)
+        await write(step: .done)
     }
 
-    // MARK: - Donations
-
-    /// Called by `MemoriesStore` after a successful `create`.
-    /// Only takes effect inside an active tour (post-start, pre-complete).
-    func donateMemoryCreated(_ memory: Memory) {
-        guard isInTour else { return }
-        Analytics.track(.onboardingStepCompleted(step: .memory))
-        pendingMemoryToOpen = memory
-        Task { await OnboardingEvents.firstMemoryCreated.donate() }
+    func confirmLeaveTutorial() async {
+        let left = currentStep
+        showLeaveAlert = false
+        Analytics.track(.onboardingLeft(atStep: prop(for: left)))
+        await writeShow(false)
+        await write(step: .done)
     }
 
-    /// Called by `SuccessStep.onAppear`.
-    func donateTicketCreated() {
-        guard isInTour else { return }
-        Analytics.track(.onboardingStepCompleted(step: .ticket))
-        Task { await OnboardingEvents.firstTicketCreated.donate() }
-    }
+    /// Linear advance. Caller provides the step they expect to be on so a
+    /// stale or duplicate call from a re-entered view is a no-op.
+    func advance(from expected: OnboardingStep) async {
+        guard currentStep == expected else { return }
+        Analytics.track(.onboardingStepCompleted(step: prop(for: expected)))
 
-    /// Called when the user taps the Export tile during the tour.
-    func donateExportOpened() {
-        guard isInTour else { return }
-        Analytics.track(.onboardingStepCompleted(step: .export))
-        Task { await OnboardingEvents.onboardingComplete.donate() }
-
-        let duration: Int
-        if let startedAt {
-            duration = Int(Date().timeIntervalSince(startedAt))
-        } else {
-            duration = 0
+        let next: OnboardingStep
+        switch expected {
+        case .welcome:            next = .createMemory
+        case .createMemory:       next = .memoryCreated
+        case .memoryCreated:      next = .enterMemory
+        case .enterMemory:        next = .pickCategory
+        case .pickCategory:       next = .pickTemplate
+        case .pickTemplate:       next = .fillInfo
+        case .fillInfo:           next = pendingStyleStep ? .pickStyle : .allDone
+        case .pickStyle:          next = .allDone
+        case .allDone:            next = .exportOrAddMemory
+        case .exportOrAddMemory:  next = .endCover
+        case .endCover:           next = .done
+        case .done:               return
         }
-        setCompleted(true)
+        await write(step: next)
+    }
+
+    func chose(_ variant: ExportVariant) async {
+        exportOrAddChoice = variant
+        await advance(from: .allDone)
+    }
+
+    func finishAtEndCover() async {
+        showEndCover = false
+        let duration = startedAt.map { Int(Date().timeIntervalSince($0)) } ?? 0
         Analytics.track(.onboardingCompleted(durationSeconds: duration))
+        await writeShow(false)
+        await write(step: .done)
     }
 
-    // MARK: - Helpers
+    // MARK: - Settings replay
 
-    private var isInTour: Bool { welcomeSeen && !skipped && !completed }
+    func resetForReplay() async {
+        Analytics.track(.onboardingReplayed)
+        do {
+            try await service.replay()
+            showOnboarding    = true
+            currentStep       = .welcome
+            exportOrAddChoice = nil
+            pendingStyleStep  = false
+            startedAt         = nil
+        } catch {
+            print("[OnboardingCoordinator] replay failed:", error)
+        }
+    }
 
-    private func setWelcomeSeen(_ value: Bool) {
-        welcomeSeen = value
-        defaults.set(value, forKey: Keys.welcomeSeen)
+    // MARK: - Writers
+
+    private func write(step: OnboardingStep) async {
+        currentStep = step
+        if step == .endCover {
+            showEndCover = true
+        }
+        do {
+            try await service.setStep(step)
+        } catch {
+            print("[OnboardingCoordinator] setStep failed:", error)
+        }
     }
-    private func setSkipped(_ value: Bool) {
-        skipped = value
-        defaults.set(value, forKey: Keys.skipped)
+
+    private func writeShow(_ value: Bool) async {
+        showOnboarding = value
+        do {
+            try await service.setShowOnboarding(value)
+        } catch {
+            print("[OnboardingCoordinator] setShowOnboarding failed:", error)
+        }
     }
-    private func setCompleted(_ value: Bool) {
-        completed = value
-        defaults.set(value, forKey: Keys.completed)
+
+    // MARK: - Legacy compat shims (removed in Tasks 9–16 as call sites migrate)
+
+    /// Still read by CollectionsView / ContentView. Always nil under the new
+    /// flow; removed when those views are rewritten.
+    @Published var pendingMemoryToOpen: Memory? = nil
+
+    /// Replaced by `maybePresentEntry()` (called via a 3s timer in
+    /// ContentView). Kept as a no-op until Task 10.
+    func evaluateEligibility(memoriesCount: Int, ticketsCount: Int) { }
+
+    /// Replaced by `advance(from: .createMemory)` wired in CollectionsStore
+    /// in Task 11.
+    func donateMemoryCreated(_ memory: Memory) { }
+
+    /// Replaced by step-specific advances in Task 16 (allDone + chose).
+    func donateTicketCreated() { }
+    func donateExportOpened() { }
+
+    /// Welcome sheet still uses these two until Task 9 rewrites it.
+    func start() async { await startTutorial() }
+    func skip() { Task { await dismissWelcomeSilently() } }
+
+    /// Settings replay row still calls this until Task 18.
+    func reset() async { await resetForReplay() }
+
+    // MARK: - Step → prop
+
+    private func prop(for step: OnboardingStep) -> OnboardingStepProp {
+        switch step {
+        case .welcome:            return .welcome
+        case .createMemory:       return .createMemory
+        case .memoryCreated:      return .memoryCreated
+        case .enterMemory:        return .enterMemory
+        case .pickCategory:       return .pickCategory
+        case .pickTemplate:       return .pickTemplate
+        case .fillInfo:           return .fillInfo
+        case .pickStyle:          return .pickStyle
+        case .allDone:            return .allDone
+        case .exportOrAddMemory:  return .exportOrAddMemory
+        case .endCover:           return .endCover
+        case .done:               return .done
+        }
     }
 }
