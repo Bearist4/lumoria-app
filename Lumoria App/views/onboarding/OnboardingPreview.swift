@@ -449,9 +449,12 @@ private struct WelcomeSheetPreview: View {
     @StateObject private var coordinator = OnboardingCoordinator(
         service: PreviewProfileService(step: .welcome)
     )
+    @State private var presented = true
     var body: some View {
-        ZStack { Color(white: 0.95).ignoresSafeArea() }
-            .sheet(isPresented: .constant(true)) {
+        PreviewMemoriesBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .floatingBottomSheet(isPresented: $presented) {
                 WelcomeSheetView().environmentObject(coordinator)
             }
     }
@@ -461,9 +464,12 @@ private struct ResumeSheetPreview: View {
     @StateObject private var coordinator = OnboardingCoordinator(
         service: PreviewProfileService(step: .pickCategory)
     )
+    @State private var presented = true
     var body: some View {
-        ZStack { Color(white: 0.95).ignoresSafeArea() }
-            .sheet(isPresented: .constant(true)) {
+        PreviewMemoriesBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .floatingBottomSheet(isPresented: $presented) {
                 ResumeSheetView().environmentObject(coordinator)
             }
     }
@@ -473,9 +479,12 @@ private struct EndSheetPreview: View {
     @StateObject private var coordinator = OnboardingCoordinator(
         service: PreviewProfileService(step: .endCover)
     )
+    @State private var presented = true
     var body: some View {
-        ZStack { Color(white: 0.95).ignoresSafeArea() }
-            .sheet(isPresented: .constant(true)) {
+        PreviewMemoriesBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .floatingBottomSheet(isPresented: $presented) {
                 OnboardingEndSheetView().environmentObject(coordinator)
             }
     }

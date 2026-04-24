@@ -64,15 +64,15 @@ struct ContentView: View {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             onboardingCoordinator.maybePresentEntry()
         }
-        .sheet(isPresented: $onboardingCoordinator.showWelcome) {
+        .floatingBottomSheet(isPresented: $onboardingCoordinator.showWelcome) {
             WelcomeSheetView()
                 .environmentObject(onboardingCoordinator)
         }
-        .sheet(isPresented: $onboardingCoordinator.showResume) {
+        .floatingBottomSheet(isPresented: $onboardingCoordinator.showResume) {
             ResumeSheetView()
                 .environmentObject(onboardingCoordinator)
         }
-        .sheet(isPresented: $onboardingCoordinator.showEndCover) {
+        .floatingBottomSheet(isPresented: $onboardingCoordinator.showEndCover) {
             OnboardingEndSheetView()
                 .environmentObject(onboardingCoordinator)
         }

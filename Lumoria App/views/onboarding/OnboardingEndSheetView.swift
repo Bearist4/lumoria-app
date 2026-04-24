@@ -3,7 +3,7 @@
 //  Lumoria App
 //
 //  Presented on the Memories tab after the user finishes the tutorial.
-//  Celebratory wrap-up. See Figma node 1905-113490.
+//  See Figma node 1905-113490.
 //
 
 import SwiftUI
@@ -12,31 +12,12 @@ struct OnboardingEndSheetView: View {
     @EnvironmentObject private var coordinator: OnboardingCoordinator
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .topTrailing) {
-                Image("onboarding/end_cover")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 200)
-                    .clipped()
-                    .accessibilityHidden(true)
-
-                Button {
-                    Task { await coordinator.finishAtEndCover() }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.7))
-                        .frame(width: 32, height: 32)
-                        .background(Color.white.opacity(0.9), in: Circle())
-                }
-                .padding(16)
-                .accessibilityLabel(Text("Close"))
-            }
+        VStack(alignment: .leading, spacing: 24) {
+            hero
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("All done!")
-                    .font(.system(size: 24, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.Text.primary)
 
                 Text("You can now enjoy Lumoria and create beautiful tickets for every moments you'd like to remember. We just covered the basics of Lumoria. There's so many more features waiting to be discovered.")
@@ -44,27 +25,36 @@ struct OnboardingEndSheetView: View {
                     .foregroundStyle(Color.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 20)
 
-            Button {
+            Button("Start using Lumoria") {
                 Task { await coordinator.finishAtEndCover() }
-            } label: {
-                Text("Start using Lumoria")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.Text.primary)
-                    .foregroundStyle(Color.Background.default)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .lumoriaButtonStyle(.primary, size: .large)
         }
-        .background(Color.Background.default)
-        .presentationDetents([.height(480)])
-        .presentationDragIndicator(.hidden)
-        .interactiveDismissDisabled(true)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 24)
+    }
+
+    private var hero: some View {
+        ZStack(alignment: .topTrailing) {
+            Image("onboarding/end_cover")
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .frame(height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .accessibilityHidden(true)
+
+            LumoriaIconButton(
+                systemImage: "xmark",
+                size: .medium,
+                position: .onBackground
+            ) {
+                Task { await coordinator.finishAtEndCover() }
+            }
+            .padding(12)
+            .accessibilityLabel(Text("Close"))
+        }
     }
 }

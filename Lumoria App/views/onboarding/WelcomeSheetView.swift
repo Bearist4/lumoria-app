@@ -2,8 +2,9 @@
 //  WelcomeSheetView.swift
 //  Lumoria App
 //
-//  First-run tutorial welcome. Bottom-sheet style with a hero cover image,
-//  a headline, a body, and Start / X actions. See Figma node 1902-103368.
+//  First-run tutorial welcome. Bottom-sheet style with an inset hero
+//  panel + headline + body + Start / X actions. See Figma node
+//  1902-103368.
 //
 
 import SwiftUI
@@ -12,31 +13,12 @@ struct WelcomeSheetView: View {
     @EnvironmentObject private var coordinator: OnboardingCoordinator
 
     var body: some View {
-        VStack(spacing: 0) {
-            ZStack(alignment: .topTrailing) {
-                Image("onboarding/cover")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 220)
-                    .clipped()
-                    .accessibilityHidden(true)
-
-                Button {
-                    Task { await coordinator.dismissWelcomeSilently() }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(.black.opacity(0.7))
-                        .frame(width: 32, height: 32)
-                        .background(Color.white.opacity(0.9), in: Circle())
-                }
-                .padding(16)
-                .accessibilityLabel(Text("Close"))
-            }
+        VStack(alignment: .leading, spacing: 24) {
+            hero
 
             VStack(alignment: .leading, spacing: 12) {
                 Text("Welcome to Lumoria!")
-                    .font(.system(size: 28, weight: .bold))
+                    .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.Text.primary)
 
                 Text("Memories gather tickets into one place — a trip, a season, a night out. Whatever you want to hold onto.")
@@ -44,27 +26,36 @@ struct WelcomeSheetView: View {
                     .foregroundStyle(Color.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 20)
 
-            Button {
+            Button("Start tutorial") {
                 Task { await coordinator.startTutorial() }
-            } label: {
-                Text("Start tutorial")
-                    .font(.system(size: 17, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 56)
-                    .background(Color.Text.primary)
-                    .foregroundStyle(Color.Background.default)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .lumoriaButtonStyle(.primary, size: .large)
         }
-        .background(Color.Background.default)
-        .presentationDetents([.height(500)])
-        .presentationDragIndicator(.hidden)
-        .interactiveDismissDisabled(true)
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
+        .padding(.bottom, 24)
+    }
+
+    private var hero: some View {
+        ZStack(alignment: .topTrailing) {
+            Image("onboarding/cover")
+                .resizable()
+                .scaledToFill()
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .accessibilityHidden(true)
+
+            LumoriaIconButton(
+                systemImage: "xmark",
+                size: .medium,
+                position: .onBackground
+            ) {
+                Task { await coordinator.dismissWelcomeSilently() }
+            }
+            .padding(12)
+            .accessibilityLabel(Text("Close"))
+        }
     }
 }
