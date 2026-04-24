@@ -44,10 +44,12 @@ struct UndergroundTicket: Codable, Hashable {
     /// Destination station printed as the TO hero.
     var destinationStation: String
 
-    /// Number of stops on the chosen line between origin and
-    /// destination (inclusive of endpoints' direct neighbours, exclusive
-    /// of endpoints themselves — "3 stops between Stephansplatz and
-    /// Karlsplatz" reads naturally).
+    /// Number of station-to-station segments the rider travels —
+    /// i.e. how many times the train stops from boarding through
+    /// arriving at the destination. Two adjacent stations = 1
+    /// (not 0); three intermediate stations plus the destination
+    /// = 4. Matches rider-intuition for "how many stops until I
+    /// get off".
     var stopsCount: Int
 
     /// Date of travel, pre-formatted for display (e.g. `"15 Jul 2026"`).

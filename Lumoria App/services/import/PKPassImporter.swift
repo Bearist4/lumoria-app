@@ -132,9 +132,10 @@ enum PKPassImporter {
         // avoid invoking the importer for concert templates. In
         // practice the wallet entry point never routes here.
         case .concert:                                              return .other
-        // Underground (subway / metro) passes aren't in the PKPass
-        // wallet ecosystem either; same `.other` bypass applies.
-        case .underground:                                          return .other
+        // Public-transport passes (signal / sign / infoscreen) aren't
+        // in the PKPass wallet ecosystem either; same `.other` bypass
+        // applies.
+        case .underground, .sign, .infoscreen:                      return .other
         }
     }
 

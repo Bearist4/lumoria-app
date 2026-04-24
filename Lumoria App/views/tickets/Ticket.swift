@@ -22,7 +22,13 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
     case post
     case glow
     case concert
+    /// Public-transport "Signal" template (dark card, line-colour
+    /// spine). Enum raw value stays `"underground"` so tickets
+    /// created before the public-transport template family split
+    /// into signal / sign / infoscreen decode cleanly.
     case underground
+    case sign
+    case infoscreen
 
     var id: String { rawValue }
 
@@ -40,7 +46,9 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .post:        return "Post"
         case .glow:        return "Glow"
         case .concert:     return "Concert"
-        case .underground: return "Underground"
+        case .underground: return "Signal"
+        case .sign:        return "Sign"
+        case .infoscreen:  return "Infoscreen"
         }
     }
 
@@ -50,7 +58,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .express, .orient, .night, .post, .glow:            return String(localized: "Train ticket")
         case .afterglow, .studio, .heritage, .terminal, .prism:  return String(localized: "Plane ticket")
         case .concert:                                              return String(localized: "Concert ticket")
-        case .underground:                                       return String(localized: "Public transport ticket")
+        case .underground, .sign, .infoscreen:                   return String(localized: "Public transport ticket")
         }
     }
 
@@ -93,7 +101,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
                 .init(systemImage: "calendar.badge.clock", label: "Date, doors & showtime"),
                 .init(systemImage: "ticket.fill",          label: "Ticket number"),
             ]
-        case .underground:
+        case .underground, .sign, .infoscreen:
             return [
                 .init(systemImage: "tram.fill",            label: "Origin & destination stations"),
                 .init(systemImage: "point.topleft.down.to.point.bottomright.curvepath",
@@ -220,7 +228,14 @@ enum TicketPayload: Encodable {
     case post(PostTicket)
     case glow(GlowTicket)
     case concert(ConcertTicket)
+    // All three public-transport templates share the same
+    // `UndergroundTicket` payload shape; only the rendered view
+    // differs. Splitting into separate cases lets the template
+    // picker offer Signal / Sign / Infoscreen as distinct tiles
+    // the way train offers Post + Glow.
     case underground(UndergroundTicket)
+    case sign(UndergroundTicket)
+    case infoscreen(UndergroundTicket)
 
     func encode(to encoder: Encoder) throws {
         switch self {
@@ -236,6 +251,8 @@ enum TicketPayload: Encodable {
         case .glow(let v):        try v.encode(to: encoder)
         case .concert(let v):     try v.encode(to: encoder)
         case .underground(let v): try v.encode(to: encoder)
+        case .sign(let v):        try v.encode(to: encoder)
+        case .infoscreen(let v):  try v.encode(to: encoder)
         }
     }
 
@@ -253,6 +270,8 @@ enum TicketPayload: Encodable {
         case .glow:        return .glow
         case .concert:     return .concert
         case .underground: return .underground
+        case .sign:        return .sign
+        case .infoscreen:  return .infoscreen
         }
     }
 }

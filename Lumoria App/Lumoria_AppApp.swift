@@ -46,7 +46,15 @@ struct Lumoria_AppApp: App {
         let schema = Schema([
             Item.self,
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        // Xcode Preview sandbox can't always create a persistent
+        // SwiftData store — force in-memory when running under
+        // `XCODE_RUNNING_FOR_PREVIEWS` so the preview shell stops
+        // trapping on `fatalError` during app init.
+        let isPreview = ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == "1"
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: isPreview
+        )
 
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])

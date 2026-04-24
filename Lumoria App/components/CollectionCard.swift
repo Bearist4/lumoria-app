@@ -243,10 +243,17 @@ struct MemoryCard<SlotContent: View>: View {
                     endPoint: .bottom
                 )
             }
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color.Border.subtle)
-                    .frame(height: slotBorder)
+            .overlay {
+                // Bottom-only 1pt INSIDE stroke that traces the slot's
+                // rounded bl/br corners. Matches Figma `_TicketSlot`.
+                slotShape
+                    .strokeBorder(Color.Border.subtle, lineWidth: slotBorder)
+                    .mask {
+                        VStack(spacing: 0) {
+                            Color.clear
+                            Color.black.frame(height: slotCorner + slotBorder)
+                        }
+                    }
             }
     }
 

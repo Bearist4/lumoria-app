@@ -57,11 +57,12 @@ enum TicketCategory: String, CaseIterable, Identifiable {
         }
     }
 
+    /// A category is "available" iff at least one template has
+    /// shipped for it. Driving this off `templates` keeps the
+    /// category picker in sync as new templates land — add a case
+    /// to `templates`, and the tile flips on automatically.
     var isAvailable: Bool {
-        switch self {
-        case .plane, .train, .concert, .publicTransit: return true
-        default:                                        return false
-        }
+        !templates.isEmpty
     }
 
     /// Templates offered inside this category.
@@ -70,7 +71,7 @@ enum TicketCategory: String, CaseIterable, Identifiable {
         case .plane:         return [.afterglow, .studio, .terminal, .heritage, .prism]
         case .train:         return [.express, .orient, .night, .post, .glow]
         case .concert:       return [.concert]
-        case .publicTransit: return [.underground]
+        case .publicTransit: return [.underground, .sign, .infoscreen]
         default:             return []
         }
     }
@@ -354,20 +355,26 @@ struct UndergroundFormInput {
     /// e.g. "subway only" vs "subway + bus transfer".
     var plannedRoutes: [[TransitLeg]] = []
 
-    /// Which of `plannedRoutes` the user picked. `replan()` always
-    /// resets this to 0. Stays clamped into the range on re-plan.
-    var selectedRouteIndex: Int = 0
+    /// Which of `plannedRoutes` the user picked. Starts `nil` so the
+    /// route dropdown surfaces its "Select a route…" placeholder
+    /// after the stations are chosen; `replan()` auto-picks 0 when
+    /// exactly one route is planned so single-route journeys don't
+    /// force an extra tap.
+    var selectedRouteIndex: Int? = nil
 
     /// Convenience — the legs of the currently-selected route.
     var plannedLegs: [TransitLeg] {
-        guard plannedRoutes.indices.contains(selectedRouteIndex) else { return [] }
-        return plannedRoutes[selectedRouteIndex]
+        guard
+            let idx = selectedRouteIndex,
+            plannedRoutes.indices.contains(idx)
+        else { return [] }
+        return plannedRoutes[idx]
     }
 
-    /// True when at least one route is planned — the router only
-    /// returns `[]` for same-station pairs, and `nil` when stations
-    /// can't be resolved to catalog entries.
-    var isValid: Bool { !plannedRoutes.isEmpty }
+    /// True once a route has been picked. Gates the form's Next
+    /// button, so the rider can't advance with stations but no
+    /// chosen route.
+    var isValid: Bool { !plannedLegs.isEmpty }
 
     /// Catalog currently feeding the router. Resolved from the
     /// origin's city on `replan()` so Vienna picks run against
@@ -382,7 +389,7 @@ struct UndergroundFormInput {
     @MainActor
     mutating func replan() {
         plannedRoutes = []
-        selectedRouteIndex = 0
+        selectedRouteIndex = nil
         catalogCity = nil
         operatorName = ""
 
@@ -424,6 +431,14 @@ struct UndergroundFormInput {
             in: catalog,
             max: 4
         )
+
+        // When only one route was found, pick it automatically — no
+        // decision for the rider to make. Multi-route journeys keep
+        // `selectedRouteIndex == nil` so the route dropdown shows
+        // its placeholder and forces an explicit pick.
+        if plannedRoutes.count == 1 {
+            selectedRouteIndex = 0
+        }
     }
 
     /// One `UndergroundTicket` payload per planned leg. The funnel
@@ -604,7 +619,8 @@ final class NewTicketFunnel: ObservableObject {
             case .night:        return trainForm.isNightValid
             case .post, .glow:  return trainForm.isPostGlowValid
             case .concert:      return eventForm.isConcertValid
-            case .underground:  return undergroundForm.isValid
+            case .underground, .sign, .infoscreen:
+                return undergroundForm.isValid
             default:            return form.isMinimallyValid
             }
         case .style:       return true
@@ -667,7 +683,7 @@ final class NewTicketFunnel: ObservableObject {
             // here when a template gains new aesthetic placeholders.
             break
 
-        case .underground:
+        case .underground, .sign, .infoscreen:
             if trim(undergroundForm.ticketNumber).isEmpty {
                 undergroundForm.ticketNumber = Self.randomRef(prefix: "TRA")
                 autoFilledFields.append(String(localized: "Ticket number"))
@@ -992,6 +1008,24 @@ final class NewTicketFunnel: ObservableObject {
             // round-trip through the existing single-ticket machinery;
             // the presenter persists any additional legs separately.
             return undergroundForm.legPayloads.first.map(TicketPayload.underground)
+        case .sign:
+            return undergroundForm.legPayloads.first.map(TicketPayload.sign)
+        case .infoscreen:
+            return undergroundForm.legPayloads.first.map(TicketPayload.infoscreen)
+        }
+    }
+
+    /// Wraps an `UndergroundTicket` in the right `TicketPayload`
+    /// case for the currently-selected public-transport template.
+    static func transitPayload(
+        template: TicketTemplateKind,
+        ticket: UndergroundTicket
+    ) -> TicketPayload? {
+        switch template {
+        case .underground: return .underground(ticket)
+        case .sign:        return .sign(ticket)
+        case .infoscreen:  return .infoscreen(ticket)
+        default:           return nil
         }
     }
 
@@ -1012,11 +1046,13 @@ final class NewTicketFunnel: ObservableObject {
     private func createNew(using store: TicketsStore) async {
         guard createdTicket == nil else { return }
 
-        // Underground journeys can span multiple legs (A→B on U1,
-        // B→C on U3…). Each leg becomes its own persisted ticket so
-        // the rider keeps every line / colour / stop count on the
-        // memory map.
-        if template == .underground {
+        // Public-transport journeys can span multiple legs (A→B on
+        // U1, B→C on U3…). Each leg becomes its own persisted
+        // ticket so the rider keeps every line / colour / stop
+        // count on the memory map. All three template kinds
+        // (signal / sign / infoscreen) share the same leg payload,
+        // differing only in which `TicketPayload` case they wrap.
+        if template == .underground || template == .sign || template == .infoscreen {
             await createUndergroundTickets(using: store)
             return
         }
@@ -1060,13 +1096,24 @@ final class NewTicketFunnel: ObservableObject {
         isSaving = true
         defer { isSaving = false }
 
-        let styleId = selectedStyleId ?? TicketTemplateKind.underground.defaultStyle.id
+        // Pick the template-specific fallback styleId so an
+        // infoscreen ticket persists as `infoscreen.default` rather
+        // than `underground.default`.
+        let activeTemplate = template ?? .underground
+        let styleId = selectedStyleId ?? activeTemplate.defaultStyle.id
 
         for (idx, payload) in payloads.enumerated() {
             let pair = idx < locations.count ? locations[idx] : nil
+            guard let wrapped = Self.transitPayload(
+                template: activeTemplate,
+                ticket: payload
+            ) else {
+                errorMessage = String(localized: "Unsupported transit template.")
+                return
+            }
             let ticket = await store.create(
-                payload: .underground(payload),
-                orientation: .horizontal,
+                payload: wrapped,
+                orientation: orientation,
                 originLocation: pair?.origin,
                 destinationLocation: pair?.destination,
                 styleId: styleId
@@ -1134,7 +1181,7 @@ final class NewTicketFunnel: ObservableObject {
             return (trainForm.originStationLocation, trainForm.destinationStationLocation)
         case .concert:
             return (eventForm.venueLocation, nil)
-        case .underground:
+        case .underground, .sign, .infoscreen:
             // For multi-leg journeys, subsequent legs' stations sit
             // inside `legPayloads`. The "primary" leg (first) is what
             // the top-level ticket represents.
@@ -1342,7 +1389,7 @@ final class NewTicketFunnel: ObservableObject {
             eventForm.ticketNumber = t.ticketNumber
             eventForm.venueLocation = ticket.originLocation
 
-        case .underground(let t):
+        case .underground(let t), .sign(let t), .infoscreen(let t):
             undergroundForm.originStation = ticket.originLocation
             undergroundForm.destinationStation = ticket.destinationLocation
             undergroundForm.date = Self.shortDateFormatter.date(from: t.date) ?? Date()
@@ -1528,8 +1575,8 @@ final class NewTicketFunnel: ObservableObject {
                 showTime: "20:30",
                 ticketNumber: "CON-2026-000142"
             ))
-        case .underground:
-            return .underground(UndergroundTicket(
+        case .underground, .sign, .infoscreen:
+            let demo = UndergroundTicket(
                 lineShortName: "U1",
                 lineName: "U1 Leopoldau – Reumannplatz",
                 companyName: "Wiener Linien",
@@ -1541,7 +1588,12 @@ final class NewTicketFunnel: ObservableObject {
                 ticketNumber: "TRA-2026-000142",
                 zones: "All zones",
                 fare: "2.50 €"
-            ))
+            )
+            switch template {
+            case .sign:       return .sign(demo)
+            case .infoscreen: return .infoscreen(demo)
+            default:          return .underground(demo)
+            }
         }
     }
 }

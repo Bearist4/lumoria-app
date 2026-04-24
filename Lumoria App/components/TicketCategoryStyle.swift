@@ -89,7 +89,7 @@ extension TicketTemplateKind {
             return .train
         case .concert:
             return .concert
-        case .underground:
+        case .underground, .sign, .infoscreen:
             return .publicTransit
         }
     }

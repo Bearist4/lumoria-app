@@ -266,6 +266,7 @@ struct MemoriesView: View {
     .environmentObject(TicketsStore())
     .environmentObject(NotificationsStore())
     .environmentObject(PushNotificationService.shared)
+    .environmentObject(OnboardingCoordinator())
 }
 
 #Preview("Memories with 7 tickets") {
@@ -299,7 +300,7 @@ struct MemoriesView: View {
     // has 3 entries, so cycle them with fresh IDs.
     let samples = TicketsStore.sampleTickets
     func ticketsFor(_ memory: Memory) -> [Ticket] {
-        (0..<7).map { i in
+        (0..<3).map { i in
             let src = samples[i % samples.count]
             return Ticket(
                 id: UUID(),
@@ -324,4 +325,5 @@ struct MemoriesView: View {
     .environmentObject(ticketsStore)
     .environmentObject(NotificationsStore())
     .environmentObject(PushNotificationService.shared)
+    .environmentObject(OnboardingCoordinator())
 }

@@ -268,14 +268,54 @@ struct LumoriaSubwayStationField: View {
         if let sel = selected, trimmed == formattedQuery(for: sel) { return [] }
 
         let needle = Self.normalize(trimmed)
-        return allStations
-            .filter { entry in
-                let hay = Self.normalize(entry.station.name)
-                return hay.contains(needle) || needle.contains(hay)
+        let scored: [(entry: StationEntry, score: Int)] = allStations.compactMap { entry in
+            let hay = Self.normalize(entry.station.name)
+            guard let s = Self.matchScore(hay: hay, needle: needle) else { return nil }
+            return (entry, s)
+        }
+
+        return scored
+            .sorted { lhs, rhs in
+                if lhs.score != rhs.score { return lhs.score > rhs.score }
+                // Shorter names rank higher on tied score — "Nation"
+                // should beat "National Palace Museum" for needle
+                // "nation".
+                let lLen = lhs.entry.station.name.count
+                let rLen = rhs.entry.station.name.count
+                if lLen != rLen { return lLen < rLen }
+                // Lexicographic tiebreak keeps the list stable, and
+                // locale-aware so umlauts sort Ä next to A rather
+                // than after Z (German stations rely on this).
+                return lhs.entry.station.name
+                    .localizedCaseInsensitiveCompare(rhs.entry.station.name) == .orderedAscending
             }
-            .sorted {
-                $0.station.name.localizedCaseInsensitiveCompare($1.station.name) == .orderedAscending
-            }
+            .map(\.entry)
+    }
+
+    /// Relevance score for a station name against a typed query —
+    /// higher is a better match. Returns nil when the station
+    /// doesn't match at all (so the caller can drop it). Ramp
+    /// lands the most-natural matches on top of the list:
+    ///
+    /// | Kind                       | Score |
+    /// |----------------------------|------:|
+    /// | Exact match                | 1000  |
+    /// | Station name starts with q | 700   |
+    /// | A word inside starts with q| 500   |
+    /// | Plain substring match      | 200   |
+    /// | Query contains station name| 100   |
+    /// | No match                   |  nil  |
+    private static func matchScore(hay: String, needle: String) -> Int? {
+        if hay == needle { return 1000 }
+        if hay.hasPrefix(needle) { return 700 }
+        // Any whitespace-separated word starts with the needle —
+        // "gaulle" should match "Charles de Gaulle".
+        if hay.split(separator: " ").contains(where: { $0.hasPrefix(Substring(needle)) }) {
+            return 500
+        }
+        if hay.contains(needle) { return 200 }
+        if needle.contains(hay) { return 100 }
+        return nil
     }
 
     private static func normalize(_ raw: String) -> String {

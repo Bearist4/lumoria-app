@@ -169,6 +169,8 @@ enum TicketCodec {
         case .glow(let t):        return try payloadEncoder.encode(t)
         case .concert(let t):     return try payloadEncoder.encode(t)
         case .underground(let t): return try payloadEncoder.encode(t)
+        case .sign(let t):        return try payloadEncoder.encode(t)
+        case .infoscreen(let t):  return try payloadEncoder.encode(t)
         }
     }
 
@@ -200,6 +202,8 @@ enum TicketCodec {
         case .glow:        return .glow(       try payloadDecoder.decode(GlowTicket.self,        from: cleartext))
         case .concert:     return .concert(    try payloadDecoder.decode(ConcertTicket.self,     from: cleartext))
         case .underground: return .underground(try payloadDecoder.decode(UndergroundTicket.self, from: cleartext))
+        case .sign:        return .sign(       try payloadDecoder.decode(UndergroundTicket.self, from: cleartext))
+        case .infoscreen:  return .infoscreen( try payloadDecoder.decode(UndergroundTicket.self, from: cleartext))
         }
     }
 }

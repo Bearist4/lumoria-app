@@ -51,13 +51,19 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                         list
                             .frame(maxWidth: .infinity)
                             .offset(y: 54)
-                            .zIndex(1)
                     }
                 }
             if let assistiveText, !isOpen {
                 assistive(assistiveText)
             }
         }
+        // Raise the whole dropdown above its parent VStack siblings
+        // while open so the overlay list isn't drawn underneath the
+        // next field (VStack draws children back-to-front by default,
+        // which would otherwise hide the list behind whatever sits
+        // below this dropdown — cf. UndergroundFormStep where two
+        // LumoriaSubwayStationFields sit beneath the city dropdown).
+        .zIndex(isOpen ? 1 : 0)
     }
 
     // MARK: Label

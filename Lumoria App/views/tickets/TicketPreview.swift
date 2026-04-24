@@ -71,9 +71,14 @@ struct TicketPreview: View {
         case (.concert(let t), .horizontal):      ConcertTicketView(ticket: t, style: style)
         case (.concert(let t), .vertical):        ConcertTicketVerticalView(ticket: t, style: style)
 
-        // Underground ships horizontal-only for V1; fall back to the
-        // horizontal view regardless of orientation.
-        case (.underground(let t), _):            UndergroundTicketView(ticket: t)
+        case (.underground(let t), .horizontal):  SignalTicketView(ticket: t)
+        case (.underground(let t), .vertical):    SignalTicketVerticalView(ticket: t)
+
+        case (.sign(let t), .horizontal):         SignTicketView(ticket: t)
+        case (.sign(let t), .vertical):           SignTicketVerticalView(ticket: t)
+
+        case (.infoscreen(let t), .horizontal):   InfoscreenTicketView(ticket: t)
+        case (.infoscreen(let t), .vertical):     InfoscreenTicketVerticalView(ticket: t)
         }
     }
 }

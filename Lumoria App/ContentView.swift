@@ -51,6 +51,10 @@ struct ContentView: View {
         .environmentObject(notificationsStore)
         .task {
             memoriesStore.onboardingCoordinator = onboardingCoordinator
+            WidgetSnapshotWriter.shared.observe(
+                memoriesStore: memoriesStore,
+                ticketsStore: ticketsStore
+            )
             await memoriesStore.load()
             await ticketsStore.load()
             await profileStore.load()

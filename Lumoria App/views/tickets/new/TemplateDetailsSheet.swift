@@ -40,7 +40,7 @@ struct TemplateDetailsSheet: View {
 
                     LazyVGrid(columns: columns, spacing: 12) {
                         ForEach(kind.requirements) { item in
-                            requirementPill(item)
+                            TemplateDetailTile(item)
                         }
                     }
                     .padding(.top, 4)
@@ -92,28 +92,6 @@ struct TemplateDetailsSheet: View {
             )
     }
 
-    // MARK: - Requirement pill
-
-    private func requirementPill(_ item: TemplateRequirement) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: item.systemImage)
-                .font(.headline)
-                .foregroundStyle(Color.Text.primary)
-                .frame(width: 32, height: 32)
-
-            Text(item.label)
-                .font(.subheadline)
-                .foregroundStyle(Color.Text.primary)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 4)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.Background.subtle)
-        )
-    }
 }
 
 // MARK: - Preview

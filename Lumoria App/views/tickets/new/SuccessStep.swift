@@ -71,7 +71,7 @@ struct NewTicketSuccessStep: View {
                 case .concert:
                     let e = funnel.eventForm
                     return (0, e.venueLocation != nil, false)
-                case .underground:
+                case .underground, .sign, .infoscreen:
                     let u = funnel.undergroundForm
                     return (0, u.originStation != nil, u.destinationStation != nil)
                 default:
@@ -167,18 +167,10 @@ struct NewTicketSuccessStep: View {
     @ViewBuilder
     private var createPreviewCard: some View {
         if funnel.createdTickets.count > 1 {
-            // Multi-leg journey (underground with transfers) — scroll
-            // through every persisted ticket so the rider sees each
-            // line's colour / stations / stop count.
-            ScrollView {
-                VStack(spacing: 16) {
-                    ForEach(funnel.createdTickets) { ticket in
-                        TicketPreview(ticket: ticket, isCentered: true)
-                            .padding(.horizontal, 16)
-                    }
-                }
+            // Multi-leg journey — print each ticket into a tilted
+            // stack and let the rider swipe between them.
+            TicketStackCarousel(tickets: funnel.createdTickets)
                 .padding(.vertical, 16)
-            }
         } else if let saved = funnel.createdTicket {
             TicketSaveRevealView(orientation: saved.orientation) {
                 TicketPreview(ticket: saved, isCentered: true)

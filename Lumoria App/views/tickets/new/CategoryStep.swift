@@ -19,7 +19,7 @@ struct NewTicketCategoryStep: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 16) {
-            ForEach(TicketCategory.allCases) { category in
+            ForEach(TicketCategory.allCases.filter(\.isAvailable)) { category in
                 CategoryTile(
                     title: category.title,
                     imageName: category.imageName,

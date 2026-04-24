@@ -70,9 +70,8 @@ enum TransitRouter {
         let originLines = linesByTransferKey[originKey] ?? []
         let destLineIds = Set((linesByTransferKey[destKey] ?? []).map(\.id))
 
-        var results: [[TransitLeg]] = []
-
         // 1. Direct routes — one per line that serves both endpoints.
+        var directRoutes: [[TransitLeg]] = []
         for line in originLines where destLineIds.contains(line.id) {
             guard
                 let fromIdx = indexOfStation(withTransferKey: originKey, in: line),
@@ -84,8 +83,24 @@ enum TransitRouter {
                 destination: line.stations[toIdx],
                 stopsCount: Self.stopDistance(line: line, from: fromIdx, to: toIdx)
             )
-            results.append([leg])
+            directRoutes.append([leg])
         }
+
+        // Short-circuit: any journey that can be done on a single
+        // line IS the fastest option. Don't offer "take U1 then
+        // transfer to U4" when both endpoints are already on U4 —
+        // riders minimise changes and an inadvertent transfer
+        // alternative just clutters the picker.
+        //
+        // Multiple direct lines between the two stations ARE still
+        // valid alternatives (U-Bahn vs S-Bahn, tram vs bus), so we
+        // keep every direct route and rank them by fewest stops.
+        if !directRoutes.isEmpty {
+            directRoutes.sort { totalStops($0) < totalStops($1) }
+            return Array(directRoutes.prefix(max))
+        }
+
+        var results: [[TransitLeg]] = []
 
         // 2. Transfer-based routes — one BFS pass per distinct
         //    starting line. Seeding from a different line each run
@@ -356,16 +371,21 @@ enum TransitRouter {
 
     // MARK: - Stop-count helper
 
-    /// Number of stations the rider visits between `from` and `to`
-    /// on the same line, exclusive of both endpoints. "Leopoldau"
-    /// to "Kagraner Platz" separated by 3 intermediate stops
-    /// returns 3.
+    /// Number of station-to-station segments the rider travels —
+    /// i.e. the number of times the train stops between boarding
+    /// and alighting, counting the destination. Two adjacent
+    /// stations return 1 (not 0), "Leopoldau" to "Kagraner Platz"
+    /// across 3 intermediate stops returns 4.
+    ///
+    /// Matches rider intuition ("the next stop is my stop" = 1
+    /// stop) rather than the pure mathematical "intermediate
+    /// stations" count.
     static func stopDistance(
         line: TransitLine,
         from: Int,
         to: Int
     ) -> Int {
-        max(0, abs(to - from) - 1)
+        max(1, abs(to - from))
     }
 }
 

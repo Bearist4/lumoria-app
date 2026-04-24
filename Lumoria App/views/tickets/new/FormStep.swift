@@ -56,7 +56,8 @@ struct NewTicketFormStep: View {
         case .night:       NewNightFormStep(funnel: funnel)
         case .post, .glow: NewPostFormStep(funnel: funnel)
         case .concert:     NewConcertFormStep(funnel: funnel)
-        case .underground: NewUndergroundFormStep(funnel: funnel)
+        case .underground, .sign, .infoscreen:
+            NewUndergroundFormStep(funnel: funnel)
         default:           planeBody
         }
     }
@@ -174,7 +175,7 @@ struct NewTicketFormStep: View {
                 // Afterglow passes `originName` through as `originCity` in
                 // the payload — feed it the city, not the airport name.
                 return location.city ?? location.name
-            case .studio, .heritage, .terminal, .prism, .express, .orient, .night, .post, .glow, .concert, .underground:
+            case .studio, .heritage, .terminal, .prism, .express, .orient, .night, .post, .glow, .concert, .underground, .sign, .infoscreen:
                 // Train / concert / underground templates never reach
                 // this codepath (their form doesn't call applyAirport),
                 // but the switch must be exhaustive.

@@ -156,6 +156,8 @@ enum TransitCatalogLoader {
         case lyon      = "Lyon"
         case bordeaux  = "Bordeaux"
         case marseille = "Marseille"
+        case zurich    = "Zurich"
+        case berlin    = "Berlin"
 
         var id: String { rawValue }
         var resourceName: String { rawValue }
@@ -171,6 +173,8 @@ enum TransitCatalogLoader {
             case .lyon:      return ["Lyon", "Grand Lyon", "Lyon Métropole"]
             case .bordeaux:  return ["Bordeaux", "Bordeaux Métropole"]
             case .marseille: return ["Marseille", "Aix-Marseille-Provence"]
+            case .zurich:    return ["Zurich", "Zürich"]
+            case .berlin:    return ["Berlin", "Berlin-Brandenburg"]
             }
         }
     }

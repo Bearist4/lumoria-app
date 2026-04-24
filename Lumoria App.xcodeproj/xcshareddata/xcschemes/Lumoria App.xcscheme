@@ -29,6 +29,30 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "694D47692F8D0EDF007340A4"
+               BuildableName = "Lumoria AppTests.xctest"
+               BlueprintName = "Lumoria AppTests"
+               ReferencedContainer = "container:Lumoria App.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "694D47732F8D0EE0007340A4"
+               BuildableName = "Lumoria AppUITests.xctest"
+               BlueprintName = "Lumoria AppUITests"
+               ReferencedContainer = "container:Lumoria App.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"

@@ -85,6 +85,8 @@ enum TicketStyleCatalog {
         case .glow:        return glow
         case .concert:     return concert
         case .underground: return underground
+        case .sign:        return sign
+        case .infoscreen:  return infoscreen
         }
     }
 
@@ -379,29 +381,80 @@ enum TicketStyleCatalog {
         ),
     ]
 
+    // Each of the three public-transport templates ships a single
+    // variant. The template itself carries the name ("Signal",
+    // "Sign", "Infoscreen") so they show up as three separate tiles
+    // in the template picker — same pattern as train/post + glow.
+    // Every accent colour on the rendered ticket derives from the
+    // ticket's `lineColor`, so the swatch values here are purely
+    // for the style-picker preview.
+
     private static let underground: [TicketStyleVariant] = [
-        // Dark-card subway / metro stub. The template draws its own
-        // colours entirely — the line-colour accent comes from the
-        // ticket's payload (`UndergroundTicket.lineColor`), not from
-        // this variant — so the variant exists purely to satisfy the
-        // catalog contract with a neutral dark theme.
         TicketStyleVariant(
             id: "underground.default",
             label: "Default",
             backgroundAsset: nil,
             textPrimary: .white,
             textSecondary: .white.opacity(0.35),
-            accent: Color(hex: "6A4FA0"),
+            accent: Color(hex: "E51F33"),
             onAccent: .white,
             divider: Color.white.opacity(0.15),
-            footerFill: Color(hex: "15151F"),
+            footerFill: Color(hex: "0B0C13"),
             footerText: .white,
             footerScheme: .light,
             swatch: StyleSwatchPalette(
-                surface: Color(hex: "15151F"),
-                accent: Color(hex: "6A4FA0"),
-                background: Color(hex: "15151F"),
+                surface: Color(hex: "0B0C13"),
+                accent: Color(hex: "E51F33"),
+                background: Color(hex: "0B0C13"),
                 textOnSurface: .white,
+                textOnBackground: .white,
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let sign: [TicketStyleVariant] = [
+        TicketStyleVariant(
+            id: "sign.default",
+            label: "Default",
+            backgroundAsset: "sign-bg",
+            textPrimary: Color(red: 0.12, green: 0.10, blue: 0.08),
+            textSecondary: Color(red: 0.45, green: 0.40, blue: 0.32),
+            accent: Color(red: 0.16, green: 0.58, blue: 0.38),
+            onAccent: .white,
+            divider: Color(red: 0.65, green: 0.62, blue: 0.56),
+            footerFill: .white,
+            footerText: .black,
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(red: 0.96, green: 0.93, blue: 0.86),
+                accent: Color(red: 0.16, green: 0.58, blue: 0.38),
+                background: Color(red: 0.99, green: 0.98, blue: 0.93),
+                textOnSurface: Color(red: 0.12, green: 0.10, blue: 0.08),
+                textOnBackground: Color(red: 0.12, green: 0.10, blue: 0.08),
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let infoscreen: [TicketStyleVariant] = [
+        TicketStyleVariant(
+            id: "infoscreen.default",
+            label: "Default",
+            backgroundAsset: nil,
+            textPrimary: .white,
+            textSecondary: Color(red: 0.86, green: 0.86, blue: 0.88).opacity(0.55),
+            accent: Color(red: 1, green: 0.72, blue: 0.14),
+            onAccent: .black,
+            divider: Color.white.opacity(0.1),
+            footerFill: Color(red: 0.07, green: 0.07, blue: 0.08),
+            footerText: .white,
+            footerScheme: .light,
+            swatch: StyleSwatchPalette(
+                surface: Color(red: 0.04, green: 0.04, blue: 0.05),
+                accent: Color(red: 1, green: 0.72, blue: 0.14),
+                background: Color(red: 0.07, green: 0.07, blue: 0.08),
+                textOnSurface: Color(red: 1, green: 0.72, blue: 0.14),
                 textOnBackground: .white,
                 layout: .twoZone
             )
