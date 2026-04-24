@@ -1,28 +1,28 @@
 //
-//  WelcomeSheetView.swift
+//  OnboardingEndSheetView.swift
 //  Lumoria App
 //
-//  First-run tutorial welcome. Bottom-sheet style with a hero cover image,
-//  a headline, a body, and Start / X actions. See Figma node 1902-103368.
+//  Presented on the Memories tab after the user finishes the tutorial.
+//  Celebratory wrap-up. See Figma node 1905-113490.
 //
 
 import SwiftUI
 
-struct WelcomeSheetView: View {
+struct OnboardingEndSheetView: View {
     @EnvironmentObject private var coordinator: OnboardingCoordinator
 
     var body: some View {
         VStack(spacing: 0) {
             ZStack(alignment: .topTrailing) {
-                Image("onboarding/cover")
+                Image("onboarding/end_cover")
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 220)
+                    .frame(height: 200)
                     .clipped()
                     .accessibilityHidden(true)
 
                 Button {
-                    Task { await coordinator.dismissWelcomeSilently() }
+                    Task { await coordinator.finishAtEndCover() }
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .semibold))
@@ -35,12 +35,12 @@ struct WelcomeSheetView: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Lumoria!")
-                    .font(.system(size: 28, weight: .bold))
+                Text("All done!")
+                    .font(.system(size: 24, weight: .bold))
                     .foregroundStyle(Color.Text.primary)
 
-                Text("Memories gather tickets into one place — a trip, a season, a night out. Whatever you want to hold onto.")
-                    .font(.system(size: 15))
+                Text("You can now enjoy Lumoria and create beautiful tickets for every moments you'd like to remember. We just covered the basics of Lumoria. There's so many more features waiting to be discovered.")
+                    .font(.system(size: 14))
                     .foregroundStyle(Color.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -49,9 +49,9 @@ struct WelcomeSheetView: View {
             .padding(.vertical, 20)
 
             Button {
-                Task { await coordinator.startTutorial() }
+                Task { await coordinator.finishAtEndCover() }
             } label: {
-                Text("Start tutorial")
+                Text("Start using Lumoria")
                     .font(.system(size: 17, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
@@ -63,7 +63,7 @@ struct WelcomeSheetView: View {
             .padding(.bottom, 20)
         }
         .background(Color.Background.default)
-        .presentationDetents([.height(500)])
+        .presentationDetents([.height(480)])
         .presentationDragIndicator(.hidden)
         .interactiveDismissDisabled(true)
     }

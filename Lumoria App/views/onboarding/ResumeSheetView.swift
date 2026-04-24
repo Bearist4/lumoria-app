@@ -1,14 +1,14 @@
 //
-//  WelcomeSheetView.swift
+//  ResumeSheetView.swift
 //  Lumoria App
 //
-//  First-run tutorial welcome. Bottom-sheet style with a hero cover image,
-//  a headline, a body, and Start / X actions. See Figma node 1902-103368.
+//  Presented on cold launch when show_onboarding=true and
+//  onboarding_step != welcome. Offers: continue the tutorial, or leave it.
 //
 
 import SwiftUI
 
-struct WelcomeSheetView: View {
+struct ResumeSheetView: View {
     @EnvironmentObject private var coordinator: OnboardingCoordinator
 
     var body: some View {
@@ -22,7 +22,7 @@ struct WelcomeSheetView: View {
                     .accessibilityHidden(true)
 
                 Button {
-                    Task { await coordinator.dismissWelcomeSilently() }
+                    Task { await coordinator.declineResume() }
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .semibold))
@@ -31,15 +31,15 @@ struct WelcomeSheetView: View {
                         .background(Color.white.opacity(0.9), in: Circle())
                 }
                 .padding(16)
-                .accessibilityLabel(Text("Close"))
+                .accessibilityLabel(Text("Leave the tutorial"))
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Lumoria!")
+                Text("Welcome back")
                     .font(.system(size: 28, weight: .bold))
                     .foregroundStyle(Color.Text.primary)
 
-                Text("Memories gather tickets into one place — a trip, a season, a night out. Whatever you want to hold onto.")
+                Text("Want to continue where you left off in the tutorial?")
                     .font(.system(size: 15))
                     .foregroundStyle(Color.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -49,9 +49,9 @@ struct WelcomeSheetView: View {
             .padding(.vertical, 20)
 
             Button {
-                Task { await coordinator.startTutorial() }
+                Task { await coordinator.resume() }
             } label: {
-                Text("Start tutorial")
+                Text("Continue tutorial")
                     .font(.system(size: 17, weight: .semibold))
                     .frame(maxWidth: .infinity)
                     .frame(height: 56)
