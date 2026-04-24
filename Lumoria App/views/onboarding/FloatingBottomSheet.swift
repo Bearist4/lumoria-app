@@ -37,6 +37,7 @@ private struct FloatingBottomSheetModifier<Sheet: View>: ViewModifier {
                             .clipShape(RoundedRectangle(cornerRadius: 36, style: .continuous))
                             .padding(.horizontal, 19)
                             .padding(.bottom, 19)
+                            .ignoresSafeArea(edges: .bottom)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                     .animation(.spring(duration: 0.35), value: isPresented)
