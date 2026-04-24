@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import TipKit
 
 struct MemoriesView: View {
 
@@ -69,6 +68,11 @@ struct MemoriesView: View {
                                         Label("Delete", systemImage: "trash")
                                     }
                                 }
+                                .onboardingAnchor(
+                                    m.id == store.memories.first?.id
+                                        ? "memories.newTile"
+                                        : "unused.tile.\(m.id.uuidString)"
+                                )
                             }
 
                         }
@@ -88,11 +92,6 @@ struct MemoriesView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Memory.self) { m in
                 MemoryDetailView(memory: m)
-            }
-            .onChange(of: onboardingCoordinator.pendingMemoryToOpen) { _, memory in
-                guard let memory else { return }
-                navigationPath.append(memory)
-                onboardingCoordinator.pendingMemoryToOpen = nil
             }
             .task { await store.load() }
             .sheet(isPresented: $showNewMemory) {
@@ -140,6 +139,24 @@ struct MemoriesView: View {
             .onChange(of: notificationsStore.unreadCount) { _, count in
                 pushService.setBadgeCount(count)
             }
+            .onboardingOverlay(
+                step: .createMemory,
+                coordinator: onboardingCoordinator,
+                anchorID: "memories.plus",
+                tip: OnboardingTipCopy(
+                    title: "Create a memory",
+                    body: "Memories gather tickets into one place. Create one by tapping the + button."
+                )
+            )
+            .onboardingOverlay(
+                step: .memoryCreated,
+                coordinator: onboardingCoordinator,
+                anchorID: "memories.newTile",
+                tip: OnboardingTipCopy(
+                    title: "Your memory has been created",
+                    body: "Once you will have tickets added to this memory, they will appear on this tile. Tap this memory to open it."
+                )
+            )
         }
     }
 
@@ -199,8 +216,8 @@ struct MemoriesView: View {
                 LumoriaIconButton(systemImage: "plus") {
                     showNewMemory = true
                 }
-                .popoverTip(MemoryTip())
-}
+                .onboardingAnchor("memories.plus")
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)

@@ -48,18 +48,36 @@ struct CabinClassOption: Identifiable, Hashable {
 struct NewTicketFormStep: View {
 
     @ObservedObject var funnel: NewTicketFunnel
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     var body: some View {
-        switch funnel.template {
-        case .express:     NewTrainFormStep(funnel: funnel)
-        case .orient:      NewOrientFormStep(funnel: funnel)
-        case .night:       NewNightFormStep(funnel: funnel)
-        case .post, .glow: NewPostFormStep(funnel: funnel)
-        case .concert:     NewConcertFormStep(funnel: funnel)
-        case .underground, .sign, .infoscreen:
-            NewUndergroundFormStep(funnel: funnel)
-        default:           planeBody
+        Group {
+            switch funnel.template {
+            case .express:     NewTrainFormStep(funnel: funnel)
+            case .orient:      NewOrientFormStep(funnel: funnel)
+            case .night:       NewNightFormStep(funnel: funnel)
+            case .post, .glow: NewPostFormStep(funnel: funnel)
+            case .concert:     NewConcertFormStep(funnel: funnel)
+            case .underground, .sign, .infoscreen:
+                NewUndergroundFormStep(funnel: funnel)
+            default:           planeBody
+            }
         }
+        .onboardingAnchor("funnel.firstField")
+        .onTapGesture {
+            if onboardingCoordinator.currentStep == .fillInfo {
+                Task { await onboardingCoordinator.advance(from: .fillInfo) }
+            }
+        }
+        .onboardingOverlay(
+            step: .fillInfo,
+            coordinator: onboardingCoordinator,
+            anchorID: "funnel.firstField",
+            tip: OnboardingTipCopy(
+                title: "Fill the required information",
+                body: "Every template have specific information attached to it. Fill all the required information to edit your ticket."
+            )
+        )
     }
 
     @State private var didFireSubmit = false

@@ -7,7 +7,6 @@
 
 import SwiftUI
 import ProgressiveBlurHeader
-import TipKit
 
 struct MemoryDetailView: View {
 
@@ -76,7 +75,20 @@ struct MemoryDetailView: View {
                 ticketCount: ticketsStore.tickets(in: memory.id).count,
                 memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
             ))
+            if onboardingCoordinator.currentStep == .memoryCreated {
+                Task { await onboardingCoordinator.advance(from: .memoryCreated) }
+            }
         }
+        .onboardingOverlay(
+            step: .enterMemory,
+            coordinator: onboardingCoordinator,
+            anchorID: "memoryDetail.plus",
+            tip: OnboardingTipCopy(
+                title: "Create your first ticket",
+                body: "Let's fill this memory with your first ticket. Tap the + button to start.",
+                leadingEmoji: "😀"
+            )
+        )
         .navigationDestination(for: Ticket.self) { ticket in
             TicketDetailView(ticket: ticket)
         }
@@ -185,13 +197,13 @@ struct MemoryDetailView: View {
             ) {
                 showNewTicket = true
             }
+            .onboardingAnchor("memoryDetail.plus")
 
             LumoriaIconButton(
                 systemImage: "ellipsis",
                 position: .onSurface,
                 menuItems: menuItems
             )
-            .popoverTip(TicketTip())
         }
     }
 

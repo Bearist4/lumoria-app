@@ -119,7 +119,10 @@ final class MemoriesStore: ObservableObject {
                 Analytics.updateUserProperties(["has_created_first_memory": true])
             }
 
-            onboardingCoordinator?.donateMemoryCreated(inserted)
+            if onboardingCoordinator?.currentStep == .createMemory {
+                let c = onboardingCoordinator
+                Task { await c?.advance(from: .createMemory) }
+            }
 
             return inserted
         } catch {

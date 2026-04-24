@@ -126,7 +126,18 @@ enum MapPinTypeProp: String, CaseIterable {
 }
 
 enum OnboardingStepProp: String, CaseIterable {
-    case welcome, memory, ticket, export
+    case welcome
+    case createMemory      = "create_memory"
+    case memoryCreated     = "memory_created"
+    case enterMemory       = "enter_memory"
+    case pickCategory      = "pick_category"
+    case pickTemplate      = "pick_template"
+    case fillInfo          = "fill_info"
+    case pickStyle         = "pick_style"
+    case allDone           = "all_done"
+    case exportOrAddMemory = "export_or_add_memory"
+    case endCover          = "end_cover"
+    case done
 }
 
 /// Environment tag applied to every event as a universal property.

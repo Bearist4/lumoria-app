@@ -61,7 +61,7 @@ struct SettingsView: View {
                             path.append(.helpCenter)
                         }
                         settingsRow(icon: "arrow.counterclockwise", title: "Replay onboarding", right: .chevron) {
-                            Task { await onboardingCoordinator.reset() }
+                            Task { await onboardingCoordinator.resetForReplay() }
                         }
                     }
 

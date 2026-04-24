@@ -1,15 +1,14 @@
 //
-//  WelcomeSheetView.swift
+//  ResumeSheetView.swift
 //  Lumoria App
 //
-//  First-run tutorial welcome. Bottom-sheet style with an inset hero
-//  panel + headline + body + Start / X actions. See Figma node
-//  1902-103368.
+//  Presented on cold launch when show_onboarding=true and
+//  onboarding_step != welcome. Inherits the Welcome sheet shell.
 //
 
 import SwiftUI
 
-struct WelcomeSheetView: View {
+struct ResumeSheetView: View {
     @EnvironmentObject private var coordinator: OnboardingCoordinator
 
     var body: some View {
@@ -17,18 +16,18 @@ struct WelcomeSheetView: View {
             hero
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Welcome to Lumoria!")
+                Text("Welcome back")
                     .font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Color.Text.primary)
 
-                Text("Memories gather tickets into one place — a trip, a season, a night out. Whatever you want to hold onto.")
+                Text("Want to continue where you left off in the tutorial?")
                     .font(.system(size: 15))
                     .foregroundStyle(Color.Text.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Button("Start tutorial") {
-                Task { await coordinator.startTutorial() }
+            Button("Continue tutorial") {
+                Task { await coordinator.resume() }
             }
             .lumoriaButtonStyle(.primary, size: .large)
         }
@@ -52,10 +51,10 @@ struct WelcomeSheetView: View {
                 size: .medium,
                 position: .onBackground
             ) {
-                Task { await coordinator.dismissWelcomeSilently() }
+                Task { await coordinator.declineResume() }
             }
             .padding(12)
-            .accessibilityLabel(Text("Close"))
+            .accessibilityLabel(Text("Leave the tutorial"))
         }
     }
 }

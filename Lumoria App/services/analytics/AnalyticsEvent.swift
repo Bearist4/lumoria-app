@@ -125,12 +125,14 @@ enum AnalyticsEvent {
 
     // MARK: — Onboarding
 
-    case onboardingShown
-    case onboardingStarted
-    case onboardingSkipped(atStep: OnboardingStepProp)
+    case onboardingShown                                   // welcome sheet appeared
+    case onboardingStarted                                 // welcome "Start tutorial" tap
+    case onboardingResumed                                 // resume sheet "Continue" tap
+    case onboardingDeclinedResume                          // resume sheet X tap
     case onboardingStepCompleted(step: OnboardingStepProp)
-    case onboardingCompleted(durationSeconds: Int)
-    case onboardingReplayed
+    case onboardingLeft(atStep: OnboardingStepProp)        // welcome X, tip X confirmed, or resume X
+    case onboardingCompleted(durationSeconds: Int)         // end sheet CTA or X
+    case onboardingReplayed                                // Settings replay row
 
     // MARK: — Error
 
@@ -238,12 +240,14 @@ extension AnalyticsEvent {
         case .profileViewed: return "Profile Viewed"
 
         // Onboarding
-        case .onboardingShown: return "Onboarding Shown"
-        case .onboardingStarted: return "Onboarding Started"
-        case .onboardingSkipped: return "Onboarding Skipped"
-        case .onboardingStepCompleted: return "Onboarding Step Completed"
-        case .onboardingCompleted: return "Onboarding Completed"
-        case .onboardingReplayed: return "Onboarding Replayed"
+        case .onboardingShown:          return "Onboarding Shown"
+        case .onboardingStarted:        return "Onboarding Started"
+        case .onboardingResumed:        return "Onboarding Resumed"
+        case .onboardingDeclinedResume: return "Onboarding Declined Resume"
+        case .onboardingStepCompleted:  return "Onboarding Step Completed"
+        case .onboardingLeft:           return "Onboarding Left"
+        case .onboardingCompleted:      return "Onboarding Completed"
+        case .onboardingReplayed:       return "Onboarding Replayed"
 
         // Error
         case .appError: return "App Error"
@@ -483,12 +487,16 @@ extension AnalyticsEvent {
             return [:]
 
         // Onboarding
-        case .onboardingShown, .onboardingStarted, .onboardingReplayed:
+        case .onboardingShown,
+             .onboardingStarted,
+             .onboardingResumed,
+             .onboardingDeclinedResume,
+             .onboardingReplayed:
             return [:]
-        case .onboardingSkipped(let step):
-            return ["at_step": step.rawValue]
         case .onboardingStepCompleted(let step):
             return ["step": step.rawValue]
+        case .onboardingLeft(let step):
+            return ["at_step": step.rawValue]
         case .onboardingCompleted(let seconds):
             return ["duration_seconds": seconds]
 

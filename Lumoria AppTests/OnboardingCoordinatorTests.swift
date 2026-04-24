@@ -2,103 +2,204 @@
 //  OnboardingCoordinatorTests.swift
 //  Lumoria AppTests
 //
-//  State-transition tests for the onboarding coordinator. Does not exercise
-//  TipKit donations (those require a real Tips.Event datastore) — instead
-//  asserts on the coordinator's own published state + flags.
+//  State-transition tests for the onboarding coordinator. Uses a mock
+//  ProfileServicing so no network / Supabase calls fire.
 //
 
 import Foundation
 import Testing
 @testable import Lumoria_App
 
+// MARK: - Mock service
+
+final class MockProfileService: ProfileServicing, @unchecked Sendable {
+    var storedProfile: Profile?
+    var fetchError: Error?
+    var writtenSteps: [OnboardingStep] = []
+    var writtenShowFlags: [Bool] = []
+    var replayCalls = 0
+
+    init(profile: Profile? = nil) { self.storedProfile = profile }
+
+    func fetch() async throws -> Profile {
+        if let err = fetchError { throw err }
+        guard let p = storedProfile else { throw ProfileServiceError.notFound }
+        return p
+    }
+    func setStep(_ step: OnboardingStep) async throws {
+        writtenSteps.append(step)
+        storedProfile?.onboardingStep = step
+    }
+    func setShowOnboarding(_ value: Bool) async throws {
+        writtenShowFlags.append(value)
+        storedProfile?.showOnboarding = value
+    }
+    func replay() async throws {
+        replayCalls += 1
+        if var p = storedProfile {
+            p.showOnboarding = true
+            p.onboardingStep = .welcome
+            storedProfile = p
+        }
+    }
+}
+
 @MainActor
 @Suite("OnboardingCoordinator")
 struct OnboardingCoordinatorTests {
 
-    // Each test uses a unique UserDefaults suite so persisted reads don't
-    // leak between tests. The coordinator accepts a UserDefaults instance
-    // in its initializer for this reason.
-    private func fresh() -> OnboardingCoordinator {
-        let suiteName = "onboarding.test.\(UUID().uuidString)"
-        let defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removePersistentDomain(forName: suiteName)
-        return OnboardingCoordinator(defaults: defaults)
+    private func makeProfile(show: Bool, step: OnboardingStep) -> Profile {
+        Profile(userId: UUID(), showOnboarding: show, onboardingStep: step)
     }
 
-    @Test("fresh user with zero data shows welcome")
-    func eligibilityFreshUser() async {
-        let c = fresh()
-        c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        #expect(c.showWelcome == true)
-        #expect(c.completed == false)
-        #expect(c.skipped == false)
+    @Test
+    func loadOnAuth_hydratesState() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .welcome))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        #expect(coord.showOnboarding == true)
+        #expect(coord.currentStep == .welcome)
     }
 
-    @Test("existing user with memories is silently completed")
-    func eligibilityExistingUser() async {
-        let c = fresh()
-        c.evaluateEligibility(memoriesCount: 2, ticketsCount: 0)
-        #expect(c.showWelcome == false)
-        #expect(c.completed == true)
+    @Test
+    func loadOnAuth_notFound_defaultsToFreshTutorial() async throws {
+        let service = MockProfileService(profile: nil)
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        #expect(coord.showOnboarding == true)
+        #expect(coord.currentStep == .welcome)
     }
 
-    @Test("skip sets flags and suppresses future evaluations")
-    func skipPath() async {
-        let c = fresh()
-        c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        c.skip()
-        #expect(c.showWelcome == false)
-        #expect(c.skipped == true)
-        #expect(c.welcomeSeen == true)
-
-        c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        #expect(c.showWelcome == false)
+    @Test
+    func maybePresentEntry_showsWelcomeAtStepWelcome() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .welcome))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        coord.maybePresentEntry()
+        #expect(coord.showWelcome == true)
+        #expect(coord.showResume == false)
     }
 
-    @Test("start sets welcomeSeen and stamps startedAt")
-    func startPath() async {
-        let c = fresh()
-        c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        await c.start()
-        #expect(c.welcomeSeen == true)
-        #expect(c.showWelcome == false)
-        #expect(c.startedAt != nil)
+    @Test
+    func maybePresentEntry_showsResumeWhenStepBeyondWelcome() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .pickCategory))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        coord.maybePresentEntry()
+        #expect(coord.showResume == true)
+        #expect(coord.showWelcome == false)
     }
 
-    @Test("reset clears flags and reopens welcome")
-    func resetPath() async {
-        let c = fresh()
-        c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        await c.start()
-        c.donateExportOpened()
-        #expect(c.completed == true)
-
-        await c.reset()
-        #expect(c.welcomeSeen == false)
-        #expect(c.completed == false)
-        #expect(c.skipped == false)
-        #expect(c.showWelcome == true)
+    @Test
+    func maybePresentEntry_noSheetWhenOnboardingOff() async throws {
+        let service = MockProfileService(profile: makeProfile(show: false, step: .done))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        coord.maybePresentEntry()
+        #expect(coord.showWelcome == false)
+        #expect(coord.showResume == false)
     }
 
-    @Test("donations only count during an active tour")
-    func donationsGatedByStart() async {
-        let c = fresh()
-        let memoryA = Memory(
-            id: UUID(), userId: UUID(),
-            name: "m", colorFamily: "sky", emoji: nil,
-            createdAt: .now, updatedAt: .now
-        )
-        c.donateMemoryCreated(memoryA)
-        #expect(c.pendingMemoryToOpen == nil)
+    @Test
+    func startTutorial_advancesToCreateMemory() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .welcome))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.startTutorial()
+        #expect(coord.currentStep == .createMemory)
+        #expect(coord.showWelcome == false)
+        #expect(service.writtenSteps == [.createMemory])
+    }
 
-        c.evaluateEligibility(memoriesCount: 0, ticketsCount: 0)
-        await c.start()
-        let memoryB = Memory(
-            id: UUID(), userId: UUID(),
-            name: "m2", colorFamily: "sky", emoji: nil,
-            createdAt: .now, updatedAt: .now
-        )
-        c.donateMemoryCreated(memoryB)
-        #expect(c.pendingMemoryToOpen?.id == memoryB.id)
+    @Test
+    func dismissWelcomeSilently_turnsOffFlag() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .welcome))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.dismissWelcomeSilently()
+        #expect(coord.showOnboarding == false)
+        #expect(coord.currentStep == .done)
+        #expect(service.writtenShowFlags == [false])
+        #expect(service.writtenSteps == [.done])
+    }
+
+    @Test
+    func advance_fromMatchingStepTransitions() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .createMemory))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.advance(from: .createMemory)
+        #expect(coord.currentStep == .memoryCreated)
+    }
+
+    @Test
+    func advance_fromMismatchedStepIsNoOp() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .pickCategory))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.advance(from: .createMemory)
+        #expect(coord.currentStep == .pickCategory)
+        #expect(service.writtenSteps.isEmpty)
+    }
+
+    @Test
+    func advance_fromFillInfoSkipsPickStyleWhenNoVariants() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .fillInfo))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        coord.pendingStyleStep = false
+        await coord.advance(from: .fillInfo)
+        #expect(coord.currentStep == .allDone)
+    }
+
+    @Test
+    func advance_fromFillInfoIncludesPickStyleWhenVariantsExist() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .fillInfo))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        coord.pendingStyleStep = true
+        await coord.advance(from: .fillInfo)
+        #expect(coord.currentStep == .pickStyle)
+    }
+
+    @Test
+    func chose_recordsVariantAndAdvances() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .allDone))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.chose(.export)
+        #expect(coord.currentStep == .exportOrAddMemory)
+        #expect(coord.exportOrAddChoice == .export)
+    }
+
+    @Test
+    func confirmLeaveTutorial_setsFlagFalseAndStepDone() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .pickCategory))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.confirmLeaveTutorial()
+        #expect(coord.showOnboarding == false)
+        #expect(coord.currentStep == .done)
+    }
+
+    @Test
+    func resetForReplay_rewinds() async throws {
+        let service = MockProfileService(profile: makeProfile(show: false, step: .done))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.resetForReplay()
+        #expect(coord.showOnboarding == true)
+        #expect(coord.currentStep == .welcome)
+        #expect(service.replayCalls == 1)
+    }
+
+    @Test
+    func finishAtEndCover_completes() async throws {
+        let service = MockProfileService(profile: makeProfile(show: true, step: .endCover))
+        let coord = OnboardingCoordinator(service: service)
+        await coord.loadOnAuth()
+        await coord.finishAtEndCover()
+        #expect(coord.showOnboarding == false)
+        #expect(coord.currentStep == .done)
     }
 }

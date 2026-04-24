@@ -59,23 +59,44 @@ struct ContentView: View {
             await ticketsStore.load()
             await profileStore.load()
             await notificationsStore.load()
-            onboardingCoordinator.evaluateEligibility(
-                memoriesCount: memoriesStore.memories.count,
-                ticketsCount: ticketsStore.tickets.count
-            )
+            // Delay the welcome / resume sheet by 3 seconds so the user
+            // lands on MemoriesView first, per spec.
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            onboardingCoordinator.maybePresentEntry()
         }
-        .sheet(isPresented: $onboardingCoordinator.showWelcome) {
+        .floatingBottomSheet(isPresented: $onboardingCoordinator.showWelcome) {
             WelcomeSheetView()
                 .environmentObject(onboardingCoordinator)
         }
+        .floatingBottomSheet(isPresented: $onboardingCoordinator.showResume) {
+            ResumeSheetView()
+                .environmentObject(onboardingCoordinator)
+        }
+        .floatingBottomSheet(isPresented: $onboardingCoordinator.showEndCover) {
+            OnboardingEndSheetView()
+                .environmentObject(onboardingCoordinator)
+        }
+        .alert(
+            "Leave the tutorial?",
+            isPresented: $onboardingCoordinator.showLeaveAlert
+        ) {
+            Button("Leave", role: .destructive) {
+                Task { await onboardingCoordinator.confirmLeaveTutorial() }
+            }
+            Button("Stay", role: .cancel) {
+                onboardingCoordinator.showLeaveAlert = false
+            }
+        } message: {
+            Text("You can replay it anytime from Settings.")
+        }
         .onChange(of: onboardingCoordinator.showWelcome) { _, isShowing in
-            // Welcome sheet must present over the Memories tab so the
-            // MemoryTip popover has its anchor after dismissal.
             if isShowing { selectedTab = 0 }
         }
-        .onChange(of: onboardingCoordinator.pendingMemoryToOpen) { _, memory in
-            guard memory != nil else { return }
-            selectedTab = 0
+        .onChange(of: onboardingCoordinator.showResume) { _, isShowing in
+            if isShowing { selectedTab = 0 }
+        }
+        .onChange(of: onboardingCoordinator.showEndCover) { _, isShowing in
+            if isShowing { selectedTab = 0 }
         }
         .onChange(of: walletImport.pending) { _, data in
             guard let data else { return }

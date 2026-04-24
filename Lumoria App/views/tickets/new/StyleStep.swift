@@ -11,6 +11,7 @@ import SwiftUI
 struct NewTicketStyleStep: View {
 
     @ObservedObject var funnel: NewTicketFunnel
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -36,6 +37,7 @@ struct NewTicketStyleStep: View {
                     }
                 }
             }
+            .onboardingAnchor("funnel.styles")
         }
         .onChange(of: funnel.selectedStyleId) { _, newValue in
             guard let newValue, let template = funnel.template else { return }
@@ -43,12 +45,21 @@ struct NewTicketStyleStep: View {
                 template: template.analyticsTemplate,
                 styleId: newValue
             ))
+            if onboardingCoordinator.currentStep == .pickStyle {
+                Task { await onboardingCoordinator.advance(from: .pickStyle) }
+            }
         }
+        .onboardingOverlay(
+            step: .pickStyle,
+            coordinator: onboardingCoordinator,
+            anchorID: "funnel.styles",
+            tip: OnboardingTipCopy(
+                title: "Select a style",
+                body: "Some templates have alternative styles. Scroll through the options and tap the one you like to change how your ticket looks."
+            )
+        )
     }
 
-    /// A variant counts as selected when its id matches the funnel
-    /// selection, OR when nothing is selected yet and it is the first
-    /// (default) variant — keeps the picker visually anchored.
     private func isSelected(_ variant: TicketStyleVariant) -> Bool {
         if let id = funnel.selectedStyleId { return id == variant.id }
         return variant.id == funnel.template?.defaultStyle.id
