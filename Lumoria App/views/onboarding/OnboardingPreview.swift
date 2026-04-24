@@ -2,9 +2,9 @@
 //  OnboardingPreview.swift
 //  Lumoria App
 //
-//  Xcode preview host that lets you cycle through every onboarding step
-//  + sheet without running the full app. Stubs a ProfileService in-memory
-//  so the coordinator has no network dependency.
+//  Xcode preview host — one #Preview per step/sheet. Each preview is a
+//  dedicated struct with its own @StateObject initialized via autoclosure
+//  so MainActor construction doesn't trip the preview build.
 //
 
 #if DEBUG
@@ -30,12 +30,7 @@ private final class PreviewProfileService: ProfileServicing, @unchecked Sendable
     }
 }
 
-@MainActor
-private func makeCoordinator(step: OnboardingStep) -> OnboardingCoordinator {
-    OnboardingCoordinator(service: PreviewProfileService(step: step))
-}
-
-// MARK: - Backdrops per step
+// MARK: - Backdrops
 
 private struct PreviewMemoriesBackdrop: View {
     var body: some View {
@@ -55,8 +50,7 @@ private struct PreviewMemoriesBackdrop: View {
                         .onboardingAnchor("memories.plus")
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
+            .padding(.horizontal, 16).padding(.top, 16)
 
             Spacer()
             VStack(spacing: 8) {
@@ -72,12 +66,8 @@ private struct PreviewMemoriesBackdrop: View {
 private struct PreviewMemoriesWithTileBackdrop: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("Memories").font(.largeTitle.bold())
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
+            HStack { Text("Memories").font(.largeTitle.bold()); Spacer() }
+                .padding(.horizontal, 16).padding(.top, 16)
 
             HStack(alignment: .top) {
                 VStack(spacing: 8) {
@@ -118,15 +108,12 @@ private struct PreviewMemoryDetailBackdrop: View {
                     .frame(width: 40, height: 40)
                     .background(Color.gray.opacity(0.15), in: Circle())
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
+            .padding(.horizontal, 16).padding(.top, 16)
 
             Text("😀").font(.system(size: 48))
-                .padding(.top, 24)
-                .padding(.leading, 24)
+                .padding(.top, 24).padding(.leading, 24)
             Text("Ski Trip 2024").font(.title.bold())
-                .padding(.leading, 24)
-                .padding(.top, 8)
+                .padding(.leading, 24).padding(.top, 8)
 
             Spacer()
         }
@@ -135,12 +122,15 @@ private struct PreviewMemoryDetailBackdrop: View {
 }
 
 private struct PreviewCategoryBackdrop: View {
-    let columns = [GridItem(.flexible(), spacing: 16), GridItem(.flexible(), spacing: 16)]
     var body: some View {
         VStack(alignment: .leading) {
             Text("New ticket").font(.largeTitle.bold())
             Text("Select a category").font(.title3.bold()).padding(.top, 8)
-            LazyVGrid(columns: columns, spacing: 16) {
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: 16),
+                          GridItem(.flexible(), spacing: 16)],
+                spacing: 16
+            ) {
                 ForEach(0..<5, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 16)
                         .fill(Color.white)
@@ -152,8 +142,7 @@ private struct PreviewCategoryBackdrop: View {
             .padding(.top, 16)
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
+        .padding(.horizontal, 16).padding(.top, 16)
     }
 }
 
@@ -174,8 +163,7 @@ private struct PreviewTemplateBackdrop: View {
             .padding(.top, 16)
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
+        .padding(.horizontal, 16).padding(.top, 16)
     }
 }
 
@@ -196,8 +184,7 @@ private struct PreviewFormBackdrop: View {
             Spacer()
         }
         .onboardingAnchor("funnel.firstField")
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
+        .padding(.horizontal, 16).padding(.top, 16)
     }
 }
 
@@ -219,8 +206,7 @@ private struct PreviewStyleBackdrop: View {
             .padding(.top, 16)
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
+        .padding(.horizontal, 16).padding(.top, 16)
     }
 }
 
@@ -243,8 +229,7 @@ private struct PreviewSuccessBackdrop: View {
             .onboardingAnchor("success.actions")
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
+        .padding(.horizontal, 16).padding(.top, 16)
     }
 }
 
@@ -263,179 +248,252 @@ private struct PreviewExportBackdrop: View {
             .onboardingAnchor("export.groups")
             Spacer()
         }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
+        .padding(.horizontal, 16).padding(.top, 16)
     }
 }
 
-// MARK: - Tour
+// MARK: - Step preview hosts (one struct per step)
 
-private struct OnboardingOverlayStepPreview: View {
-    let step: OnboardingStep
-    @State private var coordinator: OnboardingCoordinator?
-
+private struct CreateMemoryPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .createMemory)
+    )
     var body: some View {
-        Group {
-            if let coordinator {
-                backdrop
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Color(white: 0.93))
-                    .onboardingOverlay(
-                        step: step,
-                        coordinator: coordinator,
-                        anchorID: anchorID,
-                        tip: tipCopy
-                    )
-                    .alert(
-                        "Leave the tutorial?",
-                        isPresented: Binding(
-                            get: { coordinator.showLeaveAlert },
-                            set: { coordinator.showLeaveAlert = $0 }
-                        )
-                    ) {
-                        Button("Leave", role: .destructive) { }
-                        Button("Stay", role: .cancel) { }
-                    } message: {
-                        Text("You can replay it anytime from Settings.")
-                    }
-            } else {
-                Color(white: 0.93).ignoresSafeArea()
+        PreviewMemoriesBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .createMemory,
+                coordinator: coordinator,
+                anchorID: "memories.plus",
+                tip: .init(
+                    title: "Create a memory",
+                    body: "Memories gather tickets into one place. Create one by tapping the + button."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct MemoryCreatedPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .memoryCreated)
+    )
+    var body: some View {
+        PreviewMemoriesWithTileBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .memoryCreated,
+                coordinator: coordinator,
+                anchorID: "memories.newTile",
+                tip: .init(
+                    title: "Your memory has been created",
+                    body: "Once you will have tickets added to this memory, they will appear on this tile. Tap this memory to open it."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct EnterMemoryPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .enterMemory)
+    )
+    var body: some View {
+        PreviewMemoryDetailBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .onboardingOverlay(
+                step: .enterMemory,
+                coordinator: coordinator,
+                anchorID: "memoryDetail.plus",
+                tip: .init(
+                    title: "Create your first ticket",
+                    body: "Let's fill this memory with your first ticket. Tap the + button to start.",
+                    leadingEmoji: "😀"
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct PickCategoryPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .pickCategory)
+    )
+    var body: some View {
+        PreviewCategoryBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .pickCategory,
+                coordinator: coordinator,
+                anchorID: "funnel.categories",
+                tip: .init(
+                    title: "Pick a category",
+                    body: "Tickets are separated into categories. Pick a category to continue."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct PickTemplatePreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .pickTemplate)
+    )
+    var body: some View {
+        PreviewTemplateBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .pickTemplate,
+                coordinator: coordinator,
+                anchorID: "funnel.firstTemplate",
+                tip: .init(
+                    title: "Pick a template",
+                    body: "Each category has different templates that match it. You can also check the content of each template by tapping the information button."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct FillInfoPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .fillInfo)
+    )
+    var body: some View {
+        PreviewFormBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .fillInfo,
+                coordinator: coordinator,
+                anchorID: "funnel.firstField",
+                tip: .init(
+                    title: "Fill the required information",
+                    body: "Every template have specific information attached to it. Fill all the required information to edit your ticket."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct PickStylePreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .pickStyle)
+    )
+    var body: some View {
+        PreviewStyleBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .pickStyle,
+                coordinator: coordinator,
+                anchorID: "funnel.styles",
+                tip: .init(
+                    title: "Select a style",
+                    body: "Some templates have alternative styles. Scroll through the options and tap the one you like to change how your ticket looks."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct AllDonePreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .allDone)
+    )
+    var body: some View {
+        PreviewSuccessBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .allDone,
+                coordinator: coordinator,
+                anchorID: "success.actions",
+                tip: .init(
+                    title: "Ticket created!",
+                    body: "Your ticket has been created. You can find it in All Tickets. You can now add it to a Memory or Export your ticket to use it in another app."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+private struct ExportOrAddMemoryPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .exportOrAddMemory)
+    )
+    var body: some View {
+        PreviewExportBackdrop()
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color(white: 0.93))
+            .onboardingOverlay(
+                step: .exportOrAddMemory,
+                coordinator: coordinator,
+                anchorID: "export.groups",
+                tip: .init(
+                    title: "Export your ticket",
+                    body: "Choose the export option that matches what you want to achieve."
+                )
+            )
+            .task { await coordinator.loadOnAuth() }
+    }
+}
+
+// MARK: - Sheet preview hosts
+
+private struct WelcomeSheetPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .welcome)
+    )
+    var body: some View {
+        ZStack { Color(white: 0.95).ignoresSafeArea() }
+            .sheet(isPresented: .constant(true)) {
+                WelcomeSheetView().environmentObject(coordinator)
             }
-        }
-        .task {
-            if coordinator == nil {
-                let c = OnboardingCoordinator(service: PreviewProfileService(step: step))
-                await c.loadOnAuth()
-                coordinator = c
+    }
+}
+
+private struct ResumeSheetPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .pickCategory)
+    )
+    var body: some View {
+        ZStack { Color(white: 0.95).ignoresSafeArea() }
+            .sheet(isPresented: .constant(true)) {
+                ResumeSheetView().environmentObject(coordinator)
             }
-        }
     }
+}
 
-    @ViewBuilder private var backdrop: some View {
-        switch step {
-        case .createMemory:      PreviewMemoriesBackdrop()
-        case .memoryCreated:     PreviewMemoriesWithTileBackdrop()
-        case .enterMemory:       PreviewMemoryDetailBackdrop()
-        case .pickCategory:      PreviewCategoryBackdrop()
-        case .pickTemplate:      PreviewTemplateBackdrop()
-        case .fillInfo:          PreviewFormBackdrop()
-        case .pickStyle:         PreviewStyleBackdrop()
-        case .allDone:           PreviewSuccessBackdrop()
-        case .exportOrAddMemory: PreviewExportBackdrop()
-        default:                 Color.clear
-        }
-    }
-
-    private var anchorID: String {
-        switch step {
-        case .createMemory:      return "memories.plus"
-        case .memoryCreated:     return "memories.newTile"
-        case .enterMemory:       return "memoryDetail.plus"
-        case .pickCategory:      return "funnel.categories"
-        case .pickTemplate:      return "funnel.firstTemplate"
-        case .fillInfo:          return "funnel.firstField"
-        case .pickStyle:         return "funnel.styles"
-        case .allDone:           return "success.actions"
-        case .exportOrAddMemory: return "export.groups"
-        default:                 return ""
-        }
-    }
-
-    private var tipCopy: OnboardingTipCopy {
-        switch step {
-        case .createMemory:
-            return .init(title: "Create a memory",
-                         body: "Memories gather tickets into one place. Create one by tapping the + button.")
-        case .memoryCreated:
-            return .init(title: "Your memory has been created",
-                         body: "Once you will have tickets added to this memory, they will appear on this tile. Tap this memory to open it.")
-        case .enterMemory:
-            return .init(title: "Create your first ticket",
-                         body: "Let's fill this memory with your first ticket. Tap the + button to start.",
-                         leadingEmoji: "😀")
-        case .pickCategory:
-            return .init(title: "Pick a category",
-                         body: "Tickets are separated into categories. Pick a category to continue.")
-        case .pickTemplate:
-            return .init(title: "Pick a template",
-                         body: "Each category has different templates that match it. You can also check the content of each template by tapping the information button.")
-        case .fillInfo:
-            return .init(title: "Fill the required information",
-                         body: "Every template have specific information attached to it. Fill all the required information to edit your ticket.")
-        case .pickStyle:
-            return .init(title: "Select a style",
-                         body: "Some templates have alternative styles. Scroll through the options and tap the one you like to change how your ticket looks.")
-        case .allDone:
-            return .init(title: "Ticket created!",
-                         body: "Your ticket has been created. You can find it in All Tickets. You can now add it to a Memory or Export your ticket to use it in another app.")
-        case .exportOrAddMemory:
-            return .init(title: "Export your ticket",
-                         body: "Choose the export option that matches what you want to achieve.")
-        default:
-            return .init(title: "", body: "")
-        }
+private struct EndSheetPreview: View {
+    @StateObject private var coordinator = OnboardingCoordinator(
+        service: PreviewProfileService(step: .endCover)
+    )
+    var body: some View {
+        ZStack { Color(white: 0.95).ignoresSafeArea() }
+            .sheet(isPresented: .constant(true)) {
+                OnboardingEndSheetView().environmentObject(coordinator)
+            }
     }
 }
 
 // MARK: - Previews
 
-#Preview("1 · Welcome sheet") {
-    ZStack { Color(white: 0.95).ignoresSafeArea() }
-        .sheet(isPresented: .constant(true)) {
-            WelcomeSheetView()
-                .environmentObject(makeCoordinator(step: .welcome))
-        }
-}
+#Preview("1 · Welcome sheet") { WelcomeSheetPreview() }
+#Preview("2 · createMemory")       { CreateMemoryPreview() }
+#Preview("3 · memoryCreated")      { MemoryCreatedPreview() }
+#Preview("4 · enterMemory")        { EnterMemoryPreview() }
+#Preview("5 · pickCategory")       { PickCategoryPreview() }
+#Preview("6 · pickTemplate")       { PickTemplatePreview() }
+#Preview("7 · fillInfo")           { FillInfoPreview() }
+#Preview("8 · pickStyle")          { PickStylePreview() }
+#Preview("9 · allDone")            { AllDonePreview() }
+#Preview("10 · exportOrAddMemory") { ExportOrAddMemoryPreview() }
+#Preview("11 · Resume sheet")      { ResumeSheetPreview() }
+#Preview("12 · End sheet")         { EndSheetPreview() }
 
-#Preview("2 · createMemory") {
-    OnboardingOverlayStepPreview(step: .createMemory)
-}
-
-#Preview("3 · memoryCreated") {
-    OnboardingOverlayStepPreview(step: .memoryCreated)
-}
-
-#Preview("4 · enterMemory") {
-    OnboardingOverlayStepPreview(step: .enterMemory)
-}
-
-#Preview("5 · pickCategory") {
-    OnboardingOverlayStepPreview(step: .pickCategory)
-}
-
-#Preview("6 · pickTemplate") {
-    OnboardingOverlayStepPreview(step: .pickTemplate)
-}
-
-#Preview("7 · fillInfo") {
-    OnboardingOverlayStepPreview(step: .fillInfo)
-}
-
-#Preview("8 · pickStyle") {
-    OnboardingOverlayStepPreview(step: .pickStyle)
-}
-
-#Preview("9 · allDone") {
-    OnboardingOverlayStepPreview(step: .allDone)
-}
-
-#Preview("10 · exportOrAddMemory") {
-    OnboardingOverlayStepPreview(step: .exportOrAddMemory)
-}
-
-#Preview("11 · Resume sheet") {
-    ZStack { Color(white: 0.95).ignoresSafeArea() }
-        .sheet(isPresented: .constant(true)) {
-            ResumeSheetView()
-                .environmentObject(makeCoordinator(step: .pickCategory))
-        }
-}
-
-#Preview("12 · End sheet") {
-    ZStack { Color(white: 0.95).ignoresSafeArea() }
-        .sheet(isPresented: .constant(true)) {
-            OnboardingEndSheetView()
-                .environmentObject(makeCoordinator(step: .endCover))
-        }
-}
 #endif

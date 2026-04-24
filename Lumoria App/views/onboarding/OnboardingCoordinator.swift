@@ -44,7 +44,7 @@ final class OnboardingCoordinator: ObservableObject {
 
     private let service: ProfileServicing
 
-    init(service: ProfileServicing = ProfileService()) {
+    nonisolated init(service: ProfileServicing = ProfileService()) {
         self.service = service
     }
 
