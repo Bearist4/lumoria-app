@@ -5,8 +5,8 @@
 //  Custom bottom-sheet presentation used by the onboarding sheets.
 //  Native `.sheet` snaps to the screen edges and doesn't support a
 //  horizontally-inset floating card. This modifier overlays a dim layer
-//  + a content card with 19pt horizontal / 19pt bottom insets and a 36pt
-//  corner radius (iPhone screen corner 55pt − 19pt inset).
+//  + a content card with 19pt horizontal insets, flush to the bottom,
+//  and a 36pt top corner radius (iPhone screen corner 55pt − 19pt inset).
 //
 
 import SwiftUI
