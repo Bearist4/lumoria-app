@@ -24,6 +24,7 @@ struct ExportSheet: View {
     let ticket: Ticket
 
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @State private var phase: Phase = .destinations
 
     // IM share state
@@ -40,20 +41,24 @@ struct ExportSheet: View {
                     onClose: { dismiss() },
                     onCameraRoll: {
                         Analytics.track(.exportDestinationSelected(destination: .camera_roll))
+                        advanceOnboardingIfExportFlow()
                         withAnimation(.easeInOut(duration: 0.25)) {
                             phase = .cameraRoll
                         }
                     },
                     onInstantMessaging: {
                         Analytics.track(.exportDestinationSelected(destination: .whatsapp))
+                        advanceOnboardingIfExportFlow()
                         Task { await handleIMShare() }
                     },
                     onSocial: {
+                        advanceOnboardingIfExportFlow()
                         withAnimation(.easeInOut(duration: 0.25)) {
                             phase = .social
                         }
                     }
                 )
+                .onboardingAnchor("export.groups")
                 .transition(.asymmetric(
                     insertion: .move(edge: .leading),
                     removal: .move(edge: .leading)
@@ -95,6 +100,25 @@ struct ExportSheet: View {
                 category: ticket.kind.analyticsCategory,
                 template: ticket.kind.analyticsTemplate
             ))
+        }
+        .onboardingOverlay(
+            step: .exportOrAddMemory,
+            coordinator: onboardingCoordinator,
+            anchorID: "export.groups",
+            tip: OnboardingTipCopy(
+                title: "Export your ticket",
+                body: "Choose the export option that matches what you want to achieve."
+            )
+        )
+    }
+
+    /// Bridges the export-destination taps back into the onboarding
+    /// coordinator so the tutorial advances when the user finishes a
+    /// ticket via the Export branch.
+    private func advanceOnboardingIfExportFlow() {
+        if onboardingCoordinator.currentStep == .exportOrAddMemory
+            && onboardingCoordinator.exportOrAddChoice == .export {
+            Task { await onboardingCoordinator.advance(from: .exportOrAddMemory) }
         }
     }
 

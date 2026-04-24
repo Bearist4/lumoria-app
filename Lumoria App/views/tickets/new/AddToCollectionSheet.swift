@@ -28,6 +28,7 @@ struct AddToMemorySheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memories: MemoriesStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     @State private var toastMessage: String? = nil
 
@@ -75,6 +76,7 @@ struct AddToMemorySheet: View {
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 16)
+                    .onboardingAnchor("addToMemory.list")
                 }
             }
             .refreshable { await memories.load() }
@@ -83,6 +85,15 @@ struct AddToMemorySheet: View {
         .presentationDragIndicator(.visible)
         .presentationDetents([.medium, .large])
         .lumoriaToast($toastMessage)
+        .onboardingOverlay(
+            step: .exportOrAddMemory,
+            coordinator: onboardingCoordinator,
+            anchorID: "addToMemory.list",
+            tip: OnboardingTipCopy(
+                title: "Add to a memory",
+                body: "Tap the memory you would like to add your ticket to. This can be changed later."
+            )
+        )
     }
 
     // MARK: - Header
@@ -186,6 +197,11 @@ struct AddToMemorySheet: View {
             toastMessage = currentTickets.count == 1
                 ? "Ticket added to \(m.name)"
                 : "\(currentTickets.count) tickets added to \(m.name)"
+
+            if onboardingCoordinator.currentStep == .exportOrAddMemory
+                && onboardingCoordinator.exportOrAddChoice == .addToMemory {
+                await onboardingCoordinator.advance(from: .exportOrAddMemory)
+            }
         }
     }
 }
