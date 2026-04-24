@@ -38,14 +38,12 @@ struct OnboardingTipCard: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.white)
                 Spacer(minLength: 8)
-                Button(action: onClose) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 20, height: 20)
-                        .background(Color.white.opacity(0.15), in: Circle())
-                }
-                .buttonStyle(.plain)
+                LumoriaIconButton(
+                    systemImage: "xmark",
+                    size: .small,
+                    position: .onDark,
+                    action: onClose
+                )
                 .accessibilityLabel(Text("Leave the tutorial"))
             }
             Text(copy.body)
