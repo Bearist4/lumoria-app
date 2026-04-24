@@ -272,35 +272,43 @@ private struct PreviewExportBackdrop: View {
 
 private struct OnboardingOverlayStepPreview: View {
     let step: OnboardingStep
-    @StateObject private var coordinator: OnboardingCoordinator
-
-    init(step: OnboardingStep) {
-        self.step = step
-        _coordinator = StateObject(
-            wrappedValue: OnboardingCoordinator(service: PreviewProfileService(step: step))
-        )
-    }
+    @State private var coordinator: OnboardingCoordinator?
 
     var body: some View {
-        backdrop
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Color(white: 0.93))
-            .onboardingOverlay(
-                step: step,
-                coordinator: coordinator,
-                anchorID: anchorID,
-                tip: tipCopy
-            )
-            .alert(
-                "Leave the tutorial?",
-                isPresented: $coordinator.showLeaveAlert
-            ) {
-                Button("Leave", role: .destructive) { }
-                Button("Stay", role: .cancel) { }
-            } message: {
-                Text("You can replay it anytime from Settings.")
+        Group {
+            if let coordinator {
+                backdrop
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(white: 0.93))
+                    .onboardingOverlay(
+                        step: step,
+                        coordinator: coordinator,
+                        anchorID: anchorID,
+                        tip: tipCopy
+                    )
+                    .alert(
+                        "Leave the tutorial?",
+                        isPresented: Binding(
+                            get: { coordinator.showLeaveAlert },
+                            set: { coordinator.showLeaveAlert = $0 }
+                        )
+                    ) {
+                        Button("Leave", role: .destructive) { }
+                        Button("Stay", role: .cancel) { }
+                    } message: {
+                        Text("You can replay it anytime from Settings.")
+                    }
+            } else {
+                Color(white: 0.93).ignoresSafeArea()
             }
-            .task { await coordinator.loadOnAuth() }
+        }
+        .task {
+            if coordinator == nil {
+                let c = OnboardingCoordinator(service: PreviewProfileService(step: step))
+                await c.loadOnAuth()
+                coordinator = c
+            }
+        }
     }
 
     @ViewBuilder private var backdrop: some View {
