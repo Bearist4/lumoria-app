@@ -11,6 +11,7 @@ import SwiftUI
 struct NewTicketCategoryStep: View {
 
     @ObservedObject var funnel: NewTicketFunnel
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     private let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -29,9 +30,27 @@ struct NewTicketCategoryStep: View {
                 )
             }
         }
+        .onboardingAnchor("funnel.categories")
+        .onAppear {
+            if onboardingCoordinator.currentStep == .enterMemory {
+                Task { await onboardingCoordinator.advance(from: .enterMemory) }
+            }
+        }
         .onChange(of: funnel.category) { _, newValue in
             guard let newValue else { return }
             Analytics.track(.ticketCategorySelected(category: newValue.analyticsProp))
+            if onboardingCoordinator.currentStep == .pickCategory {
+                Task { await onboardingCoordinator.advance(from: .pickCategory) }
+            }
         }
+        .onboardingOverlay(
+            step: .pickCategory,
+            coordinator: onboardingCoordinator,
+            anchorID: "funnel.categories",
+            tip: OnboardingTipCopy(
+                title: "Pick a category",
+                body: "Tickets are separated into categories. Pick a category to continue."
+            )
+        )
     }
 }
