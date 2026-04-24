@@ -40,6 +40,15 @@ struct NewTicketSuccessStep: View {
 
             actionsGrid
         }
+        .onboardingOverlay(
+            step: .allDone,
+            coordinator: onboardingCoordinator,
+            anchorID: "success.actions",
+            tip: OnboardingTipCopy(
+                title: "Ticket created!",
+                body: "Your ticket has been created. You can find it in All Tickets. You can now add it to a Memory or Export your ticket to use it in another app."
+            )
+        )
         .sheet(isPresented: $showAddToMemory) {
             if !funnel.createdTickets.isEmpty {
                 AddToMemorySheet(tickets: funnel.createdTickets)
@@ -108,7 +117,13 @@ struct NewTicketSuccessStep: View {
                 Analytics.updateUserProperties(["has_created_first_ticket": true])
             }
 
-            onboardingCoordinator.donateTicketCreated()
+            // Whichever step the user is currently on (fillInfo or
+            // pickStyle), drive the coordinator forward so the allDone
+            // overlay appears over the SuccessStep actions.
+            let current = onboardingCoordinator.currentStep
+            if current == .pickStyle || current == .fillInfo {
+                Task { await onboardingCoordinator.advance(from: current) }
+            }
         }
         .onChange(of: funnel.errorMessage) { _, err in
             guard let err else { return }
@@ -231,17 +246,23 @@ struct NewTicketSuccessStep: View {
             VStack(spacing: 12) {
                 Button("Export Ticket") {
                     showExport = true
-                    onboardingCoordinator.donateExportOpened()
+                    if onboardingCoordinator.currentStep == .allDone {
+                        Task { await onboardingCoordinator.chose(.export) }
+                    }
                 }
                 .lumoriaButtonStyle(.secondary, size: .large)
                 .disabled(funnel.createdTicket == nil)
 
                 Button("Add to Memory") {
                     showAddToMemory = true
+                    if onboardingCoordinator.currentStep == .allDone {
+                        Task { await onboardingCoordinator.chose(.addToMemory) }
+                    }
                 }
                 .lumoriaButtonStyle(.primary, size: .large)
                 .disabled(funnel.createdTicket == nil)
             }
+            .onboardingAnchor("success.actions")
         }
     }
 
