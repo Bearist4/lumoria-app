@@ -376,8 +376,10 @@ For Phase 2, the RPC accepts `(p_product_id, p_transaction_id, p_expires_at)` di
 **Phase 3 — Personalised hero variants**
 
 - 4 hero blocks (illustration + headline + subhead) for `memoryLimit` / `ticketLimit` / `mapSuite` / `premiumContent`.
-- Wire each gated CTA to its trigger.
-- Copy pass + illustration sourcing per variant.
+- "Illustration" = SwiftUI compositions per variant (mock memory cards, ticket stack, map curve, template grid). No designer-supplied art needed; ships now and can be swapped for Figma illustrations later as a polish pass.
+- Per-variant accent colour + radial gradient backdrop on the hero so each variant reads visually distinct without diverging the rest of the paywall layout.
+- Refined headline + subhead copy per variant.
+- Trigger → variant routing already wired in Phase 2; Phase 3 only swaps the hero block contents, leaving plan card / CTA / trust copy / restore untouched.
 
 **Phase 4 — Invite-as-reward**
 
