@@ -14,6 +14,8 @@ struct MemoriesView: View {
     @EnvironmentObject private var notificationsStore: NotificationsStore
     @EnvironmentObject private var pushService: PushNotificationService
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
+    @Environment(Paywall.PresentationState.self) private var paywallState
     @State private var showNewMemory = false
     @State private var showNotificationCenter = false
     @State private var pendingNotification: LumoriaNotification? = nil
@@ -203,7 +205,21 @@ struct MemoriesView: View {
         case .news:
             activeTemplateKind = notification.templateKind ?? .express
         case .link:
+            presentNewMemoryOrPaywall()
+        }
+    }
+
+    /// Gated entry to the new-memory sheet. Free-tier users at the
+    /// memory cap see the paywall instead.
+    private func presentNewMemoryOrPaywall() {
+        if store.canCreate(entitlement: entitlement) {
             showNewMemory = true
+        } else {
+            Paywall.present(
+                for: .memoryLimit,
+                entitlement: entitlement,
+                state: paywallState
+            )
         }
     }
 
@@ -243,7 +259,7 @@ struct MemoriesView: View {
                     showNotificationCenter = true
                 }
                 LumoriaIconButton(systemImage: "plus") {
-                    showNewMemory = true
+                    presentNewMemoryOrPaywall()
                 }
                 .onboardingAnchor("memories.plus")
             }
