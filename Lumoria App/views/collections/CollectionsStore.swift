@@ -67,6 +67,17 @@ final class MemoriesStore: ObservableObject {
         }
     }
 
+    // MARK: - Free-tier gate
+
+    /// Whether the user can create another memory under the free-tier
+    /// cap. Premium / grandfathered / lifetime / active subscriber →
+    /// always true. Mirrors the enforce_memory_cap trigger.
+    func canCreate(entitlement: EntitlementStore) -> Bool {
+        if entitlement.hasPremium { return true }
+        let cap = FreeCaps.memoryCap(rewardKind: entitlement.inviteRewardKind)
+        return memories.count < cap
+    }
+
     // MARK: - Create
 
     @discardableResult
