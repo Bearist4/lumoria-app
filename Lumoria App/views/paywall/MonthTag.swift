@@ -14,8 +14,7 @@ struct MonthTag: View {
 
     var body: some View {
         Text(text)
-            .font(.system(size: 16, weight: .semibold))
-            .kerning(-0.31)
+            .font(.callout.weight(.semibold))
             .foregroundStyle(.black)
             .padding(.horizontal, 16)
             .padding(.vertical, 4)

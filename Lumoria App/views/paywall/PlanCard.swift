@@ -91,16 +91,12 @@ struct PlanCard: View {
 
     private func pricing(price: String, period: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            // Title3/Emphasized: 20pt Semibold, lineHeight 25, kerning -0.45
             Text(price)
-                .font(.system(size: 20, weight: .semibold))
-                .kerning(-0.45)
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(.black)
-            // Callout/Regular: 16pt Regular, lineHeight 21, kerning -0.31
             Text(period)
-                .font(.system(size: 16))
-                .kerning(-0.31)
-                .foregroundStyle(Color(red: 0.451, green: 0.451, blue: 0.451)) // gray/500
+                .font(.callout)
+                .foregroundStyle(Color.Text.secondary)
         }
     }
 

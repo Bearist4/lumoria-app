@@ -11,9 +11,15 @@
 //    orange, two-CTA row: primary purchase button + secondary
 //    "Invite a friend".
 //
-//  Layout (top to bottom): close button (top-leading) → title +
-//  subtitle → 5-bullet feature list → 3 plan tiles → trial trust
-//  copy (only when trial-available) → CTA row.
+//  Layout uses fixed vertical spacing — no ScrollView. All content fits
+//  inside the sheet height. Typography is built on the Apple semantic
+//  styles (largeTitle / headline / body / title3 / callout / footnote)
+//  so it scales correctly with Dynamic Type.
+//
+//  The sheet is presented modally from the app root, which already
+//  surfaces a drag-to-dismiss affordance; the close button at the top
+//  is the explicit affordance shown in the design and uses
+//  `LumoriaIconButton` so it matches the icon-button system.
 //
 
 import SwiftUI
@@ -35,29 +41,43 @@ struct PaywallView: View {
     // MARK: - Body
 
     var body: some View {
-        VStack(spacing: 0) {
-            closeButton
+        VStack(alignment: .leading, spacing: 0) {
+
+            // Top-leading close button.
+            LumoriaIconButton(
+                systemImage: "xmark",
+                size: .large,
+                position: .onBackground,
+                action: { dismiss() }
+            )
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+
+            // Title block — 24pt below the close.
+            titleBlock
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+
+            // Feature list — 32pt below title block.
+            featureList
+                .padding(.horizontal, 24)
+                .padding(.top, 32)
+
+            // Plan card — pushed toward the footer with a flexible spacer.
+            Spacer(minLength: 24)
+
+            PlanCard(selected: $selected, prices: storeKitPrices)
+                .padding(.horizontal, 24)
+
+            // Trust line + CTA row pinned at the bottom.
+            footer
                 .padding(.horizontal, 24)
                 .padding(.top, 16)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 32) {
-                    titleBlock
-                    featureList
-                    PlanCard(selected: $selected, prices: storeKitPrices)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
-                .padding(.bottom, 24)
-            }
-
-            footer
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
-                .padding(.top, 8)
-
             if let error { errorBanner(error) }
         }
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Color.Background.default)
         .task {
             await purchase.loadProducts()
@@ -67,38 +87,17 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Close button (top-leading)
-
-    private var closeButton: some View {
-        HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .frame(width: 44, height: 44)
-                    .background(Color.black.opacity(0.05), in: Circle())
-            }
-            .accessibilityLabel("Close")
-            Spacer()
-        }
-    }
-
     // MARK: - Title + subtitle
 
     @ViewBuilder
     private var titleBlock: some View {
         VStack(alignment: .leading, spacing: 12) {
             title
-                .font(.system(size: 34, weight: .bold))
-                .kerning(0.4)
+                .font(.largeTitle.bold())
                 .foregroundStyle(.black)
-                .lineSpacing(0)
 
             Text(subtitle)
-                .font(.system(size: 17))
-                .kerning(-0.43)
+                .font(.body)
                 .foregroundStyle(Color.Text.secondary)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -111,7 +110,7 @@ struct PaywallView: View {
             (Text("Out of ")
                 .foregroundStyle(.black)
              + Text(resource.rawValue)
-                .foregroundStyle(Color(red: 1.0, green: 0.616, blue: 0.298)) // warm orange
+                .foregroundStyle(Color(red: 1.0, green: 0.616, blue: 0.298))
             )
         } else {
             Text("Lumoria Premium")
@@ -129,24 +128,22 @@ struct PaywallView: View {
 
     private var featureList: some View {
         VStack(alignment: .leading, spacing: 8) {
-            featureRow(symbol: "star",                    text: "All templates across all categories")
-            featureRow(symbol: "checkmark.seal",          text: "Clean exports, no Lumoria mark")
-            featureRow(symbol: "list.bullet.clipboard",   text: "Import tickets from Wallet")
-            featureRow(symbol: "map",                     text: "Map, Timeline, Widgets…")
-            featureRow(symbol: "printer",                 text: "Print-ready quality")
+            featureRow(symbol: "star",                  text: "All templates across all categories")
+            featureRow(symbol: "checkmark.seal",        text: "Clean exports, no Lumoria mark")
+            featureRow(symbol: "list.bullet.clipboard", text: "Import tickets from Wallet")
+            featureRow(symbol: "map",                   text: "Map, Timeline, Widgets…")
+            featureRow(symbol: "printer",               text: "Print-ready quality")
         }
     }
 
     private func featureRow(symbol: String, text: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
-            // 32×32 icon slot to match Figma spec.
             Image(systemName: symbol)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.headline)
                 .foregroundStyle(.black)
                 .frame(width: 32, height: 32)
             Text(text)
-                .font(.system(size: 17, weight: .semibold))
-                .kerning(-0.43)
+                .font(.headline)
                 .foregroundStyle(.black)
         }
     }
@@ -164,9 +161,10 @@ struct PaywallView: View {
 
     private var trustLine: some View {
         Text("14-day free trial, then \(monthlyPriceLabel)/month")
-            .font(.system(size: 13))
+            .font(.footnote)
             .foregroundStyle(Color.Text.secondary)
             .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, alignment: .center)
     }
 
     private var monthlyPriceLabel: String {
@@ -185,8 +183,6 @@ struct PaywallView: View {
         }
     }
 
-    // Black filled button. Label flips to "Try for 14 days" only when
-    // the user is monthly + trial-available.
     private var purchaseButton: some View {
         Button {
             Task {
@@ -198,8 +194,7 @@ struct PaywallView: View {
             }
         } label: {
             Text(purchaseButtonLabel)
-                .font(.system(size: 17, weight: .semibold))
-                .kerning(-0.43)
+                .font(.headline)
                 .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
                 .frame(height: 60)
@@ -215,14 +210,12 @@ struct PaywallView: View {
         return "Upgrade now"
     }
 
-    // Gray secondary button — only shows on limit-reached variants.
     private var inviteButton: some View {
         Button {
             showInvite = true
         } label: {
             Text("Invite a friend")
-                .font(.system(size: 17, weight: .semibold))
-                .kerning(-0.43)
+                .font(.headline)
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
                 .frame(height: 60)
@@ -249,7 +242,7 @@ struct PaywallView: View {
             .foregroundStyle(Color.Feedback.Danger.icon)
             .multilineTextAlignment(.center)
             .padding(.horizontal, 24)
-            .padding(.bottom, 16)
+            .padding(.top, 8)
     }
 
     private func description(of failure: PurchaseService.Failure) -> String {
