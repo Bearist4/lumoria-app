@@ -1,0 +1,90 @@
+{
+  "identifier": "16E5D9F3-A5C0-4D7B-9C8E-2F0E0E1C6A55",
+  "nonRenewingSubscriptions": [],
+  "products": [
+    {
+      "displayPrice": "59.99",
+      "familyShareable": true,
+      "internalID": "0001",
+      "localizations": [
+        {
+          "description": "Premium for life — pay once.",
+          "displayName": "Lumoria Lifetime",
+          "locale": "en_US"
+        }
+      ],
+      "productID": "app.lumoria.premium.lifetime",
+      "referenceName": "Lifetime",
+      "type": "NonConsumable"
+    }
+  ],
+  "settings": {
+    "_failTransactionsEnabled": false,
+    "_locale": "en_US",
+    "_storefront": "USA",
+    "_storeKitErrors": []
+  },
+  "subscriptionGroups": [
+    {
+      "id": "21000000",
+      "localizations": [],
+      "name": "Lumoria Premium",
+      "subscriptions": [
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "3.99",
+          "familyShareable": true,
+          "groupNumber": 1,
+          "internalID": "1001",
+          "introductoryOffer": {
+            "internalID": "introMonthly",
+            "paymentMode": "free",
+            "subscriptionPeriod": "P14D"
+          },
+          "localizations": [
+            {
+              "description": "Premium, billed monthly.",
+              "displayName": "Lumoria Monthly",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "app.lumoria.premium.monthly",
+          "recurringSubscriptionPeriod": "P1M",
+          "referenceName": "Monthly",
+          "subscriptionGroupID": "21000000",
+          "type": "RecurringSubscription"
+        },
+        {
+          "adHocOffers": [],
+          "codeOffers": [],
+          "displayPrice": "24.99",
+          "familyShareable": true,
+          "groupNumber": 2,
+          "internalID": "1002",
+          "introductoryOffer": {
+            "internalID": "introAnnual",
+            "paymentMode": "free",
+            "subscriptionPeriod": "P14D"
+          },
+          "localizations": [
+            {
+              "description": "Premium, billed annually.",
+              "displayName": "Lumoria Annual",
+              "locale": "en_US"
+            }
+          ],
+          "productID": "app.lumoria.premium.annual",
+          "recurringSubscriptionPeriod": "P1Y",
+          "referenceName": "Annual",
+          "subscriptionGroupID": "21000000",
+          "type": "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version": {
+    "major": 4,
+    "minor": 0
+  }
+}
