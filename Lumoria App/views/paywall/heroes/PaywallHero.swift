@@ -49,10 +49,10 @@ struct PaywallHero: View {
     private var composition: some View {
         switch variant {
         case .memoryLimit:    MemoryLimitHero()
-        // Tasks 3–5 fill these in. Until then, MemoryLimitHero stands
+        case .ticketLimit:    TicketLimitHero()
+        // Tasks 4–5 fill these in. Until then, MemoryLimitHero stands
         // in so the dispatcher's switch is exhaustive and the project
-        // builds. Every triple here gets replaced as those tasks land.
-        case .ticketLimit:    MemoryLimitHero()
+        // builds.
         case .mapSuite:       MemoryLimitHero()
         case .premiumContent: MemoryLimitHero()
         }
