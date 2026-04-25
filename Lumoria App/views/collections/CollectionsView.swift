@@ -187,7 +187,7 @@ struct MemoriesView: View {
             guard let first = store.memories.first else { return }
             navigationPath.append(first)
         case .openNewTicketFunnel:
-            showNewTicketFunnel = true
+            presentNewTicketOrPaywall()
         }
     }
 
@@ -201,7 +201,7 @@ struct MemoriesView: View {
                 navigationPath.append(memory)
             }
         case .onboarding:
-            showNewTicketFunnel = true
+            presentNewTicketOrPaywall()
         case .news:
             activeTemplateKind = notification.templateKind ?? .express
         case .link:
@@ -217,6 +217,20 @@ struct MemoriesView: View {
         } else {
             Paywall.present(
                 for: .memoryLimit,
+                entitlement: entitlement,
+                state: paywallState
+            )
+        }
+    }
+
+    /// Gated entry to the new-ticket funnel. Free-tier users at the
+    /// ticket cap see the paywall instead.
+    private func presentNewTicketOrPaywall() {
+        if ticketsStore.canCreate(entitlement: entitlement) {
+            showNewTicketFunnel = true
+        } else {
+            Paywall.present(
+                for: .ticketLimit,
                 entitlement: entitlement,
                 state: paywallState
             )
