@@ -26,6 +26,10 @@ enum PaywallTrigger: String, Equatable, Sendable {
     case pkpassImport            = "pkpass_import"
     case stickerPack             = "sticker_pack"
 
+    // Proactive upgrade from Settings → Plan management (no specific
+    // gated CTA — the user is just browsing plans).
+    case upgradeFromSettings     = "upgrade_from_settings"
+
     /// One of four hero variants to render.
     enum Variant: String, Equatable, Sendable {
         case memoryLimit
@@ -47,7 +51,8 @@ enum PaywallTrigger: String, Equatable, Sendable {
              .paidTemplate,
              .styleCustomisation,
              .pkpassImport,
-             .stickerPack:
+             .stickerPack,
+             .upgradeFromSettings:
             return .premiumContent
         }
     }
