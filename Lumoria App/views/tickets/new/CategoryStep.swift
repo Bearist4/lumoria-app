@@ -21,16 +21,20 @@ struct NewTicketCategoryStep: View {
     var body: some View {
         LazyVGrid(columns: columns, spacing: 16) {
             ForEach(TicketCategory.allCases.filter(\.isAvailable)) { category in
-                CategoryTile(
+                let tile = CategoryTile(
                     title: category.title,
                     imageName: category.imageName,
                     isSelected: funnel.category == category,
                     isAvailable: category.isAvailable,
                     onTap: { funnel.category = category }
                 )
+                if category == .plane {
+                    tile.onboardingAnchor("funnel.categories")
+                } else {
+                    tile
+                }
             }
         }
-        .onboardingAnchor("funnel.categories")
         .onAppear {
             if onboardingCoordinator.currentStep == .enterMemory {
                 Task { await onboardingCoordinator.advance(from: .enterMemory) }
@@ -43,14 +47,5 @@ struct NewTicketCategoryStep: View {
                 Task { await onboardingCoordinator.advance(from: .pickCategory) }
             }
         }
-        .onboardingOverlay(
-            step: .pickCategory,
-            coordinator: onboardingCoordinator,
-            anchorID: "funnel.categories",
-            tip: OnboardingTipCopy(
-                title: "Pick a category",
-                body: "Tickets are separated into categories. Pick a category to continue."
-            )
-        )
     }
 }

@@ -18,13 +18,14 @@ struct MemoryWidgetHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(memory.name)
-                .font(.system(size: 17, weight: .semibold))
+                .font(.title2).bold()
                 .foregroundStyle(.black)
                 .lineLimit(1)
                 .truncationMode(.tail)
 
             Text(ticketCountLabel)
-                .font(.system(size: 17, design: .rounded).weight(.semibold))
+                .font(.title3).fontWeight(.semibold)
+                .fontDesign( .rounded)
                 .foregroundStyle(tintColor)
         }
     }

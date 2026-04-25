@@ -12,7 +12,7 @@ import SwiftUI
 
 // MARK: - Category
 
-enum TicketCategory: String, CaseIterable, Identifiable {
+enum TicketCategory: String, CaseIterable, Identifiable, Codable {
     case plane
     case train
     case concert
@@ -79,7 +79,7 @@ enum TicketCategory: String, CaseIterable, Identifiable {
 
 // MARK: - Step
 
-enum NewTicketStep: Int, CaseIterable, Comparable {
+enum NewTicketStep: Int, CaseIterable, Comparable, Codable {
     case category    = 0
     case template    = 1
     case orientation = 2
@@ -141,7 +141,7 @@ enum ImportSource: String, CaseIterable, Hashable {
 
 /// Unified flight-form input. Holds every field any of the 5 plane templates
 /// might need; each template-specific builder reads the subset it cares about.
-struct FlightFormInput {
+struct FlightFormInput: Codable {
     var airline: String = ""
     var flightNumber: String = ""
     var aircraft: String = ""
@@ -215,7 +215,7 @@ struct FlightFormInput {
 /// Pure-text form for the Express (train) template. City names ship in
 /// two scripts — Latin entered by the user and CJK auto-suggested by
 /// `CityNameTranslator` (and always editable).
-struct TrainFormInput {
+struct TrainFormInput: Codable {
     // Shared by both train templates
     var cabinClass: String = ""
     var originCity: String = ""
@@ -302,7 +302,7 @@ struct TrainFormInput {
 /// Form input for the Concert template. Single-venue layout, so
 /// only one location slot — `venueLocation` is forwarded to the ticket's
 /// `originLocation` so concerts appear on the memory map.
-struct EventFormInput {
+struct EventFormInput: Codable {
     var artist: String = ""
     var tourName: String = ""
     var venue: String = ""
@@ -333,7 +333,7 @@ struct EventFormInput {
 /// changes — it re-runs the router, updates the preview via
 /// `plannedLegs`, and surfaces transfer metadata so the form can
 /// say things like "Journey · 2 tickets".
-struct UndergroundFormInput {
+struct UndergroundFormInput: Codable {
     /// City whose catalog the station fields search against. The user
     /// picks this first at the top of the form; both station pickers
     /// stay disabled until a city is chosen. Changing the city wipes
@@ -353,6 +353,8 @@ struct UndergroundFormInput {
     /// is the optimal (fewest transfers, then fewest stops); later
     /// entries are different combinations the router considered —
     /// e.g. "subway only" vs "subway + bus transfer".
+    /// Not Codable — `TransitLeg` lives in a non-Codable graph. The
+    /// onboarding draft re-runs `replan()` on hydrate to rebuild this.
     var plannedRoutes: [[TransitLeg]] = []
 
     /// Which of `plannedRoutes` the user picked. Starts `nil` so the
@@ -361,6 +363,20 @@ struct UndergroundFormInput {
     /// exactly one route is planned so single-route journeys don't
     /// force an extra tap.
     var selectedRouteIndex: Int? = nil
+
+    /// Persisted fields. Excludes `plannedRoutes`, `catalogCity`,
+    /// `operatorName` — those are recomputed by `replan()` after
+    /// hydrating from a draft.
+    private enum CodingKeys: String, CodingKey {
+        case selectedCity
+        case originStation
+        case destinationStation
+        case date
+        case ticketNumber
+        case zones
+        case fare
+        case selectedRouteIndex
+    }
 
     /// Convenience — the legs of the currently-selected route.
     var plannedLegs: [TransitLeg] {
@@ -718,6 +734,46 @@ final class NewTicketFunnel: ObservableObject {
         case .style:       step = .form
         case .success:     step = hasStylesStep ? .style : .form
         }
+    }
+
+    // MARK: - Onboarding draft snapshot / hydrate
+
+    /// Captures user-facing funnel state for `OnboardingFunnelDraftStore`.
+    /// Excludes transient flags (isSaving, errorMessage) and the
+    /// multi-leg `createdTickets` (only `createdTicketId` survives —
+    /// the resume path re-fetches the row from `TicketsStore`).
+    func snapshot(createdTicketId: UUID?) -> OnboardingFunnelDraft {
+        OnboardingFunnelDraft(
+            step: step,
+            category: category,
+            template: template,
+            orientation: orientation,
+            form: form,
+            trainForm: trainForm,
+            eventForm: eventForm,
+            undergroundForm: undergroundForm,
+            selectedStyleId: selectedStyleId,
+            createdTicketId: createdTicketId
+        )
+    }
+
+    /// Replays a snapshot onto a freshly-constructed funnel. Caller is
+    /// responsible for setting `createdTicket` separately (it requires
+    /// fetching the saved row from `TicketsStore` first).
+    func hydrate(from draft: OnboardingFunnelDraft) {
+        category = draft.category
+        template = draft.template
+        orientation = draft.orientation
+        form = draft.form
+        trainForm = draft.trainForm
+        eventForm = draft.eventForm
+        undergroundForm = draft.undergroundForm
+        // Underground routes aren't Codable — recompute them from the
+        // restored station/city inputs so the form's route picker has
+        // something to show on resume.
+        undergroundForm.replan()
+        selectedStyleId = draft.selectedStyleId
+        step = draft.step
     }
 
     // MARK: - Import apply
@@ -1438,6 +1494,7 @@ final class NewTicketFunnel: ObservableObject {
         f.locale = Locale(identifier: "en_US_POSIX")
         return f
     }()
+
 
     static func longDate(_ date: Date)  -> String { longDateFormatter.string(from: date) }
     static func shortDate(_ date: Date) -> String { shortDateFormatter.string(from: date) }

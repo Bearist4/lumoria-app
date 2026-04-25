@@ -7,6 +7,7 @@
 //  bar. Steps themselves live in dedicated `*Step.swift` files.
 //
 
+import Combine
 import SwiftUI
 
 struct NewTicketFunnelView: View {
@@ -34,9 +35,19 @@ struct NewTicketFunnelView: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @StateObject private var funnel = NewTicketFunnel()
 
     @State private var showAbandonAlert = false
+    /// Combine subscription that mirrors funnel state to disk while
+    /// onboarding is active. Held in @State so it lives for the
+    /// duration of the funnel view.
+    @State private var draftSaveCancellable: AnyCancellable? = nil
+    /// Gates the `.allDone` cutout so it doesn't flash up the moment
+    /// the success step appears (the print-reveal animation runs
+    /// ~3.5s end-to-end). Flips true 4.5s after the funnel lands on
+    /// `.success`. Resets when the user leaves the success step.
+    @State private var allDoneOverlayReady: Bool = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -66,7 +77,81 @@ struct NewTicketFunnelView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomBar
         }
-        .onChange(of: funnel.step) { _, newStep in
+        .onboardingOverlay(
+            step: .pickCategory,
+            coordinator: onboardingCoordinator,
+            anchorID: "funnel.categories",
+            tip: OnboardingTipCopy(
+                title: "Pick a category",
+                body: "Tickets are separated into categories. Pick a category to continue."
+            )
+        )
+        .onboardingOverlay(
+            step: .pickTemplate,
+            coordinator: onboardingCoordinator,
+            anchorID: "funnel.firstTemplate",
+            tip: OnboardingTipCopy(
+                title: "Pick a template",
+                body: "Each category has different templates that match it. You can also check the content of each template by tapping the information button."
+            )
+        )
+        .onboardingOverlay(
+            step: .fillInfo,
+            coordinator: onboardingCoordinator,
+            anchorID: "funnel.firstFormField",
+            tip: OnboardingTipCopy(
+                title: "Fill the required information",
+                body: "Every template have specific information attached to it. Fill all the required information to edit your ticket."
+            ),
+            // Cutout sits over the departure airport field. Auto-dismiss
+            // once the user has picked an airport so the rest of the
+            // form becomes scrollable / tappable without forcing them
+            // to advance the onboarding step early.
+            gatedBy: funnel.step == .form && funnel.form.originAirport == nil
+        )
+        .onboardingOverlay(
+            step: .pickStyle,
+            coordinator: onboardingCoordinator,
+            anchorID: "funnel.styles",
+            tip: OnboardingTipCopy(
+                title: "Select a style",
+                body: "Some templates have alternative styles. Scroll through the options and tap the one you like to change how your ticket looks."
+            )
+        )
+        .onboardingOverlay(
+            step: .allDone,
+            coordinator: onboardingCoordinator,
+            anchorID: "success.actions",
+            tip: OnboardingTipCopy(
+                title: "Ticket created!",
+                body: "Your ticket has been created. You can find it in All Tickets. You can now add it to a Memory or Export your ticket to use it in another app."
+            ),
+            gatedBy: allDoneOverlayReady
+        )
+        .onChange(of: funnel.step) { oldStep, newStep in
+            // Advance the onboarding coordinator when the user leaves the
+            // form step (Next tap). The funnel's advance() logic handles
+            // the fillInfo → pickStyle | allDone branching.
+            if oldStep == .form
+                && onboardingCoordinator.currentStep == .fillInfo {
+                Task { await onboardingCoordinator.advance(from: .fillInfo) }
+            }
+
+            // Gate the .allDone overlay until the print-reveal animation
+            // has settled (~3.5s) plus a 1s breather. Reset when leaving
+            // success in case the user hits Back.
+            if newStep == .success {
+                allDoneOverlayReady = false
+                Task {
+                    try? await Task.sleep(nanoseconds: 3_500_000_000)
+                    if funnel.step == .success {
+                        allDoneOverlayReady = true
+                    }
+                }
+            } else if oldStep == .success {
+                allDoneOverlayReady = false
+            }
+
             // Auto-persist only for new-ticket creation — the success
             // step's reveal animation reads `funnel.createdTicket` and
             // wants the write to fire as soon as the user lands.
@@ -91,6 +176,20 @@ struct NewTicketFunnelView: View {
             }
             if !funnel.isEditing {
                 Analytics.track(.newTicketStarted(entryPoint: .gallery))
+            }
+            installOnboardingDraftBridge()
+            // Cold-resume case: if hydration dropped us straight onto
+            // the success step, the funnel.step onChange won't fire —
+            // run the 4.5s gate here so the .allDone overlay still
+            // waits for the print animation to settle.
+            if funnel.step == .success {
+                allDoneOverlayReady = false
+                Task {
+                    try? await Task.sleep(nanoseconds: 3_500_000_000)
+                    if funnel.step == .success {
+                        allDoneOverlayReady = true
+                    }
+                }
             }
         }
         .onDisappear {
@@ -182,6 +281,41 @@ struct NewTicketFunnelView: View {
                 dismiss()
             }
         }
+    }
+
+    // MARK: - Onboarding draft bridge
+
+    /// Wires funnel ↔ disk while the onboarding tutorial is active.
+    /// Hydrates from any existing draft on first appear, then debounces
+    /// every funnel mutation to a single JSON write so a cold launch
+    /// can drop the user back at the exact step they left.
+    private func installOnboardingDraftBridge() {
+        guard onboardingCoordinator.showOnboarding,
+              !funnel.isEditing,
+              initialImportSource == nil,
+              initialTicket == nil else { return }
+
+        if let draft = OnboardingFunnelDraftStore.load() {
+            funnel.hydrate(from: draft)
+            if let id = draft.createdTicketId,
+               let saved = ticketsStore.tickets.first(where: { $0.id == id }) {
+                funnel.createdTicket = saved
+                funnel.createdTickets = [saved]
+            }
+        }
+
+        // Subscribe to every funnel mutation. Debounce keeps a busy
+        // form-fill from thrashing UserDefaults — only the settled
+        // state lands on disk.
+        draftSaveCancellable = funnel.objectWillChange
+            .debounce(for: .milliseconds(400), scheduler: RunLoop.main)
+            .sink { [weak funnel] _ in
+                guard let funnel else { return }
+                let id = funnel.createdTicket?.id
+                    ?? funnel.createdTickets.first?.id
+                let snapshot = funnel.snapshot(createdTicketId: id)
+                OnboardingFunnelDraftStore.save(snapshot)
+            }
     }
 
     /// One-shot notice shown on the form step when the import parser

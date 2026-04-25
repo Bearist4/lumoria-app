@@ -21,9 +21,10 @@ private struct FloatingBottomSheetModifier<Sheet: View>: ViewModifier {
     func body(content: Content) -> some View {
         content
             .overlay {
-                if isPresented {
-                    ZStack(alignment: .bottom) {
+                ZStack(alignment: .bottom) {
+                    if isPresented {
                         Color.black.opacity(0.4)
+                            .transition(.opacity)
                             .onTapGesture {
                                 if interactiveDismiss { isPresented = false }
                             }
@@ -38,9 +39,12 @@ private struct FloatingBottomSheetModifier<Sheet: View>: ViewModifier {
                             .padding(.bottom, 19)
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
-                    .ignoresSafeArea()
-                    .animation(.spring(duration: 0.35), value: isPresented)
                 }
+                .ignoresSafeArea()
+                // Animation must live OUTSIDE the if-condition so SwiftUI
+                // sees the value flip and animates the appear, not just
+                // the disappear.
+                .animation(.spring(duration: 0.35), value: isPresented)
             }
     }
 }

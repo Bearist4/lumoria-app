@@ -179,6 +179,34 @@ version on release.
   so the transparent export is readable; `ImageRenderer.isOpaque`
   is driven by the same toggle so PNG exports keep their alpha
   channel.
+- **Onboarding resume routing.** The "Continue tutorial" button on
+  `ResumeSheetView` now drops the user back at the screen they left
+  off on instead of just closing the sheet. `OnboardingCoordinator`
+  emits a one-shot `OnboardingResumeRoute` (`openFirstMemory` /
+  `openNewTicketFunnel`); `MemoriesView` consumes it and either
+  pushes the first memory's detail view or presents the
+  `NewTicketFunnelView` full-screen. Memory steps stay on the
+  Memories root (already correct via `selectedTab = 0`); the
+  end-cover sheet still auto-presents via `coordinator.showEndCover`.
+  A 0.3s delay between resume-sheet dismiss and the next presentation
+  avoids the SwiftUI sheet/cover stack-drop race.
+- **Onboarding funnel state persistence.** Cold-launching mid-tutorial
+  no longer wipes the in-progress new-ticket funnel. `NewTicketFunnel`
+  exposes `snapshot(createdTicketId:)` / `hydrate(from:)`, and the
+  view installs a debounced (`400ms`) Combine bridge on
+  `objectWillChange` that mirrors every change to a single
+  `OnboardingFunnelDraft` JSON blob in `UserDefaults` (key
+  `onboarding.funnelDraft`). On resume the funnel hydrates from disk,
+  re-fetches the saved ticket via `TicketsStore` when `createdTicketId`
+  is present, and jumps `funnel.step` straight to where the user
+  left off. The draft is cleared at every onboarding terminal point
+  (leave / decline-resume / dismiss-welcome / finish-end-cover /
+  replay). Required Codable conformances added to `Airline`,
+  `TicketCategory`, `TransitCatalogLoader.City`, `NewTicketStep`,
+  and the four form structs (`FlightFormInput`, `TrainFormInput`,
+  `EventFormInput`, `UndergroundFormInput`); underground routes
+  recompute via `replan()` on hydrate since `TransitLeg` lives in a
+  non-Codable graph.
 
 ### Changed
 - **Category palette matches Figma.** Aligned `TicketCategoryStyle`
@@ -213,6 +241,62 @@ version on release.
   useful Mercator zoom. Smaller memories still use a computed
   region with tiered padding. Curved dotted polyline stays in
   sync in both modes.
+- **Onboarding `fillInfo` overlay → cutout.** Replaced the bottom
+  banner with a cutout anchored to the first form field
+  (`funnel.firstFormField`, currently the departure airport on the
+  Afterglow plane template). A new `gatedBy:` parameter on
+  `onboardingOverlay` / `onboardingBannerOverlay` auto-dismisses
+  the cutout once the user has picked an airport
+  (`funnel.form.originAirport != nil`), so the rest of the form
+  remains scrollable / tappable without forcing the onboarding
+  step to advance early.
+- **Onboarding `allDone` overlay waits for the print-reveal.** The
+  cutout over the success-screen action buttons no longer flashes
+  up the moment the success step appears. A new
+  `allDoneOverlayReady` flag in `NewTicketFunnelView` flips true
+  3.5s after the funnel lands on `.success` (matches
+  `TicketSaveRevealView`'s end-to-end print animation), and is
+  passed to the overlay via `gatedBy:`. Cold-resume into success
+  starts the same gate from `onAppear`.
+- **Tip card stagger + overlay fade.** Every onboarding overlay
+  now fades in/out via an explicit
+  `.animation(.easeInOut(0.25), value:)` on its container, and the
+  tip card itself dissolves in 0.25s after the dim layer via a new
+  `DelayedFadeIn` modifier so it reads as a two-beat reveal
+  instead of one slab.
+- **Tip placement only flips above when there's no room.** Replaced
+  the "lower half → above" rule with a fit check that reserves 60pt
+  for the home indicator. Camera-roll-style cutouts in the middle
+  of the sheet keep their tip below; success-step cutouts near the
+  bottom flip above as before.
+- **Onboarding tab bar hides during overlay steps.** `OnboardingCoordinator`
+  exposes `shouldHideTabBar` (true on `createMemory`,
+  `memoryCreated`, `enterMemory`); `MemoriesView` and
+  `MemoryDetailView` apply `.toolbar(.hidden, for: .tabBar)` so
+  the SwiftUI floating tab bar can't render above the dim layer
+  (it's a sibling of the tab content, not a child, so per-screen
+  overlays can't cover it).
+- **Onboarding `exportOrAddMemory` cutout points at Camera roll.**
+  Moved the anchor from the whole destinations group
+  (`export.groups`) to the camera-roll card (`export.cameraRoll`)
+  and updated the tip copy to "Save to camera roll".
+- **Success-step actions return to Memories on completion.** Both
+  Export (Camera roll / Social) and Add to Memory now dismiss the
+  whole funnel back to the Memories tab once the action lands —
+  Export via the new `onCompleted` closure on `ExportSheet`,
+  Add-to-Memory via the new `onCompleted` closure on
+  `AddToMemorySheet` (fires after the toast settles). When the
+  onboarding tutorial is active, the same closure advances
+  `.exportOrAddMemory → .endCover` so the end-cover sheet pops over
+  Memories instead of stacking under the success screen. Removed
+  the old eager destination-tap and inline `toggle()` advances that
+  used to fire the end-cover before the user had actually
+  exported / added.
+- **Floating bottom sheet animates on appear.** Moved
+  `.animation(.spring(0.35), value: isPresented)` outside the
+  `if isPresented` branch in `FloatingBottomSheet` so SwiftUI
+  reliably animates the move-from-bottom + opacity transition on
+  appear, not just on dismiss.
 
 ### Fixed
 - **`device_tokens` RLS 42501 on sign-in with a re-owned device.**

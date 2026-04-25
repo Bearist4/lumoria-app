@@ -148,7 +148,7 @@ enum TransitCatalogLoader {
 
     /// Known bundled catalogs. Add a new case + bundle the matching
     /// JSON file when a new city is imported.
-    enum City: String, CaseIterable, Identifiable, Hashable {
+    enum City: String, CaseIterable, Identifiable, Hashable, Codable {
         case vienna    = "Vienna"
         case newYork   = "NewYork"
         case paris     = "Paris"

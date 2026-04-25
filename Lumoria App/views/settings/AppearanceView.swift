@@ -174,6 +174,7 @@ struct AppearanceView: View {
         Task { @MainActor in
             do {
                 try await UIApplication.shared.setAlternateIconName(name)
+                WidgetSnapshotWriter.shared.refreshBrandLogomark()
             } catch {
                 print("[AppearanceView] setAlternateIconName failed: \(error)")
                 storedIconName = previous

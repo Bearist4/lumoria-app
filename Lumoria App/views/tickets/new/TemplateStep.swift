@@ -43,15 +43,6 @@ struct NewTicketTemplateStep: View {
                 Task { await onboardingCoordinator.advance(from: .pickTemplate) }
             }
         }
-        .onboardingOverlay(
-            step: .pickTemplate,
-            coordinator: onboardingCoordinator,
-            anchorID: "funnel.firstTemplate",
-            tip: OnboardingTipCopy(
-                title: "Pick a template",
-                body: "Each category has different templates that match it. You can also check the content of each template by tapping the information button."
-            )
-        )
     }
 
     private var availableTemplates: [TicketTemplateKind] {

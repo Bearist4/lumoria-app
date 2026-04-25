@@ -49,15 +49,6 @@ struct NewTicketStyleStep: View {
                 Task { await onboardingCoordinator.advance(from: .pickStyle) }
             }
         }
-        .onboardingOverlay(
-            step: .pickStyle,
-            coordinator: onboardingCoordinator,
-            anchorID: "funnel.styles",
-            tip: OnboardingTipCopy(
-                title: "Select a style",
-                body: "Some templates have alternative styles. Scroll through the options and tap the one you like to change how your ticket looks."
-            )
-        )
     }
 
     private func isSelected(_ variant: TicketStyleVariant) -> Bool {

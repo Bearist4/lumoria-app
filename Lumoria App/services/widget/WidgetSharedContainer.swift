@@ -20,6 +20,11 @@ enum WidgetSharedContainer {
     /// Subfolder of the shared container holding rendered ticket mini PNGs.
     static let ticketsFolder = "ticket-minis"
 
+    /// Filename of the rendered brand logomark PNG at the root of the
+    /// shared container. Re-rendered when the user picks a different
+    /// alternate app icon so the widget badge tracks the chosen variant.
+    static let brandLogomarkFilename = "brand-logomark.png"
+
     /// Root URL of the shared App Group container. Nil only if entitlements
     /// are misconfigured.
     static var containerURL: URL? {
@@ -39,5 +44,10 @@ enum WidgetSharedContainer {
     /// URL for a specific ticket mini PNG by filename.
     static func ticketImageURL(filename: String) -> URL? {
         ticketsFolderURL?.appendingPathComponent(filename)
+    }
+
+    /// Absolute URL of the brand logomark PNG.
+    static var brandLogomarkURL: URL? {
+        containerURL?.appendingPathComponent(brandLogomarkFilename)
     }
 }

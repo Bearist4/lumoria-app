@@ -23,20 +23,14 @@ struct MemoryWidgetBackground: View {
                 .fill(Color.white)
 
         case .medium:
-            HStack(spacing: 10) {
-                TicketCardShape(
-                    cornerRadius: 24,
-                    perforatedEdge: .right
-                )
-                .fill(Color.white)
-                .frame(maxWidth: .infinity)
+            HStack(spacing: 0) {
+                Rectangle()
+                    .fill(Color.white)
+                    .frame(maxWidth: .infinity)
 
-                TicketCardShape(
-                    cornerRadius: 24,
-                    perforatedEdge: .left
-                )
-                .fill(Color.white)
-                .frame(width: 120)
+                Rectangle()
+                    .fill(Color(.systemGray6))
+                    .frame(width: 108)
             }
         }
     }

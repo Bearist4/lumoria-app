@@ -316,6 +316,12 @@ struct MemoryMapView: View {
 
     private static let restingDistance: CLLocationDistance = 8_000
     private static let cameraPitch: CGFloat = 55
+    /// Pins whose coordinates fall within this radius of an existing
+    /// cluster's centroid merge into that cluster. Sized to absorb
+    /// minor geocoding drift on the same place (same station/airport
+    /// geocoded twice with a few-dozen-meter offset) while keeping
+    /// genuinely different nearby spots separate.
+    private static let groupingRadiusMeters: Double = 150
 
     private static func tilted(
         center: CLLocationCoordinate2D,
@@ -330,20 +336,19 @@ struct MemoryMapView: View {
     }
 
     /// Routes a `selectedStopId` change to the right camera animation.
-    /// Start/end timeline anchors fit every pin; a stop id zooms in on
-    /// that stop with a smooth dezoom-through-midpoint transition.
+    /// Start/end anchors fit every pin; a stop id glides the camera
+    /// straight to that stop in a single ease so consecutive selection
+    /// changes during a timeline scrub re-target a continuous animation
+    /// instead of stacking pull-out/settle pairs that read as a stop
+    /// in between.
     private func handleStopSelection(oldId: UUID?, newId: UUID?) {
         guard showTimeline, let newId else { return }
 
-        // Reduce-motion users get a single straight ease instead of the
-        // dezoom-through-midpoint chain.
-        let fitDuration: Double = reduceMotion ? 0.25 : 0.6
-        let pullOutDuration: Double = reduceMotion ? 0.25 : 0.45
-        let settleDuration: Double = reduceMotion ? 0.25 : 0.55
+        let duration: Double = reduceMotion ? 0.25 : 0.45
 
         if newId == MemoryTimeline.startAnchorId ||
            newId == MemoryTimeline.endAnchorId {
-            withAnimation(.easeInOut(duration: fitDuration)) {
+            withAnimation(.easeInOut(duration: duration)) {
                 camera = Self.initialCamera(for: tickets, anchors: anchors)
             }
             return
@@ -353,37 +358,12 @@ struct MemoryMapView: View {
         else { return }
 
         let newCoord = coordinate(for: newStop)
-
-        guard
-            let oldId,
-            let oldStop = timelineStops.first(where: { $0.id == oldId }),
-            !reduceMotion
-        else {
-            withAnimation(.easeInOut(duration: fitDuration)) {
-                camera = Self.tilted(center: newCoord, distance: Self.restingDistance)
-            }
-            return
-        }
-
-        let oldCoord = coordinate(for: oldStop)
-        let midCoord = CLLocationCoordinate2D(
-            latitude:  (oldCoord.latitude  + newCoord.latitude)  / 2,
-            longitude: (oldCoord.longitude + newCoord.longitude) / 2
-        )
-        let legMeters = haversineMeters(oldCoord, newCoord)
-        let pullOutDistance = max(Self.restingDistance, legMeters * 2.4 + 3_000)
-
-        withAnimation(.easeInOut(duration: pullOutDuration)) {
-            camera = Self.tilted(center: midCoord, distance: pullOutDistance)
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + pullOutDuration + 0.03) {
-            withAnimation(.easeInOut(duration: settleDuration)) {
-                camera = Self.tilted(center: newCoord, distance: Self.restingDistance)
-            }
+        withAnimation(.easeInOut(duration: duration)) {
+            camera = Self.tilted(center: newCoord, distance: Self.restingDistance)
         }
     }
 
-    private func haversineMeters(
+    private static func haversineMeters(
         _ a: CLLocationCoordinate2D,
         _ b: CLLocationCoordinate2D
     ) -> Double {
@@ -469,20 +449,38 @@ struct MemoryMapView: View {
         }
     }
 
-    /// Groups `annotations` by rounded coordinate (~1m precision).
+    /// Groups `annotations` by a `groupingRadiusMeters` haversine
+    /// neighborhood — pins whose coordinates land within that radius
+    /// of a cluster's running centroid merge into it. Catches the
+    /// "same place geocoded twice with slight drift" case that exact
+    /// coordinate matching misses.
     private var groupedPins: [GroupedPin] {
-        var order: [String] = []
-        var buckets: [String: [PinAnnotation]] = [:]
+        struct Cluster {
+            var centroid: CLLocationCoordinate2D
+            var items: [PinAnnotation]
+        }
+        var clusters: [Cluster] = []
 
         for a in annotations {
-            let key = Self.coordinateKey(a.coordinate)
-            if buckets[key] == nil { order.append(key) }
-            buckets[key, default: []].append(a)
+            if let idx = clusters.firstIndex(where: {
+                Self.haversineMeters($0.centroid, a.coordinate)
+                    <= Self.groupingRadiusMeters
+            }) {
+                clusters[idx].items.append(a)
+                let lats = clusters[idx].items.map(\.coordinate.latitude)
+                let lngs = clusters[idx].items.map(\.coordinate.longitude)
+                clusters[idx].centroid = CLLocationCoordinate2D(
+                    latitude:  lats.reduce(0, +) / Double(lats.count),
+                    longitude: lngs.reduce(0, +) / Double(lngs.count)
+                )
+            } else {
+                clusters.append(Cluster(centroid: a.coordinate, items: [a]))
+            }
         }
 
-        return order.compactMap { key in
-            guard let items = buckets[key], let first = items.first else { return nil }
-            return GroupedPin(id: key, coordinate: first.coordinate, items: items)
+        return clusters.map { c in
+            let id = c.items.map(\.id).sorted().joined(separator: "|")
+            return GroupedPin(id: id, coordinate: c.centroid, items: c.items)
         }
     }
 
@@ -510,16 +508,12 @@ struct MemoryMapView: View {
         var out: [CLLocationCoordinate2D] = []
         for s in stops {
             if let last = out.last,
-               Self.coordinateKey(last) == Self.coordinateKey(s.coord) {
+               Self.haversineMeters(last, s.coord) <= Self.groupingRadiusMeters {
                 continue
             }
             out.append(s.coord)
         }
         return out
-    }
-
-    private static func coordinateKey(_ c: CLLocationCoordinate2D) -> String {
-        String(format: "%.5f_%.5f", c.latitude, c.longitude)
     }
 
     // MARK: - Camera

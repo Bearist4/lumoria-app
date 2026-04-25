@@ -90,6 +90,10 @@ struct MemoriesView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+            .toolbar(
+                onboardingCoordinator.shouldHideTabBar ? .hidden : .visible,
+                for: .tabBar
+            )
             .navigationDestination(for: Memory.self) { m in
                 MemoryDetailView(memory: m)
             }
@@ -139,6 +143,16 @@ struct MemoriesView: View {
             .onChange(of: notificationsStore.unreadCount) { _, count in
                 pushService.setBadgeCount(count)
             }
+            .onChange(of: onboardingCoordinator.pendingResumeRoute) { _, route in
+                guard let route else { return }
+                onboardingCoordinator.pendingResumeRoute = nil
+                // Resume sheet is still animating out; presenting a new
+                // sheet/cover here would be dropped (same race as the
+                // notification routing path below).
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    consumeResumeRoute(route)
+                }
+            }
             .onboardingOverlay(
                 step: .createMemory,
                 coordinator: onboardingCoordinator,
@@ -157,6 +171,21 @@ struct MemoriesView: View {
                     body: "Once you will have tickets added to this memory, they will appear on this tile. Tap this memory to open it."
                 )
             )
+        }
+    }
+
+    // MARK: - Onboarding resume routing
+
+    /// Sends the user back to where the tutorial left off. Memory steps
+    /// stay here on the root grid, so this only handles `.enterMemory`
+    /// (push first memory) and the funnel-stage steps (present funnel).
+    private func consumeResumeRoute(_ route: OnboardingResumeRoute) {
+        switch route {
+        case .openFirstMemory:
+            guard let first = store.memories.first else { return }
+            navigationPath.append(first)
+        case .openNewTicketFunnel:
+            showNewTicketFunnel = true
         }
     }
 

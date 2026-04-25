@@ -15,6 +15,7 @@ import Combine
 import CoreLocation
 import Foundation
 import SwiftUI
+import UIKit
 import WidgetKit
 
 @MainActor
@@ -32,6 +33,10 @@ final class WidgetSnapshotWriter: ObservableObject {
     /// tickets match the 3:2 feel on the design, vertical use 1:1.8.
     private static let horizontalSize = CGSize(width: 340, height: 200)
     private static let verticalSize   = CGSize(width: 200, height: 340)
+    /// Logical render size for the brand logomark PNG — gets baked at 3x
+    /// scale so the widget can sample it at any size up to ~48pt without
+    /// blurring.
+    private static let logomarkSize = CGSize(width: 48, height: 48)
 
     private init() {}
 
@@ -123,6 +128,7 @@ final class WidgetSnapshotWriter: ObservableObject {
         }
 
         pruneOrphanImages(folder: ticketsFolderURL, keep: keepFilenames)
+        renderBrandLogomark()
 
         let snapshot = WidgetSnapshot(lastUpdated: Date(), memories: memorySnapshots)
         do {
@@ -133,6 +139,47 @@ final class WidgetSnapshotWriter: ObservableObject {
             WidgetCenter.shared.reloadAllTimelines()
         } catch {
             print("[WidgetSnapshotWriter] write failed:", error)
+        }
+    }
+
+    // MARK: - Brand logomark
+
+    /// Re-render the user's currently selected brand logomark to the
+    /// App Group container so the widget can show the matching badge.
+    /// Idempotent — call after every snapshot write or whenever the
+    /// alternate app icon changes.
+    func refreshBrandLogomark() {
+        renderBrandLogomark()
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    private func renderBrandLogomark() {
+        guard let url = WidgetSharedContainer.brandLogomarkURL else {
+            print("[WidgetSnapshotWriter] brandLogomarkURL nil — App Group missing")
+            return
+        }
+        let slug = BrandArt.slug(from: UIApplication.shared.alternateIconName)
+        let asset = "brand/\(slug)/logomark"
+        guard let source = UIImage(named: asset) else {
+            print("[WidgetSnapshotWriter] missing brand asset \(asset)")
+            return
+        }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 3.0
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: Self.logomarkSize, format: format)
+        let resized = renderer.image { _ in
+            source.draw(in: CGRect(origin: .zero, size: Self.logomarkSize))
+        }
+        guard let data = resized.pngData() else {
+            print("[WidgetSnapshotWriter] pngData nil for \(asset)")
+            return
+        }
+        do {
+            try data.write(to: url, options: .atomic)
+            print("[WidgetSnapshotWriter] logomark wrote \(url.path)")
+        } catch {
+            print("[WidgetSnapshotWriter] logomark write failed:", error)
         }
     }
 

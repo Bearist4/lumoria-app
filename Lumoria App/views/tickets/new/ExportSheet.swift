@@ -22,6 +22,11 @@ import UIKit
 struct ExportSheet: View {
 
     let ticket: Ticket
+    /// Fired right before this sheet self-dismisses on a successful
+    /// export. Used by the parent (e.g. `NewTicketSuccessStep`) to
+    /// dismiss the surrounding funnel and conclude the onboarding so
+    /// the user lands back on Memories instead of the success screen.
+    var onCompleted: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
@@ -41,24 +46,20 @@ struct ExportSheet: View {
                     onClose: { dismiss() },
                     onCameraRoll: {
                         Analytics.track(.exportDestinationSelected(destination: .camera_roll))
-                        advanceOnboardingIfExportFlow()
                         withAnimation(.easeInOut(duration: 0.25)) {
                             phase = .cameraRoll
                         }
                     },
                     onInstantMessaging: {
                         Analytics.track(.exportDestinationSelected(destination: .whatsapp))
-                        advanceOnboardingIfExportFlow()
                         Task { await handleIMShare() }
                     },
                     onSocial: {
-                        advanceOnboardingIfExportFlow()
                         withAnimation(.easeInOut(duration: 0.25)) {
                             phase = .social
                         }
                     }
                 )
-                .onboardingAnchor("export.groups")
                 .transition(.asymmetric(
                     insertion: .move(edge: .leading),
                     removal: .move(edge: .leading)
@@ -71,7 +72,10 @@ struct ExportSheet: View {
                             phase = .destinations
                         }
                     },
-                    onExported: { dismiss() }
+                    onExported: {
+                        onCompleted?()
+                        dismiss()
+                    }
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing),
@@ -85,7 +89,10 @@ struct ExportSheet: View {
                             phase = .destinations
                         }
                     },
-                    onExported: { dismiss() }
+                    onExported: {
+                        onCompleted?()
+                        dismiss()
+                    }
                 )
                 .transition(.asymmetric(
                     insertion: .move(edge: .trailing),
@@ -104,22 +111,12 @@ struct ExportSheet: View {
         .onboardingOverlay(
             step: .exportOrAddMemory,
             coordinator: onboardingCoordinator,
-            anchorID: "export.groups",
+            anchorID: "export.cameraRoll",
             tip: OnboardingTipCopy(
-                title: "Export your ticket",
-                body: "Choose the export option that matches what you want to achieve."
+                title: "Save to camera roll",
+                body: "Tap Camera roll to save your ticket as an image in your photo library."
             )
         )
-    }
-
-    /// Bridges the export-destination taps back into the onboarding
-    /// coordinator so the tutorial advances when the user finishes a
-    /// ticket via the Export branch.
-    private func advanceOnboardingIfExportFlow() {
-        if onboardingCoordinator.currentStep == .exportOrAddMemory
-            && onboardingCoordinator.exportOrAddChoice == .export {
-            Task { await onboardingCoordinator.advance(from: .exportOrAddMemory) }
-        }
     }
 
     // MARK: - IM share
@@ -274,6 +271,7 @@ private struct DestinationsView: View {
                         isComingSoon: false,
                         action: onCameraRoll
                     )
+                    .onboardingAnchor("export.cameraRoll")
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)

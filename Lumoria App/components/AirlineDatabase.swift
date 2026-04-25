@@ -12,7 +12,7 @@
 
 import Foundation
 
-struct Airline: Identifiable, Hashable {
+struct Airline: Identifiable, Hashable, Codable {
     var id: String { iata }
     /// 2-letter IATA airline code (e.g. "AF", "BA", "LH").
     let iata: String

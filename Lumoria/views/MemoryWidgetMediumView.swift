@@ -3,8 +3,8 @@
 //  Lumoria (widget)
 //
 //  349 × 164 variant — memory header and 3 tilted ticket minis on the
-//  left, stats (categories / km / days) on the right. Background is the
-//  user's ticket-shaped art drawn by `MemoryWidgetEntryView`.
+//  left, stats (km / days / category icon grid) on the right. Background
+//  is the user's ticket-shaped art drawn by `MemoryWidgetEntryView`.
 //
 
 import SwiftUI
@@ -24,12 +24,12 @@ struct MemoryWidgetMediumView: View {
     private static let bottomShift: CGFloat = 12
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 0) {
             leftSection
                 .frame(maxWidth: .infinity)
 
             statsSection
-                .frame(width: 120)
+                .frame(width: 108)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -45,7 +45,32 @@ struct MemoryWidgetMediumView: View {
                 .padding(.top, 16)
                 .padding(.leading, 16)
                 .padding(.trailing, 12)
+
+            appIconBadge
+                .frame(maxWidth: .infinity, alignment: .topTrailing)
+                .padding(.top, 16)
+                .padding(.trailing, 16)
         }
+    }
+
+    private var appIconBadge: some View {
+        Group {
+            if let image = loadBrandLogomark() {
+                Image(uiImage: image)
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+            } else {
+                RoundedRectangle(cornerRadius: 7.2, style: .continuous)
+                    .fill(Color(red: 1.0, green: 0.988, blue: 0.941))
+            }
+        }
+        .frame(width: 24, height: 24)
+    }
+
+    private func loadBrandLogomark() -> UIImage? {
+        guard let url = WidgetSharedContainer.brandLogomarkURL else { return nil }
+        return UIImage(contentsOfFile: url.path)
     }
 
     private var ticketStack: some View {
@@ -61,7 +86,7 @@ struct MemoryWidgetMediumView: View {
                 MiniTicketView(ref: ref)
                     .frame(width: size.width, height: size.height)
                     .rotationEffect(.degrees(slotAngles[0]))
-                    .offset(x: slotOffsets[0], y: Self.bottomShift)
+                    .offset(x: slotOffsets[0], y: yOffset(for: ref.orientation))
             }
             if count > 1 {
                 let ref = refs[1]
@@ -69,7 +94,7 @@ struct MemoryWidgetMediumView: View {
                 MiniTicketView(ref: ref)
                     .frame(width: size.width, height: size.height)
                     .rotationEffect(.degrees(slotAngles[1]))
-                    .offset(x: slotOffsets[1], y: Self.bottomShift)
+                    .offset(x: slotOffsets[1], y: yOffset(for: ref.orientation))
             }
             if count > 2 {
                 let ref = refs[2]
@@ -77,10 +102,20 @@ struct MemoryWidgetMediumView: View {
                 MiniTicketView(ref: ref)
                     .frame(width: size.width, height: size.height)
                     .rotationEffect(.degrees(slotAngles[2]))
-                    .offset(x: slotOffsets[2], y: Self.bottomShift)
+                    .offset(x: slotOffsets[2], y: yOffset(for: ref.orientation))
             }
         }
         .frame(maxWidth: .infinity, minHeight: 120, alignment: .bottom)
+    }
+
+    /// Vertical tickets stand taller than horizontal ones, so with
+    /// bottoms aligned they reach further up and clash with the memory
+    /// header. Nudge verticals down 12pt to clear the title.
+    private func yOffset(for orientation: WidgetTicketImageRef.Orientation) -> CGFloat {
+        switch orientation {
+        case .vertical:   return Self.bottomShift + 24
+        case .horizontal: return Self.bottomShift
+        }
     }
 
     /// Per-orientation frame that keeps every ticket mini at the same
@@ -112,21 +147,33 @@ struct MemoryWidgetMediumView: View {
 
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            statRow(value: memory.categoryStyleRawValues.count, unit: "categories")
-            Spacer()
-            statRow(value: memory.kmTotal ?? 0, unit: "km")
-            Spacer()
-            statRow(value: memory.dayCount ?? 0, unit: memory.dayCount == 1 ? "day" : "days")
+            statText("\(memory.kmTotal ?? 0) km.")
+                .padding(.top, 19)
+                .padding(.leading, 16)
+
+            statText("\(memory.dayCount ?? 0) \(memory.dayCount == 1 ? "day" : "days")")
+                .padding(.top, 16)
+                .padding(.leading, 16)
+
+            Spacer(minLength: 0)
+
+            WidgetFlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                ForEach(memory.categoryStyleRawValues, id: \.self) { rawValue in
+                    Image(systemName: WidgetCategoryIcon.systemImage(for: rawValue))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
         }
-        .padding(.vertical, 26)
-        .padding(.leading, 18)
-        .padding(.trailing, 14)
         .frame(maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private func statRow(value: Int, unit: String) -> some View {
-        Text("\(value) \(unit)")
-            .font(.system(size: 12, design: .rounded).weight(.semibold))
+    private func statText(_ string: String) -> some View {
+        Text(string)
+            .font(.system(size: 17, weight: .semibold))
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .minimumScaleFactor(0.7)

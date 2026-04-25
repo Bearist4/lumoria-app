@@ -141,7 +141,7 @@ iOS catches these named error codes and presents the matching paywall variant if
 - New columns: `profiles.invite_reward_kind text CHECK (invite_reward_kind IN ('memory','tickets'))`, `profiles.invite_reward_claimed_at timestamptz`.
 - Existing `claim_invite(p_token)` RPC unchanged — still links friend → inviter, marks invite redeemed.
 - New RPC `claim_invite_reward(p_kind text)`:
-  1. Caller is in at least one redeemed invite — either as inviter (`invites.inviter_user_id = auth.uid() AND redeemed_at IS NOT NULL`) OR as invitee (`invites.redeemed_user_id = auth.uid()`).
+  1. Caller is in at least one **claimed** invite — either as inviter (`invites.inviter_id = auth.uid() AND claimed_by IS NOT NULL`) OR as invitee (`invites.claimed_by = auth.uid()`). Eligibility looks at `claimed_by` (the column the existing `claim_invite` RPC populates when a friend signs up via the link), not `redeemed_at` — which is a separate downstream signal `claim_invite` never sets.
   2. Caller's `invite_reward_kind IS NULL` (one-shot).
   3. Stamp `invite_reward_kind = p_kind`, `invite_reward_claimed_at = now()` on caller's profile.
 - UI: "Reward ready" banner in Invite settings when eligible. Tap → memory-vs-tickets picker → calls RPC.
@@ -313,7 +313,7 @@ enforce_<table>_cap():
 
 `claim_invite_reward(p_kind text)` — SECURITY DEFINER:
 
-1. `IF NOT EXISTS (SELECT 1 FROM invites WHERE (inviter_user_id = auth.uid() AND redeemed_at IS NOT NULL) OR redeemed_user_id = auth.uid())` → raise `'no_redeemed_invite'`.
+1. `IF NOT EXISTS (SELECT 1 FROM invites WHERE (inviter_id = auth.uid() AND claimed_by IS NOT NULL) OR claimed_by = auth.uid())` → raise `'no_claimed_invite'`.
 2. `IF (SELECT invite_reward_kind FROM profiles WHERE user_id = auth.uid()) IS NOT NULL` → raise `'already_claimed'`.
 3. Validate `p_kind IN ('memory','tickets')`.
 4. `UPDATE profiles SET invite_reward_kind = p_kind, invite_reward_claimed_at = now() WHERE user_id = auth.uid()`.

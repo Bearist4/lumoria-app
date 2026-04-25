@@ -69,6 +69,10 @@ struct MemoryDetailView: View {
             }
         }
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar(
+            onboardingCoordinator.shouldHideTabBar ? .hidden : .visible,
+            for: .tabBar
+        )
         .onAppear {
             Analytics.track(.memoryOpened(
                 source: .memory,

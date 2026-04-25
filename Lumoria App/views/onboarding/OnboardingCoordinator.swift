@@ -17,6 +17,16 @@ enum ExportVariant: String, Sendable {
     case addToMemory
 }
 
+/// One-shot route emitted by `resume()` so the host can navigate to the
+/// screen the user left off on. Cleared by the host after consumption.
+enum OnboardingResumeRoute: Sendable, Equatable {
+    /// Push the first memory's detail view (used for `.enterMemory`).
+    case openFirstMemory
+    /// Present the new-ticket funnel full-screen (used for any
+    /// funnel-stage step from `.pickCategory` through `.exportOrAddMemory`).
+    case openNewTicketFunnel
+}
+
 @MainActor
 final class OnboardingCoordinator: ObservableObject {
 
@@ -35,6 +45,9 @@ final class OnboardingCoordinator: ObservableObject {
     /// Set at .pickTemplate advance — whether the chosen template has style
     /// variants. Consulted at .fillInfo advance to pick the next step.
     @Published var pendingStyleStep: Bool = false
+    /// Set by `resume()` so the host (MemoriesView) can route the user
+    /// back to where they left off. Host clears it after consuming.
+    @Published var pendingResumeRoute: OnboardingResumeRoute?
 
     // MARK: - Analytics timing
 
@@ -46,6 +59,22 @@ final class OnboardingCoordinator: ObservableObject {
 
     nonisolated init(service: ProfileServicing = ProfileService()) {
         self.service = service
+    }
+
+    /// True while the tutorial is parked on a step whose overlay sits on
+    /// a tabbed screen — we hide the tab bar so it doesn't render above
+    /// the dim layer (the tab bar is a sibling of the tab content, not
+    /// a child, so per-screen overlays can't cover it).
+    var shouldHideTabBar: Bool {
+        guard showOnboarding else { return false }
+        switch currentStep {
+        case .createMemory, .memoryCreated, .enterMemory:
+            return true
+        case .welcome, .pickCategory, .pickTemplate, .fillInfo,
+             .pickStyle, .allDone, .exportOrAddMemory,
+             .endCover, .done:
+            return false
+        }
     }
 
     // MARK: - Hydration
@@ -92,6 +121,7 @@ final class OnboardingCoordinator: ObservableObject {
     func dismissWelcomeSilently() async {
         showWelcome = false
         Analytics.track(.onboardingLeft(atStep: .welcome))
+        OnboardingFunnelDraftStore.clear()
         await writeShow(false)
         await write(step: .done)
     }
@@ -100,12 +130,30 @@ final class OnboardingCoordinator: ObservableObject {
         showResume = false
         startedAt = Date()
         Analytics.track(.onboardingResumed)
+        pendingResumeRoute = routeForCurrentStep()
+    }
+
+    /// Maps the persisted step to a one-shot route for the host. Memory
+    /// steps stay on the Memories tab root, so they return nil. The
+    /// endCover sheet auto-presents on its own via `showEndCover`.
+    private func routeForCurrentStep() -> OnboardingResumeRoute? {
+        switch currentStep {
+        case .enterMemory:
+            return .openFirstMemory
+        case .pickCategory, .pickTemplate, .fillInfo,
+             .pickStyle, .allDone, .exportOrAddMemory:
+            return .openNewTicketFunnel
+        case .welcome, .createMemory, .memoryCreated,
+             .endCover, .done:
+            return nil
+        }
     }
 
     func declineResume() async {
         showResume = false
         Analytics.track(.onboardingDeclinedResume)
         Analytics.track(.onboardingLeft(atStep: prop(for: currentStep)))
+        OnboardingFunnelDraftStore.clear()
         await writeShow(false)
         await write(step: .done)
     }
@@ -114,6 +162,7 @@ final class OnboardingCoordinator: ObservableObject {
         let left = currentStep
         showLeaveAlert = false
         Analytics.track(.onboardingLeft(atStep: prop(for: left)))
+        OnboardingFunnelDraftStore.clear()
         await writeShow(false)
         await write(step: .done)
     }
@@ -151,6 +200,7 @@ final class OnboardingCoordinator: ObservableObject {
         showEndCover = false
         let duration = startedAt.map { Int(Date().timeIntervalSince($0)) } ?? 0
         Analytics.track(.onboardingCompleted(durationSeconds: duration))
+        OnboardingFunnelDraftStore.clear()
         await writeShow(false)
         await write(step: .done)
     }
@@ -159,6 +209,7 @@ final class OnboardingCoordinator: ObservableObject {
 
     func resetForReplay() async {
         Analytics.track(.onboardingReplayed)
+        OnboardingFunnelDraftStore.clear()
         do {
             try await service.replay()
             showOnboarding    = true
@@ -166,6 +217,7 @@ final class OnboardingCoordinator: ObservableObject {
             exportOrAddChoice = nil
             pendingStyleStep  = false
             startedAt         = nil
+            pendingResumeRoute = nil
         } catch {
             print("[OnboardingCoordinator] replay failed:", error)
         }

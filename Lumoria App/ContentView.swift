@@ -55,6 +55,7 @@ struct ContentView: View {
                 memoriesStore: memoriesStore,
                 ticketsStore: ticketsStore
             )
+            WidgetSnapshotWriter.shared.refreshBrandLogomark()
             await memoriesStore.load()
             await ticketsStore.load()
             await profileStore.load()

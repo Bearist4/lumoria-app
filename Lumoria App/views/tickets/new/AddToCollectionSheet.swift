@@ -19,11 +19,22 @@ struct AddToMemorySheet: View {
     /// single ticket and the sheet behaves exactly as before.
     let tickets: [Ticket]
 
+    /// Fired after the ticket(s) are added to a memory. Used by the
+    /// success-step caller to dismiss the surrounding funnel and
+    /// conclude the onboarding so the user lands back on Memories.
+    let onCompleted: (() -> Void)?
+
     /// Convenience for the single-ticket callers (plane / train /
     /// concert) — keeps the old `AddToMemorySheet(ticket:)` call site
     /// working.
-    init(ticket: Ticket) { self.tickets = [ticket] }
-    init(tickets: [Ticket]) { self.tickets = tickets }
+    init(ticket: Ticket, onCompleted: (() -> Void)? = nil) {
+        self.tickets = [ticket]
+        self.onCompleted = onCompleted
+    }
+    init(tickets: [Ticket], onCompleted: (() -> Void)? = nil) {
+        self.tickets = tickets
+        self.onCompleted = onCompleted
+    }
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
@@ -198,10 +209,12 @@ struct AddToMemorySheet: View {
                 ? "Ticket added to \(m.name)"
                 : "\(currentTickets.count) tickets added to \(m.name)"
 
-            if onboardingCoordinator.currentStep == .exportOrAddMemory
-                && onboardingCoordinator.exportOrAddChoice == .addToMemory {
-                await onboardingCoordinator.advance(from: .exportOrAddMemory)
-            }
+            // Show the toast briefly so the user sees the confirmation,
+            // then dismiss + hand control back to the caller (which
+            // dismisses the funnel and concludes the onboarding).
+            try? await Task.sleep(nanoseconds: 1_200_000_000)
+            onCompleted?()
+            dismiss()
         }
     }
 }

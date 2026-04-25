@@ -40,25 +40,18 @@ struct NewTicketSuccessStep: View {
 
             actionsGrid
         }
-        .onboardingOverlay(
-            step: .allDone,
-            coordinator: onboardingCoordinator,
-            anchorID: "success.actions",
-            tip: OnboardingTipCopy(
-                title: "Ticket created!",
-                body: "Your ticket has been created. You can find it in All Tickets. You can now add it to a Memory or Export your ticket to use it in another app."
-            )
-        )
         .sheet(isPresented: $showAddToMemory) {
             if !funnel.createdTickets.isEmpty {
-                AddToMemorySheet(tickets: funnel.createdTickets)
+                AddToMemorySheet(tickets: funnel.createdTickets,
+                                 onCompleted: handleSuccessFinished)
             } else if let ticket = funnel.createdTicket {
-                AddToMemorySheet(ticket: ticket)
+                AddToMemorySheet(ticket: ticket,
+                                 onCompleted: handleSuccessFinished)
             }
         }
         .sheet(isPresented: $showExport) {
             if let ticket = funnel.createdTicket {
-                ExportSheet(ticket: ticket)
+                ExportSheet(ticket: ticket, onCompleted: handleSuccessFinished)
             }
         }
         .onChange(of: funnel.createdTicket) { _, created in
@@ -119,10 +112,15 @@ struct NewTicketSuccessStep: View {
 
             // Whichever step the user is currently on (fillInfo or
             // pickStyle), drive the coordinator forward so the allDone
-            // overlay appears over the SuccessStep actions.
+            // overlay appears over the SuccessStep actions. Wait for
+            // the TicketSaveRevealView print animation (~3.5s) before
+            // surfacing the overlay.
             let current = onboardingCoordinator.currentStep
             if current == .pickStyle || current == .fillInfo {
-                Task { await onboardingCoordinator.advance(from: current) }
+                Task {
+                    try? await Task.sleep(nanoseconds: 3_500_000_000)
+                    await onboardingCoordinator.advance(from: current)
+                }
             }
         }
         .onChange(of: funnel.errorMessage) { _, err in
@@ -132,6 +130,19 @@ struct NewTicketSuccessStep: View {
                 errorType: err
             ))
         }
+    }
+
+    /// Called once the user has finished a success-screen action
+    /// (export saved or ticket added to a memory). Advances the
+    /// onboarding past `.exportOrAddMemory` so the end-cover sheet
+    /// pops over the Memories tab, then dismisses the whole funnel so
+    /// the user lands back on Memories instead of staring at the
+    /// success screen.
+    private func handleSuccessFinished() {
+        if onboardingCoordinator.currentStep == .exportOrAddMemory {
+            Task { await onboardingCoordinator.advance(from: .exportOrAddMemory) }
+        }
+        onBackHome()
     }
 
     // MARK: - Hero
