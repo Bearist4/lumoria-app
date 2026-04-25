@@ -51,10 +51,7 @@ struct PaywallHero: View {
         case .memoryLimit:    MemoryLimitHero()
         case .ticketLimit:    TicketLimitHero()
         case .mapSuite:       MapSuiteHero()
-        // Task 5 fills this in. Until then, MemoryLimitHero stands in
-        // so the dispatcher's switch is exhaustive and the project
-        // builds.
-        case .premiumContent: MemoryLimitHero()
+        case .premiumContent: PremiumContentHero()
         }
     }
 }
