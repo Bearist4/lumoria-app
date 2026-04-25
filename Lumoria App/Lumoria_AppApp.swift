@@ -26,7 +26,10 @@ struct Lumoria_AppApp: App {
     @StateObject private var notificationPrefs = NotificationPrefsStore()
     @StateObject private var walletImport = WalletImportCoordinator()
     @StateObject private var onboardingCoordinator = OnboardingCoordinator()
-    @State private var entitlement = EntitlementStore(profileService: ProfileService())
+    @State private var entitlement = EntitlementStore(
+        profileService: ProfileService(),
+        appSettingsService: AppSettingsService()
+    )
     @State private var paywallState = Paywall.PresentationState()
     @AppStorage("appearance.mode") private var storedMode: String = AppearanceMode.system.rawValue
     @AppStorage("appearance.highContrast") private var highContrast: Bool = false

@@ -6,15 +6,15 @@
 //  Supabase profile row (grandfather + DB-mirrored subscription state)
 //  with the iOS-side StoreKit transaction stream.
 //
-//  Phase 1: read side only. trialAvailable always returns false here;
-//  Phase 2 wires the real Product.SubscriptionInfo.isEligibleForIntroOffer
-//  check alongside the purchase flow, since trial state only matters
-//  once the paywall actually shows products.
+//  Phase 2 adds the monetisation kill-switch: while the
+//  app_settings.monetisation_enabled flag is false, hasPremium is
+//  forced to true so every paywall gate passes silently. Caps don't
+//  fire (the server triggers also skip when the flag is off), the
+//  paywall sheet never presents, and Plan management renders a
+//  "coming soon" stub.
 //
-//  Phase 2 also adds the write side: after a successful Product.purchase()
-//  call we'll post the verified Transaction JWS to the
-//  set_premium_from_transaction RPC, then call refresh() to pick up the
-//  new is_premium / premium_expires_at on the profile.
+//  Phase 5 (ASSN2) will add server-side push verification of
+//  Transaction state so the v1 client-trust posture closes.
 //
 
 import Foundation
@@ -29,14 +29,23 @@ private let kAnnualProductId   = "app.lumoria.premium.annual"
 @Observable
 final class EntitlementStore {
 
+    /// Pre-flag tier (what StoreKit + the profile say).
     private(set) var tier: EntitlementTier = .free
+    /// Monetisation kill-switch state. False = free-for-all, no caps,
+    /// no paywall.
+    private(set) var monetisationEnabled: Bool = false
     private(set) var trialAvailable: Bool = false
     private(set) var inviteRewardKind: InviteRewardKind? = nil
 
     private let profileService: ProfileServicing
+    private let appSettingsService: AppSettingsServicing
 
-    init(profileService: ProfileServicing) {
+    init(
+        profileService: ProfileServicing,
+        appSettingsService: AppSettingsServicing
+    ) {
         self.profileService = profileService
+        self.appSettingsService = appSettingsService
         // EntitlementStore is owned by the @main App as @State and lives
         // for the entire process lifetime, so we don't track this task
         // for cancellation — the app exit kills it.
@@ -47,22 +56,53 @@ final class EntitlementStore {
         }
     }
 
-    var hasPremium: Bool { tier.hasPremium }
+    /// While monetisation is off (kill-switch in `app_settings`), every
+    /// gate behaves as if the user already has Premium — caps don't
+    /// fire, paywall never presents.
+    var hasPremium: Bool {
+        if !monetisationEnabled { return true }
+        return tier.hasPremium
+    }
 
-    /// Pull the latest profile row. Call on app launch, after sign-in,
-    /// after a successful purchase, and after a manual "Restore
-    /// purchases" tap.
+    /// Pull the latest profile + app-settings rows. Call on app launch,
+    /// after sign-in, after a successful purchase, and after a manual
+    /// "Restore purchases" tap.
     func refresh() async {
-        do {
-            let profile = try await profileService.fetch()
+        async let settingsTask: AppSettings? = {
+            try? await appSettingsService.fetch()
+        }()
+        async let profileTask: Profile? = {
+            try? await profileService.fetch()
+        }()
+
+        let settings = await settingsTask
+        let profile  = await profileTask
+
+        self.monetisationEnabled = settings?.monetisationEnabled ?? false
+
+        if let profile {
             self.tier = Self.tier(for: profile, now: Date())
             self.inviteRewardKind = profile.inviteRewardKind
-        } catch {
-            // No profile row → treat as free until we have one. Don't
-            // surface the error here; the caller's auth flow handles it.
+        } else {
             self.tier = .free
             self.inviteRewardKind = nil
         }
+    }
+
+    /// Resolved view for tests — pure, no I/O.
+    struct Resolved: Equatable {
+        let tier: EntitlementTier
+        let hasPremium: Bool
+    }
+
+    nonisolated static func resolved(
+        profile: Profile,
+        monetisationEnabled: Bool,
+        now: Date
+    ) -> Resolved {
+        let tier = tier(for: profile, now: now)
+        let has = !monetisationEnabled || tier.hasPremium
+        return Resolved(tier: tier, hasPremium: has)
     }
 
     /// Pure tier-resolution helper. Exposed for testing. `nonisolated`
