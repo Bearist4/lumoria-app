@@ -19,6 +19,17 @@ final class TicketsStore: ObservableObject {
     @Published private(set) var isLoading: Bool = false
     @Published var errorMessage: String? = nil
 
+    // MARK: - Free-tier gate
+
+    /// Whether the user can create another ticket under the free-tier
+    /// cap. Premium / grandfathered / lifetime / active subscriber →
+    /// always true. Mirrors the enforce_ticket_cap trigger.
+    func canCreate(entitlement: EntitlementStore) -> Bool {
+        if entitlement.hasPremium { return true }
+        let cap = FreeCaps.ticketCap(rewardKind: entitlement.inviteRewardKind)
+        return tickets.count < cap
+    }
+
     // MARK: - Load
 
     func load() async {
