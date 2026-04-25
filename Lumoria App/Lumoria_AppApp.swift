@@ -26,6 +26,8 @@ struct Lumoria_AppApp: App {
     @StateObject private var notificationPrefs = NotificationPrefsStore()
     @StateObject private var walletImport = WalletImportCoordinator()
     @StateObject private var onboardingCoordinator = OnboardingCoordinator()
+    @State private var entitlement = EntitlementStore(profileService: ProfileService())
+    @State private var paywallState = Paywall.PresentationState()
     @AppStorage("appearance.mode") private var storedMode: String = AppearanceMode.system.rawValue
     @AppStorage("appearance.highContrast") private var highContrast: Bool = false
     @AppStorage("appearance.iconName") private var storedIconName: String = ""
@@ -87,6 +89,16 @@ struct Lumoria_AppApp: App {
                         .environmentObject(notificationPrefs)
                         .environmentObject(walletImport)
                         .environmentObject(onboardingCoordinator)
+                        .environment(entitlement)
+                        .environment(paywallState)
+                        .sheet(isPresented: Binding(
+                            get: { paywallState.isPresented },
+                            set: { paywallState.isPresented = $0 }
+                        )) {
+                            if let trigger = paywallState.trigger {
+                                PaywallView(trigger: trigger)
+                            }
+                        }
                 } else if shouldShowLanding {
                     AuthNavigationView()
                         .environmentObject(authManager)
@@ -107,6 +119,7 @@ struct Lumoria_AppApp: App {
                 await pushService.requestAuthorization()
                 if authManager.isAuthenticated {
                     await onboardingCoordinator.loadOnAuth()
+                    await entitlement.refresh()
                 }
             }
             .onChange(of: authManager.isAuthenticated) { _, isAuthed in
@@ -115,6 +128,7 @@ struct Lumoria_AppApp: App {
                     Task {
                         await notificationPrefs.load()
                         await onboardingCoordinator.loadOnAuth()
+                        await entitlement.refresh()
                     }
                 } else {
                     Task { await pushService.signedOut() }
