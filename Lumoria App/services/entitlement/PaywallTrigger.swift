@@ -2,23 +2,35 @@
 //  PaywallTrigger.swift
 //  Lumoria App
 //
-//  Identifies the entry point that opened the paywall. Maps to one of
-//  the four personalised hero variants (Q5 = B grouping in the design
-//  spec). Also drives the analytics `paywallViewed(source:)` property.
+//  Identifies the entry point that opened the paywall.
+//
+//  Per the Figma layout (969:20169 default + 969:20173/20171 limit
+//  variants), the paywall has two visual modes:
+//
+//    - Default: title "Lumoria Premium", single "Upgrade now" CTA.
+//    - Limit reached: title "Out of {memories|tickets}" with the
+//      resource word coloured, two CTAs ("Upgrade now" or
+//      "Try for 14 days" + "Invite a friend").
+//
+//  Everything else (5-bullet feature list, plan tiles, trust copy)
+//  stays identical across modes.
+//
+//  Trigger also drives the analytics `paywallViewed(source:)` property.
 //
 
 import Foundation
 
 enum PaywallTrigger: String, Equatable, Sendable {
-    // Free-tier counters.
+
+    // Free-tier counters — render the limit-reached variant.
     case memoryLimit  = "memory_limit"
     case ticketLimit  = "ticket_limit"
 
-    // Map suite (wired in Phase 2/3).
+    // Map suite (Phase 3+ — render the default variant for now).
     case timelineLocked  = "timeline_locked"
     case mapExportLocked = "map_export_locked"
 
-    // Premium content (wired in Phase 2/3).
+    // Premium content (Phase 3+ — render the default variant).
     case publicTransportCategory = "public_transport_category"
     case placeholderCategory     = "placeholder_category"
     case paidTemplate            = "paid_template"
@@ -26,34 +38,29 @@ enum PaywallTrigger: String, Equatable, Sendable {
     case pkpassImport            = "pkpass_import"
     case stickerPack             = "sticker_pack"
 
-    // Proactive upgrade from Settings → Plan management (no specific
-    // gated CTA — the user is just browsing plans).
+    // Proactive upgrade from Settings → Plan management. Renders default.
     case upgradeFromSettings     = "upgrade_from_settings"
 
-    /// One of four hero variants to render.
-    enum Variant: String, Equatable, Sendable {
-        case memoryLimit
-        case ticketLimit
-        case mapSuite
-        case premiumContent
+    /// Free-tier resource the user has run out of. Drives the
+    /// "Out of memories" / "Out of tickets" title swap and the
+    /// "limit reached" two-CTA layout. `nil` for any non-limit
+    /// trigger — those render the default "Lumoria Premium" copy.
+    enum LimitedResource: String, Equatable, Sendable {
+        case memories
+        case tickets
     }
 
-    var variant: Variant {
+    var limitedResource: LimitedResource? {
         switch self {
-        case .memoryLimit:
-            return .memoryLimit
-        case .ticketLimit:
-            return .ticketLimit
-        case .timelineLocked, .mapExportLocked:
-            return .mapSuite
-        case .publicTransportCategory,
-             .placeholderCategory,
-             .paidTemplate,
-             .styleCustomisation,
-             .pkpassImport,
-             .stickerPack,
-             .upgradeFromSettings:
-            return .premiumContent
+        case .memoryLimit: return .memories
+        case .ticketLimit: return .tickets
+        default:           return nil
         }
+    }
+
+    /// Whether this trigger renders the limit-reached layout (title
+    /// swap + two-CTA row including "Invite a friend").
+    var isLimitReached: Bool {
+        limitedResource != nil
     }
 }

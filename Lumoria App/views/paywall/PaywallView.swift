@@ -2,10 +2,18 @@
 //  PaywallView.swift
 //  Lumoria App
 //
-//  Real paywall layout. Phase 2 ships a single default hero per the
-//  trigger variant; Phase 3 splits the hero into 4 personalised blocks.
+//  Sheet-style paywall matching the Figma design.
 //
-//  Figma — default: 969-20169 · trial: 969-20173 · trial used: 969-20171
+//  Default (969:20169) — title "Lumoria Premium", single "Upgrade now"
+//    CTA, used by every non-limit trigger.
+//  Limit reached (969:20173 trial / 969:20171 trial used) — title
+//    "Out of {memories|tickets}" with the resource word coloured
+//    orange, two-CTA row: primary purchase button + secondary
+//    "Invite a friend".
+//
+//  Layout (top to bottom): close button (top-leading) → title +
+//  subtitle → 5-bullet feature list → 3 plan tiles → trial trust
+//  copy (only when trial-available) → CTA row.
 //
 
 import SwiftUI
@@ -15,7 +23,8 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(EntitlementStore.self) private var entitlement
     @State private var purchase: PurchaseService
-    @State private var selected: PaywallPlan = .annual
+    @State private var selected: PaywallPlan = .monthly
+    @State private var showInvite: Bool = false
     @State private var error: String? = nil
 
     init(trigger: PaywallTrigger, entitlement: EntitlementStore) {
@@ -23,64 +32,162 @@ struct PaywallView: View {
         self._purchase = State(initialValue: PurchaseService(entitlement: entitlement))
     }
 
+    // MARK: - Body
+
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                hero
-                planCard
-                primaryCTA
-                trustCopy
-                restoreLink
-                if let error { errorBanner(error) }
+        VStack(spacing: 0) {
+            closeButton
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 32) {
+                    titleBlock
+                    featureList
+                    PlanCard(selected: $selected, prices: storeKitPrices)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 32)
+
+            footer
+                .padding(.horizontal, 24)
+                .padding(.bottom, 32)
+                .padding(.top, 8)
+
+            if let error { errorBanner(error) }
         }
-        .overlay(alignment: .topTrailing) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 16)
-            .padding(.trailing, 16)
-        }
+        .background(Color.Background.default)
         .task {
             await purchase.loadProducts()
         }
+        .sheet(isPresented: $showInvite) {
+            InviteView()
+        }
     }
 
-    // MARK: - Hero (Phase 3 — per-variant SwiftUI compositions)
+    // MARK: - Close button (top-leading)
 
-    private var hero: some View {
-        PaywallHero(variant: trigger.variant)
+    private var closeButton: some View {
+        HStack {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.black)
+                    .frame(width: 44, height: 44)
+                    .background(Color.black.opacity(0.05), in: Circle())
+            }
+            .accessibilityLabel("Close")
+            Spacer()
+        }
     }
 
-    // MARK: - Plan card
+    // MARK: - Title + subtitle
 
     @ViewBuilder
-    private var planCard: some View {
-        let prices: [PaywallPlan: String] = {
-            var map: [PaywallPlan: String] = [:]
-            for plan in PaywallPlan.allCases {
-                if let p = purchase.displayPrice(for: plan) {
-                    map[plan] = p
-                }
-            }
-            return map
-        }()
-        PlanCard(
-            selected: $selected,
-            prices: prices,
-            trialAvailable: entitlement.trialAvailable
-        )
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            title
+                .font(.system(size: 34, weight: .bold))
+                .kerning(0.4)
+                .foregroundStyle(.black)
+                .lineSpacing(0)
+
+            Text(subtitle)
+                .font(.system(size: 17))
+                .kerning(-0.43)
+                .foregroundStyle(Color.Text.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
-    // MARK: - CTA
+    @ViewBuilder
+    private var title: some View {
+        if let resource = trigger.limitedResource {
+            // "Out of {resource}" with the resource word coloured orange.
+            (Text("Out of ")
+                .foregroundStyle(.black)
+             + Text(resource.rawValue)
+                .foregroundStyle(Color(red: 1.0, green: 0.616, blue: 0.298)) // warm orange
+            )
+        } else {
+            Text("Lumoria Premium")
+        }
+    }
 
-    private var primaryCTA: some View {
+    private var subtitle: String {
+        if let resource = trigger.limitedResource {
+            return "You've reached the limit for free \(resource.rawValue). Upgrade today or invite a friend to Lumoria to create a new one."
+        }
+        return "Upgrade today to Lumoria Premium and enjoy creating tickets to the fullest."
+    }
+
+    // MARK: - Feature bullets
+
+    private var featureList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            featureRow(symbol: "star",                    text: "All templates across all categories")
+            featureRow(symbol: "checkmark.seal",          text: "Clean exports, no Lumoria mark")
+            featureRow(symbol: "list.bullet.clipboard",   text: "Import tickets from Wallet")
+            featureRow(symbol: "map",                     text: "Map, Timeline, Widgets…")
+            featureRow(symbol: "printer",                 text: "Print-ready quality")
+        }
+    }
+
+    private func featureRow(symbol: String, text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            // 32×32 icon slot to match Figma spec.
+            Image(systemName: symbol)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.black)
+                .frame(width: 32, height: 32)
+            Text(text)
+                .font(.system(size: 17, weight: .semibold))
+                .kerning(-0.43)
+                .foregroundStyle(.black)
+        }
+    }
+
+    // MARK: - Footer (trust copy + CTA row)
+
+    private var footer: some View {
+        VStack(spacing: 12) {
+            if entitlement.trialAvailable && selected == .monthly {
+                trustLine
+            }
+            ctaRow
+        }
+    }
+
+    private var trustLine: some View {
+        Text("14-day free trial, then \(monthlyPriceLabel)/month")
+            .font(.system(size: 13))
+            .foregroundStyle(Color.Text.secondary)
+            .multilineTextAlignment(.center)
+    }
+
+    private var monthlyPriceLabel: String {
+        purchase.displayPrice(for: .monthly) ?? "$3.99"
+    }
+
+    @ViewBuilder
+    private var ctaRow: some View {
+        if trigger.isLimitReached {
+            HStack(spacing: 12) {
+                purchaseButton
+                inviteButton
+            }
+        } else {
+            purchaseButton
+        }
+    }
+
+    // Black filled button. Label flips to "Try for 14 days" only when
+    // the user is monthly + trial-available.
+    private var purchaseButton: some View {
         Button {
             Task {
                 if await purchase.purchase(selected) {
@@ -90,64 +197,50 @@ struct PaywallView: View {
                 }
             }
         } label: {
-            Text(ctaText)
-                .font(.headline)
+            Text(purchaseButtonLabel)
+                .font(.system(size: 17, weight: .semibold))
+                .kerning(-0.43)
+                .foregroundStyle(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
+                .frame(height: 60)
+                .background(Color.black, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
         .disabled(purchase.isPurchasing)
     }
 
-    private var ctaText: String {
-        if selected == .lifetime {
-            return "Buy lifetime"
+    private var purchaseButtonLabel: String {
+        if selected == .monthly && entitlement.trialAvailable {
+            return "Try for 14 days"
         }
-        if entitlement.trialAvailable {
-            return "Start free trial"
-        }
-        return "Subscribe"
+        return "Upgrade now"
     }
 
-    private var trustCopy: some View {
-        VStack(spacing: 4) {
-            Text(trustLine)
-                .font(.footnote)
-                .foregroundStyle(Color.Text.secondary)
-                .multilineTextAlignment(.center)
-            Text("By continuing you agree to our Terms and Privacy.")
-                .font(.caption2)
-                .foregroundStyle(Color.Text.tertiary)
-                .multilineTextAlignment(.center)
+    // Gray secondary button — only shows on limit-reached variants.
+    private var inviteButton: some View {
+        Button {
+            showInvite = true
+        } label: {
+            Text("Invite a friend")
+                .font(.system(size: 17, weight: .semibold))
+                .kerning(-0.43)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .frame(height: 60)
+                .background(Color(red: 0.929, green: 0.929, blue: 0.929),
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
-    private var trustLine: String {
-        if selected == .lifetime {
-            return "One-time purchase. No subscription."
-        }
-        if entitlement.trialAvailable {
-            return "Free for 14 days, then \(priceTrailer). Cancel anytime."
-        }
-        return "Cancel anytime in Settings."
-    }
+    // MARK: - Helpers
 
-    private var priceTrailer: String {
-        guard let p = purchase.displayPrice(for: selected) else {
-            return selected == .annual ? "$24.99/year" : "$3.99/month"
+    private var storeKitPrices: [PaywallPlan: String] {
+        var map: [PaywallPlan: String] = [:]
+        for plan in PaywallPlan.allCases {
+            if let p = purchase.displayPrice(for: plan) {
+                map[plan] = p
+            }
         }
-        return selected == .annual ? "\(p)/year" : "\(p)/month"
-    }
-
-    // MARK: - Restore
-
-    private var restoreLink: some View {
-        Button("Restore purchases") {
-            Task { _ = await purchase.restore() }
-        }
-        .font(.footnote)
-        .foregroundStyle(.tint)
+        return map
     }
 
     private func errorBanner(_ msg: String) -> some View {
@@ -155,13 +248,15 @@ struct PaywallView: View {
             .font(.footnote)
             .foregroundStyle(Color.Feedback.Danger.icon)
             .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+            .padding(.bottom, 16)
     }
 
     private func description(of failure: PurchaseService.Failure) -> String {
         switch failure {
-        case .notSignedIn:        return "You need to be signed in."
-        case .verificationFailed: return "Couldn't verify the purchase. Try again."
-        case .rpcFailed(let m):   return "Server didn't accept the purchase. (\(m))"
+        case .notSignedIn:          return "You need to be signed in."
+        case .verificationFailed:   return "Couldn't verify the purchase. Try again."
+        case .rpcFailed(let m):     return "Server didn't accept the purchase. (\(m))"
         case .storeKitError(let m): return m
         }
     }
@@ -171,9 +266,6 @@ struct PaywallView: View {
 
 #if DEBUG
 
-/// Stub profile service used by the canvas previews. Returns a free
-/// (non-grandfathered, non-premium) profile so the paywall renders in
-/// its most common state.
 private final class PreviewPaywallProfileService: ProfileServicing, @unchecked Sendable {
     func fetch() async throws -> Profile {
         Profile(
@@ -187,10 +279,6 @@ private final class PreviewPaywallProfileService: ProfileServicing, @unchecked S
     func replay() async throws {}
 }
 
-/// Stub app-settings service. `monetisationEnabled = true` keeps the
-/// preview in the post-go-live state (so the paywall actually presents
-/// content rather than the "coming soon" stub). Switch to false to
-/// see how the paywall body looks under the kill-switch.
 private final class PreviewPaywallAppSettingsService: AppSettingsServicing, @unchecked Sendable {
     let monetisationEnabled: Bool
     init(monetisationEnabled: Bool) {
@@ -205,9 +293,6 @@ private final class PreviewPaywallAppSettingsService: AppSettingsServicing, @unc
     }
 }
 
-/// Build an EntitlementStore wired to stub services. Only used by the
-/// previews below — it shares the same observable type the live app
-/// uses so the paywall renders identically.
 @MainActor
 private func previewEntitlement() -> EntitlementStore {
     let store = EntitlementStore(
@@ -218,27 +303,21 @@ private func previewEntitlement() -> EntitlementStore {
     return store
 }
 
-#Preview("memoryLimit") {
+#Preview("Default — Lumoria Premium") {
+    let entitlement = previewEntitlement()
+    return PaywallView(trigger: .upgradeFromSettings, entitlement: entitlement)
+        .environment(entitlement)
+}
+
+#Preview("Out of memories") {
     let entitlement = previewEntitlement()
     return PaywallView(trigger: .memoryLimit, entitlement: entitlement)
         .environment(entitlement)
 }
 
-#Preview("ticketLimit") {
+#Preview("Out of tickets") {
     let entitlement = previewEntitlement()
     return PaywallView(trigger: .ticketLimit, entitlement: entitlement)
-        .environment(entitlement)
-}
-
-#Preview("mapSuite") {
-    let entitlement = previewEntitlement()
-    return PaywallView(trigger: .timelineLocked, entitlement: entitlement)
-        .environment(entitlement)
-}
-
-#Preview("premiumContent") {
-    let entitlement = previewEntitlement()
-    return PaywallView(trigger: .upgradeFromSettings, entitlement: entitlement)
         .environment(entitlement)
 }
 

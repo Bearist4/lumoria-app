@@ -2,8 +2,15 @@
 //  PlanCard.swift
 //  Lumoria App
 //
-//  3-tile plan picker. Tapping a tile updates the binding.
-//  Figma: 968-17975
+//  3-tile plan picker matching the Figma upgrade sheet layout.
+//  Figma: 968:17975 (plan tile) + 969:20169 (sheet context)
+//
+//  Tile shape: 24pt corner radius, 16pt internal padding, radio button
+//  on the left (44×44), pricing column to the right (price + period).
+//  Selected → pink/50 #FFF0F7 background + filled radio.
+//  Unselected → background/elevated #FAFAFA + outline radio.
+//  Annual tile reserves a flexible right column for the "2 months free"
+//  yellow chip.
 //
 
 import SwiftUI
@@ -15,30 +22,21 @@ enum PaywallPlan: String, Equatable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    var period: String {
         switch self {
-        case .monthly:  return "Monthly"
-        case .annual:   return "Annual"
-        case .lifetime: return "Lifetime"
-        }
-    }
-
-    var isSubscription: Bool {
-        switch self {
-        case .monthly, .annual: return true
-        case .lifetime:         return false
+        case .monthly:  return "Per month"
+        case .annual:   return "Per year"
+        case .lifetime: return "One-time purchase"
         }
     }
 }
 
 struct PlanCard: View {
     @Binding var selected: PaywallPlan
-    /// Resolved (localised) display prices, keyed by the plan. Pulled
-    /// from StoreKit `Product.displayPrice` when available, falling
-    /// back to spec defaults.
+    /// Resolved (localised) display prices keyed by plan. Pulled from
+    /// StoreKit `Product.displayPrice` when available; falls back to
+    /// spec defaults.
     let prices: [PaywallPlan: String]
-    /// Whether to show the "14 days free" tag on monthly/annual.
-    let trialAvailable: Bool
 
     var body: some View {
         VStack(spacing: 12) {
@@ -56,56 +54,53 @@ struct PlanCard: View {
         Button {
             selected = plan
         } label: {
-            HStack(alignment: .center) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
-                        Text(plan.title)
-                            .font(.headline)
-                        if plan == .annual && !trialAvailable {
-                            MonthTag(kind: .bestValue("Best value"))
-                        }
-                    }
-                    Text(subtitle(plan, price: price))
-                        .font(.subheadline)
-                        .foregroundStyle(Color.Text.secondary)
+            HStack(spacing: 16) {
+                radio(filled: isSelected)
+                pricing(price: price, period: plan.period)
+                if plan == .annual {
+                    Spacer(minLength: 0)
+                    MonthTag(text: "2 months free")
                 }
-                Spacer()
-                leadingTag(plan)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(
-                        isSelected ? Color.accentColor : Color.gray.opacity(0.2),
-                        lineWidth: isSelected ? 2 : 1
-                    )
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.Background.default)
-                    )
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(isSelected
+                          ? Color(red: 1.0, green: 0.941, blue: 0.969)   // pink/50
+                          : Color(red: 0.980, green: 0.980, blue: 0.980)) // bg/elevated
             )
         }
         .buttonStyle(.plain)
     }
 
-    @ViewBuilder
-    private func leadingTag(_ plan: PaywallPlan) -> some View {
-        switch plan {
-        case .monthly, .annual:
-            if trialAvailable {
-                MonthTag(kind: .trial("14 days free"))
+    // 44×44 radio button — outer circle stroke, filled inner dot when selected.
+    private func radio(filled: Bool) -> some View {
+        ZStack {
+            Circle()
+                .stroke(Color.black, lineWidth: 2)
+                .frame(width: 22, height: 22)
+            if filled {
+                Circle()
+                    .fill(Color.black)
+                    .frame(width: 13, height: 13)
             }
-        case .lifetime:
-            MonthTag(kind: .oneTime("One-time"))
         }
+        .frame(width: 44, height: 44)
     }
 
-    private func subtitle(_ plan: PaywallPlan, price: String) -> String {
-        switch plan {
-        case .monthly:  return "\(price) / month"
-        case .annual:   return "\(price) / year"
-        case .lifetime: return "\(price) once"
+    private func pricing(price: String, period: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            // Title3/Emphasized: 20pt Semibold, lineHeight 25, kerning -0.45
+            Text(price)
+                .font(.system(size: 20, weight: .semibold))
+                .kerning(-0.45)
+                .foregroundStyle(.black)
+            // Callout/Regular: 16pt Regular, lineHeight 21, kerning -0.31
+            Text(period)
+                .font(.system(size: 16))
+                .kerning(-0.31)
+                .foregroundStyle(Color(red: 0.451, green: 0.451, blue: 0.451)) // gray/500
         }
     }
 
@@ -118,22 +113,8 @@ struct PlanCard: View {
     }
 }
 
-#Preview("Trial available") {
-    @Previewable @State var selected: PaywallPlan = .annual
-    PlanCard(
-        selected: $selected,
-        prices: [:],
-        trialAvailable: true
-    )
-    .padding(24)
-}
-
-#Preview("Trial used") {
-    @Previewable @State var selected: PaywallPlan = .annual
-    PlanCard(
-        selected: $selected,
-        prices: [:],
-        trialAvailable: false
-    )
-    .padding(24)
+#Preview {
+    @Previewable @State var selected: PaywallPlan = .monthly
+    PlanCard(selected: $selected, prices: [:])
+        .padding(24)
 }
