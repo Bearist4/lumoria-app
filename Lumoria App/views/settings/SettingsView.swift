@@ -25,6 +25,7 @@ struct SettingsView: View {
 
     @EnvironmentObject private var profileStore: ProfileStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
     #if DEBUG
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memoriesStore: MemoriesStore
@@ -126,7 +127,7 @@ struct SettingsView: View {
                 case .appearance:    AppearanceView()
                 case .map:           MapPreferencesView()
                 case .referral:      InviteView()
-                case .plan:          placeholderView("Plan")
+                case .plan:          PlanManagementView(entitlement: entitlement)
                 case .helpCenter:
                     HelpCenterView { article in
                         path.append(.helpArticle(article.id))
