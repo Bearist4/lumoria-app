@@ -16,6 +16,8 @@ struct MemoryDetailView: View {
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memoriesStore: MemoriesStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
+    @Environment(Paywall.PresentationState.self) private var paywallState
 
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
@@ -140,6 +142,20 @@ struct MemoryDetailView: View {
     // MARK: - Map availability
 
     /// Any ticket in this memory with at least one attached location.
+    /// Gated entry to the new-ticket funnel. Free-tier users at the
+    /// ticket cap see the paywall instead.
+    private func presentNewTicketOrPaywall() {
+        if ticketsStore.canCreate(entitlement: entitlement) {
+            showNewTicket = true
+        } else {
+            Paywall.present(
+                for: .ticketLimit,
+                entitlement: entitlement,
+                state: paywallState
+            )
+        }
+    }
+
     private var hasAnyLocation: Bool {
         ticketsStore.tickets(in: memory.id).contains {
             $0.originLocation != nil || $0.destinationLocation != nil
@@ -199,7 +215,7 @@ struct MemoryDetailView: View {
                 systemImage: "plus",
                 position: .onSurface
             ) {
-                showNewTicket = true
+                presentNewTicketOrPaywall()
             }
             .onboardingAnchor("memoryDetail.plus")
 

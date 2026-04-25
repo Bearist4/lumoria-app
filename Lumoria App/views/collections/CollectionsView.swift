@@ -14,6 +14,8 @@ struct MemoriesView: View {
     @EnvironmentObject private var notificationsStore: NotificationsStore
     @EnvironmentObject private var pushService: PushNotificationService
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
+    @Environment(Paywall.PresentationState.self) private var paywallState
     @State private var showNewMemory = false
     @State private var showNotificationCenter = false
     @State private var pendingNotification: LumoriaNotification? = nil
@@ -185,7 +187,7 @@ struct MemoriesView: View {
             guard let first = store.memories.first else { return }
             navigationPath.append(first)
         case .openNewTicketFunnel:
-            showNewTicketFunnel = true
+            presentNewTicketOrPaywall()
         }
     }
 
@@ -199,11 +201,39 @@ struct MemoriesView: View {
                 navigationPath.append(memory)
             }
         case .onboarding:
-            showNewTicketFunnel = true
+            presentNewTicketOrPaywall()
         case .news:
             activeTemplateKind = notification.templateKind ?? .express
         case .link:
+            presentNewMemoryOrPaywall()
+        }
+    }
+
+    /// Gated entry to the new-memory sheet. Free-tier users at the
+    /// memory cap see the paywall instead.
+    private func presentNewMemoryOrPaywall() {
+        if store.canCreate(entitlement: entitlement) {
             showNewMemory = true
+        } else {
+            Paywall.present(
+                for: .memoryLimit,
+                entitlement: entitlement,
+                state: paywallState
+            )
+        }
+    }
+
+    /// Gated entry to the new-ticket funnel. Free-tier users at the
+    /// ticket cap see the paywall instead.
+    private func presentNewTicketOrPaywall() {
+        if ticketsStore.canCreate(entitlement: entitlement) {
+            showNewTicketFunnel = true
+        } else {
+            Paywall.present(
+                for: .ticketLimit,
+                entitlement: entitlement,
+                state: paywallState
+            )
         }
     }
 
@@ -243,7 +273,7 @@ struct MemoriesView: View {
                     showNotificationCenter = true
                 }
                 LumoriaIconButton(systemImage: "plus") {
-                    showNewMemory = true
+                    presentNewMemoryOrPaywall()
                 }
                 .onboardingAnchor("memories.plus")
             }
