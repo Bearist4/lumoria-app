@@ -52,53 +52,10 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Hero (default for Phase 2)
+    // MARK: - Hero (Phase 3 — per-variant SwiftUI compositions)
 
     private var hero: some View {
-        VStack(spacing: 16) {
-            Image(systemName: heroSymbol)
-                .font(.system(size: 56))
-                .foregroundStyle(.tint)
-                .padding(.top, 24)
-            Text(headline)
-                .font(.largeTitle.bold())
-                .multilineTextAlignment(.center)
-            Text(subhead)
-                .font(.title3)
-                .foregroundStyle(Color.Text.secondary)
-                .multilineTextAlignment(.center)
-        }
-    }
-
-    private var heroSymbol: String {
-        switch trigger.variant {
-        case .memoryLimit:    return "rectangle.stack.fill"
-        case .ticketLimit:    return "ticket.fill"
-        case .mapSuite:       return "map.fill"
-        case .premiumContent: return "sparkles"
-        }
-    }
-
-    private var headline: String {
-        switch trigger.variant {
-        case .memoryLimit:    return "Unlimited memories."
-        case .ticketLimit:    return "Unlimited tickets."
-        case .mapSuite:       return "Your trips, told."
-        case .premiumContent: return "The full catalogue."
-        }
-    }
-
-    private var subhead: String {
-        switch trigger.variant {
-        case .memoryLimit:
-            return "Free covers 3 memories. Premium has no cap."
-        case .ticketLimit:
-            return "Free covers 5 tickets. Premium has no cap."
-        case .mapSuite:
-            return "Premium unlocks the timeline scrub and full map export."
-        case .premiumContent:
-            return "Premium unlocks every template, every category, and the iOS sticker pack."
-        }
+        PaywallHero(variant: trigger.variant)
     }
 
     // MARK: - Plan card
