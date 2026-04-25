@@ -9,15 +9,64 @@
 import Foundation
 import Supabase
 
+enum InviteRewardKind: String, Codable, Equatable, Sendable {
+    case memory  = "memory"
+    case tickets = "tickets"
+}
+
 struct Profile: Codable, Equatable, Sendable {
     let userId: UUID
     var showOnboarding: Bool
     var onboardingStep: OnboardingStep
 
+    // Entitlement / paywall state. Server-managed — clients can read
+    // their own row but cannot write these columns directly (see the
+    // profiles_protect_managed_columns trigger).
+    var grandfatheredAt: Date?
+    var isPremium: Bool
+    var premiumExpiresAt: Date?
+    var premiumProductId: String?
+    var premiumTransactionId: String?
+
+    // Invite reward (Phase 1 foundation; Phase 4 wires the picker UI).
+    var inviteRewardKind: InviteRewardKind?
+    var inviteRewardClaimedAt: Date?
+
     enum CodingKeys: String, CodingKey {
-        case userId         = "user_id"
-        case showOnboarding = "show_onboarding"
-        case onboardingStep = "onboarding_step"
+        case userId                = "user_id"
+        case showOnboarding        = "show_onboarding"
+        case onboardingStep        = "onboarding_step"
+        case grandfatheredAt       = "grandfathered_at"
+        case isPremium             = "is_premium"
+        case premiumExpiresAt      = "premium_expires_at"
+        case premiumProductId      = "premium_product_id"
+        case premiumTransactionId  = "premium_transaction_id"
+        case inviteRewardKind      = "invite_reward_kind"
+        case inviteRewardClaimedAt = "invite_reward_claimed_at"
+    }
+
+    init(
+        userId: UUID,
+        showOnboarding: Bool,
+        onboardingStep: OnboardingStep,
+        grandfatheredAt: Date? = nil,
+        isPremium: Bool = false,
+        premiumExpiresAt: Date? = nil,
+        premiumProductId: String? = nil,
+        premiumTransactionId: String? = nil,
+        inviteRewardKind: InviteRewardKind? = nil,
+        inviteRewardClaimedAt: Date? = nil
+    ) {
+        self.userId = userId
+        self.showOnboarding = showOnboarding
+        self.onboardingStep = onboardingStep
+        self.grandfatheredAt = grandfatheredAt
+        self.isPremium = isPremium
+        self.premiumExpiresAt = premiumExpiresAt
+        self.premiumProductId = premiumProductId
+        self.premiumTransactionId = premiumTransactionId
+        self.inviteRewardKind = inviteRewardKind
+        self.inviteRewardClaimedAt = inviteRewardClaimedAt
     }
 }
 
