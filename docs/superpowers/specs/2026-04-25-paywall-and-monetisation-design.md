@@ -27,6 +27,34 @@ Lumoria is going from a TestFlight beta to a paid product. This spec covers ever
 1. **Counter enforcement** — client + server. Client gate for UX (instant paywall presentation), Postgres BEFORE INSERT trigger as the actual enforcement so a malicious client can't bypass.
 2. **Invite reward claim timing** — claim anytime via Invite settings banner. No forced modal at the moment a friend redeems.
 
+### Monetisation kill-switch (added 2026-04-25)
+
+The app cannot legally accept payments yet. Every piece of paywall machinery in this spec must be **fully built but inert** until the developer flips a switch.
+
+**Design:**
+
+- New `public.app_settings` singleton row with `monetisation_enabled boolean DEFAULT false NOT NULL`. Authenticated reads via RLS; updates are restricted to the service role (no client policy granted).
+- iOS reads the flag at launch + on every entitlement refresh. `EntitlementStore.hasPremium` returns `true` whenever the flag is `false` — short-circuiting every paywall gate.
+- Cap-enforcement triggers (`enforce_memory_cap` / `enforce_ticket_cap`) check the flag first; when off, they `RETURN NEW` unconditionally. Free-tier limits don't fire.
+- `set_premium_from_transaction` RPC raises `monetisation_disabled` when the flag is off, so even a misbehaving client can't promote a profile to premium until the switch is on.
+- Plan management screen renders a "Premium coming soon" tier-neutral state when the flag is off; the buy buttons / plan card don't render.
+- `Paywall.present(for:)` short-circuits via `entitlement.hasPremium`; the sheet never shows.
+- Grandfather logic still runs in the background (waitlist signups still get stamped on `profiles.grandfathered_at`). When the switch flips on later, those users are ready to skip the paywall on day one.
+
+**Flipping the switch:**
+
+```sql
+UPDATE public.app_settings SET monetisation_enabled = true WHERE id = 'singleton';
+```
+
+That single statement turns on:
+- Free-tier caps server-side and client-side.
+- Paywall presentation.
+- Purchase flow.
+- Plan management buy buttons.
+
+No app rebuild, no App Store review, no migration. The remote config flip is the legal go-live trigger.
+
 ### Beta-tester grandfather (already shipped this session)
 
 Migration `grandfather_beta_testers` already applied to the `Website` Supabase project:
@@ -330,13 +358,20 @@ enforce_<table>_cap():
 - App Store Connect: 3 products + subscription group + 14-day intro offer on monthly/annual.
 - `Configuration.storekit` for sandbox testing.
 
-**Phase 2 — Default paywall + purchase flow** (this is when the app starts taking money)
+**Phase 2 — Default paywall + purchase flow + kill switch** (built but inert until the developer flips the switch)
 
-- Paywall view: default hero, plan card with 3 tiles, MonthTag chip, primary CTA, restore link.
-- `Product.purchase(options: [.appAccountToken(auth.uid())])`. On verified transaction → `set_premium_from_transaction(jws)` → refresh `EntitlementStore` → dismiss.
+- DB migration: `app_settings` singleton + `monetisation_enabled` flag. Cap-enforcement triggers updated to no-op when flag is off. New `set_premium_from_transaction` RPC raises when flag is off.
+- iOS `AppSettingsService` — fetches the flag alongside the profile.
+- `EntitlementStore.hasPremium` short-circuits to `true` while the flag is off (treats every user as Premium).
+- Paywall view: default hero block, plan card with 3 tiles, MonthTag chip, primary CTA, restore link.
+- `Product.purchase(options: [.appAccountToken(auth.uid())])`. On verified transaction → `set_premium_from_transaction(...)` → refresh `EntitlementStore` → dismiss.
 - Trial-aware CTA copy / MonthTag swap from `entitlement.trialAvailable`.
-- Plan management screen replaces the placeholder.
-- **Soft launch boundary** — TestFlight ships here. Every paywall trigger uses the default hero. No personalisation, no invite reward yet.
+- Plan management screen replaces the placeholder. Renders "Premium coming soon" copy while the flag is off; switches to tier-based copy + buy buttons when it flips on.
+- **Soft launch boundary** — TestFlight ships here. Every paywall trigger uses the default hero. No personalisation, no invite reward yet. App Store review can land before the legal go-live since the switch is off.
+
+**Server-side `set_premium_from_transaction` (Phase 2 implementation)**
+
+For Phase 2, the RPC accepts `(p_product_id, p_transaction_id, p_expires_at)` directly from the client without verifying Apple's JWS — the client passes through `Transaction.payloadValue` fields that StoreKit has already verified locally. Phase 5 (ASSN2) layers the server-side push verification on top, closing the residual trust gap. Until then, the kill switch + the empty backfill (no real subscribers) keeps the surface area zero.
 
 **Phase 3 — Personalised hero variants**
 
