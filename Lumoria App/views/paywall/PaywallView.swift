@@ -166,3 +166,80 @@ struct PaywallView: View {
         }
     }
 }
+
+// MARK: - Previews
+
+#if DEBUG
+
+/// Stub profile service used by the canvas previews. Returns a free
+/// (non-grandfathered, non-premium) profile so the paywall renders in
+/// its most common state.
+private final class PreviewPaywallProfileService: ProfileServicing, @unchecked Sendable {
+    func fetch() async throws -> Profile {
+        Profile(
+            userId: UUID(),
+            showOnboarding: false,
+            onboardingStep: .done
+        )
+    }
+    func setStep(_ step: OnboardingStep) async throws {}
+    func setShowOnboarding(_ value: Bool) async throws {}
+    func replay() async throws {}
+}
+
+/// Stub app-settings service. `monetisationEnabled = true` keeps the
+/// preview in the post-go-live state (so the paywall actually presents
+/// content rather than the "coming soon" stub). Switch to false to
+/// see how the paywall body looks under the kill-switch.
+private final class PreviewPaywallAppSettingsService: AppSettingsServicing, @unchecked Sendable {
+    let monetisationEnabled: Bool
+    init(monetisationEnabled: Bool) {
+        self.monetisationEnabled = monetisationEnabled
+    }
+    func fetch() async throws -> AppSettings {
+        AppSettings(
+            id: "singleton",
+            monetisationEnabled: monetisationEnabled,
+            updatedAt: nil
+        )
+    }
+}
+
+/// Build an EntitlementStore wired to stub services. Only used by the
+/// previews below — it shares the same observable type the live app
+/// uses so the paywall renders identically.
+@MainActor
+private func previewEntitlement() -> EntitlementStore {
+    let store = EntitlementStore(
+        profileService: PreviewPaywallProfileService(),
+        appSettingsService: PreviewPaywallAppSettingsService(monetisationEnabled: true)
+    )
+    Task { await store.refresh() }
+    return store
+}
+
+#Preview("memoryLimit") {
+    let entitlement = previewEntitlement()
+    return PaywallView(trigger: .memoryLimit, entitlement: entitlement)
+        .environment(entitlement)
+}
+
+#Preview("ticketLimit") {
+    let entitlement = previewEntitlement()
+    return PaywallView(trigger: .ticketLimit, entitlement: entitlement)
+        .environment(entitlement)
+}
+
+#Preview("mapSuite") {
+    let entitlement = previewEntitlement()
+    return PaywallView(trigger: .timelineLocked, entitlement: entitlement)
+        .environment(entitlement)
+}
+
+#Preview("premiumContent") {
+    let entitlement = previewEntitlement()
+    return PaywallView(trigger: .upgradeFromSettings, entitlement: entitlement)
+        .environment(entitlement)
+}
+
+#endif
