@@ -4,25 +4,26 @@
 //
 //  Sheet-style paywall matching the Figma design.
 //
+//  The file is split into:
+//    - `PaywallContent`: a pure SwiftUI view driven entirely by inputs.
+//      No environment, no services, no async work in init. Used by
+//      Xcode #Preview blocks so the canvas doesn't need to launch the
+//      full app process.
+//    - `PaywallView`: the live, app-wired entry point. Reads
+//      EntitlementStore from environment, owns a PurchaseService, and
+//      forwards the resolved props to PaywallContent.
+//
 //  Default (969:20169) — title "Lumoria Premium", single "Upgrade now"
 //    CTA, used by every non-limit trigger.
-//  Limit reached (969:20173 trial / 969:20171 trial used) — title
+//  Limit reached (969:20173 / 969:20171) — title
 //    "Out of {memories|tickets}" with the resource word coloured
 //    orange, two-CTA row: primary purchase button + secondary
 //    "Invite a friend".
 //
-//  Layout uses fixed vertical spacing — no ScrollView. All content fits
-//  inside the sheet height. Typography is built on the Apple semantic
-//  styles (largeTitle / headline / body / title3 / callout / footnote)
-//  so it scales correctly with Dynamic Type.
-//
-//  The sheet is presented modally from the app root, which already
-//  surfaces a drag-to-dismiss affordance; the close button at the top
-//  is the explicit affordance shown in the design and uses
-//  `LumoriaIconButton` so it matches the icon-button system.
-//
 
 import SwiftUI
+
+// MARK: - Wired entry point
 
 struct PaywallView: View {
     let trigger: PaywallTrigger
@@ -38,53 +39,106 @@ struct PaywallView: View {
         self._purchase = State(initialValue: PurchaseService(entitlement: entitlement))
     }
 
-    // MARK: - Body
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-
-            // Top-leading close button.
-            LumoriaIconButton(
-                systemImage: "xmark",
-                size: .large,
-                position: .onBackground,
-                action: { dismiss() }
-            )
-            .padding(.horizontal, 24)
-            .padding(.top, 16)
-
-            // Title block — 24pt below the close.
-            titleBlock
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
-
-            // Feature list — 32pt below title block.
-            featureList
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
-
-            // Plan card — pushed toward the footer with a flexible spacer.
-            Spacer(minLength: 24)
-
-            PlanCard(selected: $selected, prices: storeKitPrices)
-                .padding(.horizontal, 24)
-
-            // Trust line + CTA row pinned at the bottom.
-            footer
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
-
-            if let error { errorBanner(error) }
-        }
-        .padding(.bottom, 24)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(Color.Background.default)
+        PaywallContent(
+            trigger: trigger,
+            selected: $selected,
+            prices: storeKitPrices,
+            trialAvailable: entitlement.trialAvailable,
+            monthlyPriceLabel: purchase.displayPrice(for: .monthly) ?? "$3.99",
+            isPurchasing: purchase.isPurchasing,
+            errorMessage: error,
+            onClose: { dismiss() },
+            onPurchase: handlePurchase,
+            onInvite: { showInvite = true }
+        )
         .task {
             await purchase.loadProducts()
         }
         .sheet(isPresented: $showInvite) {
             InviteView()
         }
+    }
+
+    private func handlePurchase() {
+        Task {
+            if await purchase.purchase(selected) {
+                dismiss()
+            } else if let f = purchase.lastError {
+                error = description(of: f)
+            }
+        }
+    }
+
+    private var storeKitPrices: [PaywallPlan: String] {
+        var map: [PaywallPlan: String] = [:]
+        for plan in PaywallPlan.allCases {
+            if let p = purchase.displayPrice(for: plan) {
+                map[plan] = p
+            }
+        }
+        return map
+    }
+
+    private func description(of failure: PurchaseService.Failure) -> String {
+        switch failure {
+        case .notSignedIn:          return "You need to be signed in."
+        case .verificationFailed:   return "Couldn't verify the purchase. Try again."
+        case .rpcFailed(let m):     return "Server didn't accept the purchase. (\(m))"
+        case .storeKitError(let m): return m
+        }
+    }
+}
+
+// MARK: - Pure layout (preview-friendly)
+
+struct PaywallContent: View {
+
+    let trigger: PaywallTrigger
+    @Binding var selected: PaywallPlan
+    let prices: [PaywallPlan: String]
+    let trialAvailable: Bool
+    let monthlyPriceLabel: String
+    let isPurchasing: Bool
+    let errorMessage: String?
+    let onClose: () -> Void
+    let onPurchase: () -> Void
+    let onInvite: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            LumoriaIconButton(
+                systemImage: "xmark",
+                size: .large,
+                position: .onBackground,
+                action: onClose
+            )
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+
+            titleBlock
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+
+            featureList
+                .padding(.horizontal, 24)
+                .padding(.top, 32)
+
+            Spacer(minLength: 24)
+
+            PlanCard(selected: $selected, prices: prices)
+                .padding(.horizontal, 24)
+
+            footer
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+
+            if let errorMessage { errorBanner(errorMessage) }
+        }
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color.Background.default)
     }
 
     // MARK: - Title + subtitle
@@ -106,7 +160,6 @@ struct PaywallView: View {
     @ViewBuilder
     private var title: some View {
         if let resource = trigger.limitedResource {
-            // "Out of {resource}" with the resource word coloured orange.
             (Text("Out of ")
                 .foregroundStyle(.black)
              + Text(resource.rawValue)
@@ -148,11 +201,11 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Footer (trust copy + CTA row)
+    // MARK: - Footer
 
     private var footer: some View {
         VStack(spacing: 12) {
-            if entitlement.trialAvailable && selected == .monthly {
+            if trialAvailable && selected == .monthly {
                 trustLine
             }
             ctaRow
@@ -165,10 +218,6 @@ struct PaywallView: View {
             .foregroundStyle(Color.Text.secondary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, alignment: .center)
-    }
-
-    private var monthlyPriceLabel: String {
-        purchase.displayPrice(for: .monthly) ?? "$3.99"
     }
 
     @ViewBuilder
@@ -185,13 +234,7 @@ struct PaywallView: View {
 
     private var purchaseButton: some View {
         Button {
-            Task {
-                if await purchase.purchase(selected) {
-                    dismiss()
-                } else if let f = purchase.lastError {
-                    error = description(of: f)
-                }
-            }
+            onPurchase()
         } label: {
             Text(purchaseButtonLabel)
                 .font(.headline)
@@ -200,11 +243,11 @@ struct PaywallView: View {
                 .frame(height: 60)
                 .background(Color.black, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
-        .disabled(purchase.isPurchasing)
+        .disabled(isPurchasing)
     }
 
     private var purchaseButtonLabel: String {
-        if selected == .monthly && entitlement.trialAvailable {
+        if selected == .monthly && trialAvailable {
             return "Try for 14 days"
         }
         return "Upgrade now"
@@ -212,7 +255,7 @@ struct PaywallView: View {
 
     private var inviteButton: some View {
         Button {
-            showInvite = true
+            onInvite()
         } label: {
             Text("Invite a friend")
                 .font(.headline)
@@ -224,18 +267,6 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Helpers
-
-    private var storeKitPrices: [PaywallPlan: String] {
-        var map: [PaywallPlan: String] = [:]
-        for plan in PaywallPlan.allCases {
-            if let p = purchase.displayPrice(for: plan) {
-                map[plan] = p
-            }
-        }
-        return map
-    }
-
     private func errorBanner(_ msg: String) -> some View {
         Text(msg)
             .font(.footnote)
@@ -244,74 +275,51 @@ struct PaywallView: View {
             .padding(.horizontal, 24)
             .padding(.top, 8)
     }
-
-    private func description(of failure: PurchaseService.Failure) -> String {
-        switch failure {
-        case .notSignedIn:          return "You need to be signed in."
-        case .verificationFailed:   return "Couldn't verify the purchase. Try again."
-        case .rpcFailed(let m):     return "Server didn't accept the purchase. (\(m))"
-        case .storeKitError(let m): return m
-        }
-    }
 }
 
-// MARK: - Previews
+// MARK: - Previews (lightweight — render PaywallContent directly)
 
 #if DEBUG
 
-private final class PreviewPaywallProfileService: ProfileServicing, @unchecked Sendable {
-    func fetch() async throws -> Profile {
-        Profile(
-            userId: UUID(),
-            showOnboarding: false,
-            onboardingStep: .done
+private struct PaywallPreview: View {
+    let trigger: PaywallTrigger
+    let trialAvailable: Bool
+    @State private var selected: PaywallPlan = .monthly
+
+    var body: some View {
+        PaywallContent(
+            trigger: trigger,
+            selected: $selected,
+            prices: [
+                .monthly:  "$3.99",
+                .annual:   "$24.99",
+                .lifetime: "$59.99",
+            ],
+            trialAvailable: trialAvailable,
+            monthlyPriceLabel: "$3.99",
+            isPurchasing: false,
+            errorMessage: nil,
+            onClose:    { },
+            onPurchase: { },
+            onInvite:   { }
         )
     }
-    func setStep(_ step: OnboardingStep) async throws {}
-    func setShowOnboarding(_ value: Bool) async throws {}
-    func replay() async throws {}
-}
-
-private final class PreviewPaywallAppSettingsService: AppSettingsServicing, @unchecked Sendable {
-    let monetisationEnabled: Bool
-    init(monetisationEnabled: Bool) {
-        self.monetisationEnabled = monetisationEnabled
-    }
-    func fetch() async throws -> AppSettings {
-        AppSettings(
-            id: "singleton",
-            monetisationEnabled: monetisationEnabled,
-            updatedAt: nil
-        )
-    }
-}
-
-@MainActor
-private func previewEntitlement() -> EntitlementStore {
-    let store = EntitlementStore(
-        profileService: PreviewPaywallProfileService(),
-        appSettingsService: PreviewPaywallAppSettingsService(monetisationEnabled: true)
-    )
-    Task { await store.refresh() }
-    return store
 }
 
 #Preview("Default — Lumoria Premium") {
-    let entitlement = previewEntitlement()
-    return PaywallView(trigger: .upgradeFromSettings, entitlement: entitlement)
-        .environment(entitlement)
+    PaywallPreview(trigger: .upgradeFromSettings, trialAvailable: false)
 }
 
-#Preview("Out of memories") {
-    let entitlement = previewEntitlement()
-    return PaywallView(trigger: .memoryLimit, entitlement: entitlement)
-        .environment(entitlement)
+#Preview("Out of memories · trial available") {
+    PaywallPreview(trigger: .memoryLimit, trialAvailable: true)
 }
 
-#Preview("Out of tickets") {
-    let entitlement = previewEntitlement()
-    return PaywallView(trigger: .ticketLimit, entitlement: entitlement)
-        .environment(entitlement)
+#Preview("Out of memories · trial used") {
+    PaywallPreview(trigger: .memoryLimit, trialAvailable: false)
+}
+
+#Preview("Out of tickets · trial available") {
+    PaywallPreview(trigger: .ticketLimit, trialAvailable: true)
 }
 
 #endif
