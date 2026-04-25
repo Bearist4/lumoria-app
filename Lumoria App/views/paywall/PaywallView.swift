@@ -32,6 +32,7 @@ struct PaywallView: View {
     @State private var purchase: PurchaseService
     @State private var selected: PaywallPlan = .monthly
     @State private var showInvite: Bool = false
+    @State private var showTrialExplanation: Bool = false
     @State private var error: String? = nil
 
     init(trigger: PaywallTrigger, entitlement: EntitlementStore) {
@@ -49,18 +50,38 @@ struct PaywallView: View {
             isPurchasing: purchase.isPurchasing,
             errorMessage: error,
             onClose: { dismiss() },
-            onPurchase: handlePurchase,
+            onPurchase: handlePurchaseTap,
             onInvite: { showInvite = true }
         )
         .task {
             await purchase.loadProducts()
         }
         .sheet(isPresented: $showInvite) {
-            InviteView()
+            InviteExplanationView()
+        }
+        .sheet(isPresented: $showTrialExplanation) {
+            TrialExplanationView(
+                onStartTrial: {
+                    showTrialExplanation = false
+                    runPurchase()
+                },
+                isPurchasing: purchase.isPurchasing
+            )
         }
     }
 
-    private func handlePurchase() {
+    /// Routes the primary CTA. The "Try for 14 days" path detours
+    /// through TrialExplanationView; the "Upgrade now" / "Buy lifetime"
+    /// path fires the purchase immediately.
+    private func handlePurchaseTap() {
+        if selected == .monthly && entitlement.trialAvailable {
+            showTrialExplanation = true
+        } else {
+            runPurchase()
+        }
+    }
+
+    private func runPurchase() {
         Task {
             if await purchase.purchase(selected) {
                 dismiss()
