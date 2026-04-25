@@ -3,9 +3,13 @@
 //  Lumoria App
 //
 //  Generated from the Figma "App" design system.
-//  Palette colors live in Assets.xcassets/Colors/... as color sets with
-//  Light / Dark / HC Light / HC Dark appearances and can be referenced
-//  directly, e.g. `Color("Colors/Blue/500")`.
+//
+//  Palette colors live in `Shared.xcassets/Colors/...` (project root)
+//  as color sets with Light / Dark / HC Light / HC Dark appearances.
+//  `Shared.xcassets` is target-membered into BOTH the main app target
+//  AND the `Lumoria` widget extension target so this file can compile
+//  in either bundle and the same `Color("Colors/Blue/500")` lookups
+//  resolve correctly at runtime in widgets.
 //
 //  The tokens below mirror the "Components" variable collection in the
 //  App file — semantic aliases that encode intent. Prefer these in UI

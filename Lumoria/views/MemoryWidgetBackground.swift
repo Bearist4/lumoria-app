@@ -20,16 +20,16 @@ struct MemoryWidgetBackground: View {
         switch variant {
         case .small:
             TicketCardShape(cornerRadius: 24)
-                .fill(Color.white)
+                .fill(Color.Background.default)
 
         case .medium:
             HStack(spacing: 0) {
                 Rectangle()
-                    .fill(Color.white)
+                    .fill(Color.Background.default)
                     .frame(maxWidth: .infinity)
 
                 Rectangle()
-                    .fill(Color(.systemGray6))
+                    .fill(Color.Background.elevated)
                     .frame(width: 108)
             }
         }
