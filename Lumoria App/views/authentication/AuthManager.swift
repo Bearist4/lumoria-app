@@ -13,6 +13,10 @@ final class AuthManager: ObservableObject {
         didSet { AuthCache.lastKnownAuthenticated = isAuthenticated }
     }
     @Published var isBetaSubscriber = false
+    /// True after the first beta-status check has settled. Lets the UI
+    /// avoid flashing the redemption screen during cold start before we
+    /// know whether the user is already linked.
+    @Published var betaStatusKnown = false
     /// True while the initial session restore is in flight. The app root
     /// shows a neutral splash instead of the landing screen during this
     /// window so returning signed-in users never see a landing flash.
@@ -68,6 +72,7 @@ final class AuthManager: ObservableObject {
             case .signedOut:
                 isAuthenticated = false
                 isBetaSubscriber = false
+                betaStatusKnown = false
                 Analytics.track(.logout)
                 Analytics.reset()
             default:
@@ -104,7 +109,10 @@ final class AuthManager: ObservableObject {
     }
 
     private func checkBetaStatus() async {
-        guard let userId = supabase.auth.currentUser?.id.uuidString else { return }
+        guard let userId = supabase.auth.currentUser?.id.uuidString else {
+            betaStatusKnown = true
+            return
+        }
         do {
             let records: [WaitlistRecord] = try await supabase
                 .from("waitlist_subscribers")
@@ -116,6 +124,7 @@ final class AuthManager: ObservableObject {
         } catch {
             print("[AuthManager] Beta status check failed: \(error)")
         }
+        betaStatusKnown = true
     }
 
     /// Asks Postgres to link the calling auth user to a waitlist row whose
