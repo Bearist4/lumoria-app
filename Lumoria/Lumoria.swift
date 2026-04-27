@@ -213,6 +213,9 @@ struct MemoryWidgetEntryView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .widgetURL(entry.memory.flatMap {
+            URL(string: "lumoria://memory/\($0.id.uuidString)")
+        })
     }
 }
 

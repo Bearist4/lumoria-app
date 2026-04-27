@@ -200,7 +200,11 @@ struct AllTicketsView: View {
     // MARK: - Populated grid
 
     private func grid(for tickets: [Ticket]) -> some View {
-        VStack(spacing: 32) {
+        // LazyVStack so off-screen ticket previews aren't materialised
+        // up-front. With dozens of tickets the eager VStack built every
+        // template view eagerly, which made scroll stutter while the
+        // last rows were still rendering.
+        LazyVStack(spacing: 32) {
             ForEach(Array(rows(for: tickets).enumerated()), id: \.offset) { _, row in
                 rowView(for: row)
             }
@@ -212,7 +216,7 @@ struct AllTicketsView: View {
     // MARK: - Grouped layout
 
     private func groupedSections(groups: [TicketGroup]) -> some View {
-        VStack(alignment: .leading, spacing: 24) {
+        LazyVStack(alignment: .leading, spacing: 24) {
             ForEach(groups) { group in
                 VStack(alignment: .leading, spacing: 16) {
                     Text(group.title)
@@ -220,7 +224,7 @@ struct AllTicketsView: View {
                         .foregroundStyle(Color.Text.primary)
                         .padding(.horizontal, 24)
 
-                    VStack(spacing: 32) {
+                    LazyVStack(spacing: 32) {
                         ForEach(Array(rows(for: group.tickets).enumerated()), id: \.offset) { _, row in
                             rowView(for: row)
                         }

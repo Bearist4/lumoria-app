@@ -145,7 +145,7 @@ enum MemoryMapExporter {
             if let symbol = UIImage(systemName: category.systemImage,
                                     withConfiguration: UIImage.SymbolConfiguration(
                                         pointSize: pinDiameter * 0.4, weight: .semibold)) {
-                let onColor: UIColor = category == .train ? .black : .white
+                let onColor = UIColor(named: "Colors/Opacity/White/inverse/95") ?? .white
                 let tinted = symbol.withTintColor(onColor,
                                                   renderingMode: .alwaysOriginal)
                 let glyphSize = tinted.size

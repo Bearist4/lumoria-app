@@ -1,0 +1,1521 @@
+{
+  "city": "Stockholm",
+  "operator": "SL — Storstockholms Lokaltrafik",
+  "generatedAt": "2026-04-26T16:36:48Z",
+  "source": "Samtrafiken Sweden national GTFS feed (SL subset)",
+  "lines": [
+    {
+      "id": "10",
+      "shortName": "10",
+      "longName": "Blå linjen",
+      "color": "#008CCC",
+      "textColor": "#FFFFFF",
+      "mode": 1,
+      "operator": "SL Tunnelbana",
+      "stations": [
+        {
+          "id": "740021659",
+          "name": "Kungsträdgården",
+          "lat": 59.330785,
+          "lng": 18.073293
+        },
+        {
+          "id": "740020749",
+          "name": "T-Centralen",
+          "lat": 59.330947,
+          "lng": 18.059262
+        },
+        {
+          "id": "740021660",
+          "name": "Rådhuset",
+          "lat": 59.3303,
+          "lng": 18.042067
+        },
+        {
+          "id": "740021661",
+          "name": "Fridhemsplan",
+          "lat": 59.3322,
+          "lng": 18.029187
+        },
+        {
+          "id": "740021662",
+          "name": "Stadshagen",
+          "lat": 59.336964,
+          "lng": 18.017318
+        },
+        {
+          "id": "740021669",
+          "name": "Västra Skogen",
+          "lat": 59.34748,
+          "lng": 18.003988
+        },
+        {
+          "id": "740021670",
+          "name": "Huvudsta",
+          "lat": 59.349547,
+          "lng": 17.985695
+        },
+        {
+          "id": "740021671",
+          "name": "Solna strand",
+          "lat": 59.354187,
+          "lng": 17.973981
+        },
+        {
+          "id": "740021672",
+          "name": "Sundbyberg centrum",
+          "lat": 59.360897,
+          "lng": 17.972211
+        },
+        {
+          "id": "740021673",
+          "name": "Duvbo",
+          "lat": 59.367893,
+          "lng": 17.964617
+        },
+        {
+          "id": "740021674",
+          "name": "Rissne",
+          "lat": 59.375841,
+          "lng": 17.939959
+        },
+        {
+          "id": "740021679",
+          "name": "Rinkeby",
+          "lat": 59.388164,
+          "lng": 17.928781
+        },
+        {
+          "id": "740012885",
+          "name": "Tensta",
+          "lat": 59.394483,
+          "lng": 17.901165
+        },
+        {
+          "id": "740021678",
+          "name": "Hjulsta",
+          "lat": 59.395505,
+          "lng": 17.888938
+        }
+      ]
+    },
+    {
+      "id": "11",
+      "shortName": "11",
+      "longName": "Blå linjen",
+      "color": "#008CCC",
+      "textColor": "#FFFFFF",
+      "mode": 1,
+      "operator": "SL Tunnelbana",
+      "stations": [
+        {
+          "id": "740021659",
+          "name": "Kungsträdgården",
+          "lat": 59.330785,
+          "lng": 18.073293
+        },
+        {
+          "id": "740020749",
+          "name": "T-Centralen",
+          "lat": 59.330947,
+          "lng": 18.059262
+        },
+        {
+          "id": "740021660",
+          "name": "Rådhuset",
+          "lat": 59.3303,
+          "lng": 18.042067
+        },
+        {
+          "id": "740021661",
+          "name": "Fridhemsplan",
+          "lat": 59.3322,
+          "lng": 18.029187
+        },
+        {
+          "id": "740021662",
+          "name": "Stadshagen",
+          "lat": 59.336964,
+          "lng": 18.017318
+        },
+        {
+          "id": "740021669",
+          "name": "Västra Skogen",
+          "lat": 59.34748,
+          "lng": 18.003988
+        },
+        {
+          "id": "740021642",
+          "name": "Solna centrum",
+          "lat": 59.358861,
+          "lng": 17.998973
+        },
+        {
+          "id": "740021668",
+          "name": "Näckrosen",
+          "lat": 59.366738,
+          "lng": 17.983279
+        },
+        {
+          "id": "740021675",
+          "name": "Hallonbergen",
+          "lat": 59.375449,
+          "lng": 17.969215
+        },
+        {
+          "id": "740012883",
+          "name": "Kista",
+          "lat": 59.402865,
+          "lng": 17.942433
+        },
+        {
+          "id": "740021676",
+          "name": "Husby",
+          "lat": 59.410259,
+          "lng": 17.925636
+        },
+        {
+          "id": "740021677",
+          "name": "Akalla",
+          "lat": 59.414813,
+          "lng": 17.912797
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "shortName": "13",
+      "longName": "Röda linjen",
+      "color": "#D71D24",
+      "textColor": "#FFFFFF",
+      "mode": 1,
+      "operator": "SL Tunnelbana",
+      "stations": [
+        {
+          "id": "740021733",
+          "name": "Norsborg",
+          "lat": 59.243791,
+          "lng": 17.814525
+        },
+        {
+          "id": "740021732",
+          "name": "Hallunda",
+          "lat": 59.24327,
+          "lng": 17.825606
+        },
+        {
+          "id": "740021731",
+          "name": "Alby",
+          "lat": 59.239496,
+          "lng": 17.845327
+        },
+        {
+          "id": "740021730",
+          "name": "Fittja",
+          "lat": 59.247466,
+          "lng": 17.860967
+        },
+        {
+          "id": "740021729",
+          "name": "Masmo",
+          "lat": 59.249682,
+          "lng": 17.880332
+        },
+        {
+          "id": "740021728",
+          "name": "Vårby Gård",
+          "lat": 59.264613,
+          "lng": 17.884397
+        },
+        {
+          "id": "740021727",
+          "name": "Vårberg",
+          "lat": 59.275934,
+          "lng": 17.890157
+        },
+        {
+          "id": "740021726",
+          "name": "Skärholmen",
+          "lat": 59.277144,
+          "lng": 17.907004
+        },
+        {
+          "id": "740021725",
+          "name": "Sätra",
+          "lat": 59.284984,
+          "lng": 17.921369
+        },
+        {
+          "id": "740021724",
+          "name": "Bredäng",
+          "lat": 59.294839,
+          "lng": 17.933813
+        },
+        {
+          "id": "740021723",
+          "name": "Mälarhöjden",
+          "lat": 59.300919,
+          "lng": 17.957281
+        },
+        {
+          "id": "740021722",
+          "name": "Axelsberg",
+          "lat": 59.304362,
+          "lng": 17.974918
+        },
+        {
+          "id": "740021721",
+          "name": "Örnsberg",
+          "lat": 59.305533,
+          "lng": 17.989199
+        },
+        {
+          "id": "740021720",
+          "name": "Aspudden",
+          "lat": 59.306449,
+          "lng": 18.001445
+        },
+        {
+          "id": "740004046",
+          "name": "Liljeholmen",
+          "lat": 59.310707,
+          "lng": 18.023129
+        },
+        {
+          "id": "740021658",
+          "name": "Hornstull",
+          "lat": 59.315837,
+          "lng": 18.034021
+        },
+        {
+          "id": "740021657",
+          "name": "Zinkensdamm",
+          "lat": 59.317778,
+          "lng": 18.050151
+        },
+        {
+          "id": "740021656",
+          "name": "Mariatorget",
+          "lat": 59.316958,
+          "lng": 18.063308
+        },
+        {
+          "id": "740020101",
+          "name": "Slussen",
+          "lat": 59.319519,
+          "lng": 18.072033
+        },
+        {
+          "id": "740021653",
+          "name": "Gamla Stan",
+          "lat": 59.32316,
+          "lng": 18.06762
+        },
+        {
+          "id": "740020749",
+          "name": "T-Centralen",
+          "lat": 59.330947,
+          "lng": 18.059262
+        },
+        {
+          "id": "740021651",
+          "name": "Östermalmstorg",
+          "lat": 59.334973,
+          "lng": 18.074082
+        },
+        {
+          "id": "740021650",
+          "name": "Karlaplan",
+          "lat": 59.338811,
+          "lng": 18.090861
+        },
+        {
+          "id": "740021649",
+          "name": "Gärdet",
+          "lat": 59.347203,
+          "lng": 18.098792
+        },
+        {
+          "id": "740020757",
+          "name": "Ropsten",
+          "lat": 59.357299,
+          "lng": 18.102217
+        }
+      ]
+    },
+    {
+      "id": "14",
+      "shortName": "14",
+      "longName": "Röda linjen",
+      "color": "#D71D24",
+      "textColor": "#FFFFFF",
+      "mode": 1,
+      "operator": "SL Tunnelbana",
+      "stations": [
+        {
+          "id": "740021719",
+          "name": "Fruängen",
+          "lat": 59.285929,
+          "lng": 17.965005
+        },
+        {
+          "id": "740021718",
+          "name": "Västertorp",
+          "lat": 59.29138,
+          "lng": 17.966667
+        },
+        {
+          "id": "740021717",
+          "name": "Hägerstensåsen",
+          "lat": 59.295572,
+          "lng": 17.979151
+        },
+        {
+          "id": "740021716",
+          "name": "Telefonplan",
+          "lat": 59.298322,
+          "lng": 17.997235
+        },
+        {
+          "id": "740021715",
+          "name": "Midsommarkransen",
+          "lat": 59.301853,
+          "lng": 18.012035
+        },
+        {
+          "id": "740004046",
+          "name": "Liljeholmen",
+          "lat": 59.310707,
+          "lng": 18.023129
+        },
+        {
+          "id": "740021658",
+          "name": "Hornstull",
+          "lat": 59.315837,
+          "lng": 18.034021
+        },
+        {
+          "id": "740021657",
+          "name": "Zinkensdamm",
+          "lat": 59.317778,
+          "lng": 18.050151
+        },
+        {
+          "id": "740021656",
+          "name": "Mariatorget",
+          "lat": 59.316958,
+          "lng": 18.063308
+        },
+        {
+          "id": "740020101",
+          "name": "Slussen",
+          "lat": 59.319519,
+          "lng": 18.072033
+        },
+        {
+          "id": "740021653",
+          "name": "Gamla Stan",
+          "lat": 59.32316,
+          "lng": 18.06762
+        },
+        {
+          "id": "740020749",
+          "name": "T-Centralen",
+          "lat": 59.330947,
+          "lng": 18.059262
+        },
+        {
+          "id": "740021651",
+          "name": "Östermalmstorg",
+          "lat": 59.334973,
+          "lng": 18.074082
+        },
+        {
+          "id": "740021647",
+          "name": "Stadion",
+          "lat": 59.342967,
+          "lng": 18.0817
+        },
+        {
+          "id": "740011606",
+          "name": "Tekniska Högskolan",
+          "lat": 59.345826,
+          "lng": 18.071711
+        },
+        {
+          "id": "740021645",
+          "name": "Universitetet",
+          "lat": 59.365568,
+          "lng": 18.05489
+        },
+        {
+          "id": "740021644",
+          "name": "Bergshamra",
+          "lat": 59.381508,
+          "lng": 18.036515
+        },
+        {
+          "id": "740010232",
+          "name": "Danderyds sjukhus",
+          "lat": 59.391905,
+          "lng": 18.041371
+        },
+        {
+          "id": "740000716",
+          "name": "Mörby centrum",
+          "lat": 59.39871,
+          "lng": 18.03622
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "shortName": "17",
+      "longName": "Gröna linjen",
+      "color": "#148934",
+      "textColor": "#FFFFFF",
+      "mode": 1,
+      "operator": "SL Tunnelbana",
+      "stations": [
+        {
+          "id": "740021691",
+          "name": "Skarpnäck",
+          "lat": 59.26682,
+          "lng": 18.133346
+        },
+        {
+          "id": "740021692",
+          "name": "Bagarmossen",
+          "lat": 59.276265,
+          "lng": 18.131464
+        },
+        {
+          "id": "740021693",
+          "name": "Kärrtorp",
+          "lat": 59.284506,
+          "lng": 18.114476
+        },
+        {
+          "id": "740021694",
+          "name": "Björkhagen",
+          "lat": 59.291114,
+          "lng": 18.11552
+        },
+        {
+          "id": "740021695",
+          "name": "Hammarbyhöjden",
+          "lat": 59.294766,
+          "lng": 18.10455
+        },
+        {
+          "id": "740021704",
+          "name": "Skärmarbrink",
+          "lat": 59.295364,
+          "lng": 18.09044
+        },
+        {
+          "id": "740021705",
+          "name": "Gullmarsplan",
+          "lat": 59.299117,
+          "lng": 18.080772
+        },
+        {
+          "id": "740021655",
+          "name": "Skanstull",
+          "lat": 59.307853,
+          "lng": 18.076227
+        },
+        {
+          "id": "740021654",
+          "name": "Medborgarplatsen",
+          "lat": 59.314338,
+          "lng": 18.07355
+        },
+        {
+          "id": "740020101",
+          "name": "Slussen",
+          "lat": 59.319519,
+          "lng": 18.072033
+        },
+        {
+          "id": "740021653",
+          "name": "Gamla Stan",
+          "lat": 59.32316,
+          "lng": 18.06762
+        },
+        {
+          "id": "740020749",
+          "name": "T-Centralen",
+          "lat": 59.330947,
+          "lng": 18.059262
+        },
+        {
+          "id": "740021667",
+          "name": "Hötorget",
+          "lat": 59.335534,
+          "lng": 18.063538
+        },
+        {
+          "id": "740021666",
+          "name": "Rådmansgatan",
+          "lat": 59.340573,
+          "lng": 18.058775
+        },
+        {
+          "id": "740021013",
+          "name": "Odenplan",
+          "lat": 59.342956,
+          "lng": 18.049703
+        },
+        {
+          "id": "740021665",
+          "name": "S:t Eriksplan",
+          "lat": 59.339655,
+          "lng": 18.036987
+        },
+        {
+          "id": "740021661",
+          "name": "Fridhemsplan",
+          "lat": 59.3322,
+          "lng": 18.029187
+        },
+        {
+          "id": "740021664",
+          "name": "Thorildsplan",
+          "lat": 59.331814,
+          "lng": 18.015436
+        },
+        {
+          "id": "740021663",
+          "name": "Kristineberg",
+          "lat": 59.332812,
+          "lng": 18.003181
+        },
+        {
+          "id": "740020755",
+          "name": "Alvik",
+          "lat": 59.333636,
+          "lng": 17.980264
+        },
+        {
+          "id": "740021690",
+          "name": "Stora Mossen",
+          "lat": 59.334534,
+          "lng": 17.966191
+        },
+        {
+          "id": "740021689",
+          "name": "Abrahamsberg",
+          "lat": 59.336684,
+          "lng": 17.952951
+        },
+        {
+          "id": "740020581",
+          "name": "Brommaplan",
+          "lat": 59.33839,
+          "lng": 17.939261
+        },
+        {
+          "id": "740021688",
+          "name": "Åkeshov",
+          "lat": 59.342037,
+          "lng": 17.924899
+        },
+        {
+          "id": "740021687",
+          "name": "Ängbyplan",
+          "lat": 59.341886,
+          "lng": 17.907047
+        },
+        {
+          "id": "740021686",
+          "name": "Islandstorget",
+          "lat": 59.345857,
+          "lng": 17.894019
+        },
+        {
+          "id": "740021685",
+          "name": "Blackeberg",
+          "lat": 59.348353,
+          "lng": 17.882797
+        },
+        {
+          "id": "740021684",
+          "name": "Råcksta",
+          "lat": 59.354807,
+          "lng": 17.881819
+        },
+        {
+          "id": "740021683",
+          "name": "Vällingby",
+          "lat": 59.36325,
+          "lng": 17.872062
+        },
+        {
+          "id": "740021682",
+          "name": "Johannelund",
+          "lat": 59.367943,
+          "lng": 17.857465
+        },
+        {
+          "id": "740021681",
+          "name": "Hässelby Gård",
+          "lat": 59.366901,
+          "lng": 17.843768
+        },
+        {
+          "id": "740021680",
+          "name": "Hässelby Strand",
+          "lat": 59.361287,
+          "lng": 17.832351
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "shortName": "18",
+      "longName": "Gröna linjen",
+      "color": "#148934",
+      "textColor": "#FFFFFF",
+      "mode": 1,
+      "operator": "SL Tunnelbana",
+      "stations": [
+        {
+          "id": "740021696",
+          "name": "Farsta Strand",
+          "lat": 59.235008,
+          "lng": 18.101736
+        },
+        {
+          "id": "740021697",
+          "name": "Farsta",
+          "lat": 59.243553,
+          "lng": 18.093283
+        },
+        {
+          "id": "740021698",
+          "name": "Hökarängen",
+          "lat": 59.257922,
+          "lng": 18.082497
+        },
+        {
+          "id": "740021699",
+          "name": "Gubbängen",
+          "lat": 59.262878,
+          "lng": 18.082038
+        },
+        {
+          "id": "740021700",
+          "name": "Tallkrogen",
+          "lat": 59.271136,
+          "lng": 18.085326
+        },
+        {
+          "id": "740021701",
+          "name": "Skogskyrkogården",
+          "lat": 59.279192,
+          "lng": 18.095498
+        },
+        {
+          "id": "740021702",
+          "name": "Sandsborg",
+          "lat": 59.284788,
+          "lng": 18.092381
+        },
+        {
+          "id": "740021703",
+          "name": "Blåsut",
+          "lat": 59.290244,
+          "lng": 18.091062
+        },
+        {
+          "id": "740021704",
+          "name": "Skärmarbrink",
+          "lat": 59.295364,
+          "lng": 18.09044
+        },
+        {
+          "id": "740021705",
+          "name": "Gullmarsplan",
+          "lat": 59.299117,
+          "lng": 18.080772
+        },
+        {
+          "id": "740021655",
+          "name": "Skanstull",
+          "lat": 59.307853,
+          "lng": 18.076227
+        },
+        {
+          "id": "740021654",
+          "name": "Medborgarplatsen",
+          "lat": 59.314338,
+          "lng": 18.07355
+        },
+        {
+          "id": "740020101",
+          "name": "Slussen",
+          "lat": 59.319519,
+          "lng": 18.072033
+        },
+        {
+          "id": "740021653",
+          "name": "Gamla Stan",
+          "lat": 59.32316,
+          "lng": 18.06762
+        },
+        {
+          "id": "740020749",
+          "name": "T-Centralen",
+          "lat": 59.330947,
+          "lng": 18.059262
+        },
+        {
+          "id": "740021667",
+          "name": "Hötorget",
+          "lat": 59.335534,
+          "lng": 18.063538
+        },
+        {
+          "id": "740021666",
+          "name": "Rådmansgatan",
+          "lat": 59.340573,
+          "lng": 18.058775
+        },
+        {
+          "id": "740021013",
+          "name": "Odenplan",
+          "lat": 59.342956,
+          "lng": 18.049703
+        },
+        {
+          "id": "740021665",
+          "name": "S:t Eriksplan",
+          "lat": 59.339655,
+          "lng": 18.036987
+        },
+        {
+          "id": "740021661",
+          "name": "Fridhemsplan",
+          "lat": 59.3322,
+          "lng": 18.029187
+        },
+        {
+          "id": "740021664",
+          "name": "Thorildsplan",
+          "lat": 59.331814,
+          "lng": 18.015436
+        },
+        {
+          "id": "740021663",
+          "name": "Kristineberg",
+          "lat": 59.332812,
+          "lng": 18.003181
+        },
+        {
+          "id": "740020755",
+          "name": "Alvik",
+          "lat": 59.333636,
+          "lng": 17.980264
+        },
+        {
+          "id": "740021690",
+          "name": "Stora Mossen",
+          "lat": 59.334534,
+          "lng": 17.966191
+        },
+        {
+          "id": "740021689",
+          "name": "Abrahamsberg",
+          "lat": 59.336684,
+          "lng": 17.952951
+        },
+        {
+          "id": "740020581",
+          "name": "Brommaplan",
+          "lat": 59.33839,
+          "lng": 17.939261
+        },
+        {
+          "id": "740021688",
+          "name": "Åkeshov",
+          "lat": 59.342037,
+          "lng": 17.924899
+        },
+        {
+          "id": "740021687",
+          "name": "Ängbyplan",
+          "lat": 59.341886,
+          "lng": 17.907047
+        },
+        {
+          "id": "740021686",
+          "name": "Islandstorget",
+          "lat": 59.345857,
+          "lng": 17.894019
+        },
+        {
+          "id": "740021685",
+          "name": "Blackeberg",
+          "lat": 59.348353,
+          "lng": 17.882797
+        },
+        {
+          "id": "740021684",
+          "name": "Råcksta",
+          "lat": 59.354807,
+          "lng": 17.881819
+        },
+        {
+          "id": "740021683",
+          "name": "Vällingby",
+          "lat": 59.36325,
+          "lng": 17.872062
+        },
+        {
+          "id": "740021682",
+          "name": "Johannelund",
+          "lat": 59.367943,
+          "lng": 17.857465
+        },
+        {
+          "id": "740021681",
+          "name": "Hässelby Gård",
+          "lat": 59.366901,
+          "lng": 17.843768
+        },
+        {
+          "id": "740021680",
+          "name": "Hässelby Strand",
+          "lat": 59.361287,
+          "lng": 17.832351
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "shortName": "19",
+      "longName": "Gröna linjen",
+      "color": "#148934",
+      "textColor": "#FFFFFF",
+      "mode": 1,
+      "operator": "SL Tunnelbana",
+      "stations": [
+        {
+          "id": "740021714",
+          "name": "Hagsätra",
+          "lat": 59.262729,
+          "lng": 18.012487
+        },
+        {
+          "id": "740021713",
+          "name": "Rågsved",
+          "lat": 59.256581,
+          "lng": 18.028134
+        },
+        {
+          "id": "740021712",
+          "name": "Högdalen",
+          "lat": 59.263797,
+          "lng": 18.043004
+        },
+        {
+          "id": "740021711",
+          "name": "Bandhagen",
+          "lat": 59.270403,
+          "lng": 18.049489
+        },
+        {
+          "id": "740021710",
+          "name": "Stureby",
+          "lat": 59.274598,
+          "lng": 18.055626
+        },
+        {
+          "id": "740021709",
+          "name": "Svedmyra",
+          "lat": 59.277639,
+          "lng": 18.067231
+        },
+        {
+          "id": "740021708",
+          "name": "Sockenplan",
+          "lat": 59.283301,
+          "lng": 18.07059
+        },
+        {
+          "id": "740021707",
+          "name": "Enskede Gård",
+          "lat": 59.289394,
+          "lng": 18.070293
+        },
+        {
+          "id": "740021706",
+          "name": "Globen",
+          "lat": 59.29428,
+          "lng": 18.077973
+        },
+        {
+          "id": "740021705",
+          "name": "Gullmarsplan",
+          "lat": 59.299117,
+          "lng": 18.080772
+        },
+        {
+          "id": "740021655",
+          "name": "Skanstull",
+          "lat": 59.307853,
+          "lng": 18.076227
+        },
+        {
+          "id": "740021654",
+          "name": "Medborgarplatsen",
+          "lat": 59.314338,
+          "lng": 18.07355
+        },
+        {
+          "id": "740020101",
+          "name": "Slussen",
+          "lat": 59.319519,
+          "lng": 18.072033
+        },
+        {
+          "id": "740021653",
+          "name": "Gamla Stan",
+          "lat": 59.32316,
+          "lng": 18.06762
+        },
+        {
+          "id": "740020749",
+          "name": "T-Centralen",
+          "lat": 59.330947,
+          "lng": 18.059262
+        },
+        {
+          "id": "740021667",
+          "name": "Hötorget",
+          "lat": 59.335534,
+          "lng": 18.063538
+        },
+        {
+          "id": "740021666",
+          "name": "Rådmansgatan",
+          "lat": 59.340573,
+          "lng": 18.058775
+        },
+        {
+          "id": "740021013",
+          "name": "Odenplan",
+          "lat": 59.342956,
+          "lng": 18.049703
+        },
+        {
+          "id": "740021665",
+          "name": "S:t Eriksplan",
+          "lat": 59.339655,
+          "lng": 18.036987
+        },
+        {
+          "id": "740021661",
+          "name": "Fridhemsplan",
+          "lat": 59.3322,
+          "lng": 18.029187
+        },
+        {
+          "id": "740021664",
+          "name": "Thorildsplan",
+          "lat": 59.331814,
+          "lng": 18.015436
+        },
+        {
+          "id": "740021663",
+          "name": "Kristineberg",
+          "lat": 59.332812,
+          "lng": 18.003181
+        },
+        {
+          "id": "740020755",
+          "name": "Alvik",
+          "lat": 59.333636,
+          "lng": 17.980264
+        },
+        {
+          "id": "740021690",
+          "name": "Stora Mossen",
+          "lat": 59.334534,
+          "lng": 17.966191
+        },
+        {
+          "id": "740021689",
+          "name": "Abrahamsberg",
+          "lat": 59.336684,
+          "lng": 17.952951
+        },
+        {
+          "id": "740020581",
+          "name": "Brommaplan",
+          "lat": 59.33839,
+          "lng": 17.939261
+        },
+        {
+          "id": "740021688",
+          "name": "Åkeshov",
+          "lat": 59.342037,
+          "lng": 17.924899
+        },
+        {
+          "id": "740021687",
+          "name": "Ängbyplan",
+          "lat": 59.341886,
+          "lng": 17.907047
+        },
+        {
+          "id": "740021686",
+          "name": "Islandstorget",
+          "lat": 59.345857,
+          "lng": 17.894019
+        },
+        {
+          "id": "740021685",
+          "name": "Blackeberg",
+          "lat": 59.348353,
+          "lng": 17.882797
+        },
+        {
+          "id": "740021684",
+          "name": "Råcksta",
+          "lat": 59.354807,
+          "lng": 17.881819
+        },
+        {
+          "id": "740021683",
+          "name": "Vällingby",
+          "lat": 59.36325,
+          "lng": 17.872062
+        },
+        {
+          "id": "740021682",
+          "name": "Johannelund",
+          "lat": 59.367943,
+          "lng": 17.857465
+        },
+        {
+          "id": "740021681",
+          "name": "Hässelby Gård",
+          "lat": 59.366901,
+          "lng": 17.843768
+        },
+        {
+          "id": "740021680",
+          "name": "Hässelby Strand",
+          "lat": 59.361287,
+          "lng": 17.832351
+        }
+      ]
+    },
+    {
+      "id": "Lidingöbanan",
+      "shortName": "Lidingöbanan",
+      "longName": "Lidingöbanan",
+      "color": "#B5752C",
+      "textColor": "#FFFFFF",
+      "mode": 0,
+      "operator": "SL Lokalbanor",
+      "stations": [
+        {
+          "id": "740020757",
+          "name": "Ropsten",
+          "lat": 59.357299,
+          "lng": 18.102217
+        },
+        {
+          "id": "740024788",
+          "name": "Lidingö Torsvik",
+          "lat": 59.361909,
+          "lng": 18.117797
+        },
+        {
+          "id": "740023963",
+          "name": "Lidingö Baggeby",
+          "lat": 59.356883,
+          "lng": 18.133777
+        },
+        {
+          "id": "740024789",
+          "name": "Lidingö Bodal",
+          "lat": 59.353656,
+          "lng": 18.138445
+        },
+        {
+          "id": "740024790",
+          "name": "Lidingö Larsberg",
+          "lat": 59.350483,
+          "lng": 18.14614
+        },
+        {
+          "id": "740023962",
+          "name": "Lidingö Aga",
+          "lat": 59.346624,
+          "lng": 18.155018
+        },
+        {
+          "id": "740023965",
+          "name": "Lidingö Skärsätra",
+          "lat": 59.343347,
+          "lng": 18.170368
+        },
+        {
+          "id": "740024791",
+          "name": "Lidingö Kottla",
+          "lat": 59.344434,
+          "lng": 18.179727
+        },
+        {
+          "id": "740024792",
+          "name": "Brevik Högberga Spårv",
+          "lat": 59.343938,
+          "lng": 18.193089
+        },
+        {
+          "id": "740023964",
+          "name": "Brevik",
+          "lat": 59.348298,
+          "lng": 18.203612
+        },
+        {
+          "id": "740024793",
+          "name": "Käppala",
+          "lat": 59.352731,
+          "lng": 18.217941
+        },
+        {
+          "id": "740020756",
+          "name": "Gåshaga",
+          "lat": 59.356925,
+          "lng": 18.229038
+        },
+        {
+          "id": "740023966",
+          "name": "Gåshaga brygga",
+          "lat": 59.356866,
+          "lng": 18.234134
+        }
+      ]
+    },
+    {
+      "id": "Nockebybanan",
+      "shortName": "Nockebybanan",
+      "longName": "Nockebybanan",
+      "color": "#A2A6A9",
+      "textColor": "#FFFFFF",
+      "mode": 0,
+      "operator": "SL Lokalbanor",
+      "stations": [
+        {
+          "id": "740020755",
+          "name": "Alvik",
+          "lat": 59.333636,
+          "lng": 17.980264
+        },
+        {
+          "id": "740024814",
+          "name": "Äppelviken Alléparken Spårv",
+          "lat": 59.328953,
+          "lng": 17.973551
+        },
+        {
+          "id": "740024815",
+          "name": "Äppelviken Klövervägen",
+          "lat": 59.324983,
+          "lng": 17.974106
+        },
+        {
+          "id": "740024816",
+          "name": "Smedslätten Spårv",
+          "lat": 59.320898,
+          "lng": 17.964377
+        },
+        {
+          "id": "740024817",
+          "name": "Ålsten Ålstensgatan Spårv",
+          "lat": 59.323435,
+          "lng": 17.956473
+        },
+        {
+          "id": "740001167",
+          "name": "Ålsten Ålstens gård Spårv",
+          "lat": 59.320598,
+          "lng": 17.952095
+        },
+        {
+          "id": "740024818",
+          "name": "Höglandstorget Spårv",
+          "lat": 59.323319,
+          "lng": 17.940038
+        },
+        {
+          "id": "740024819",
+          "name": "Olovslund Spårv",
+          "lat": 59.327905,
+          "lng": 17.93523
+        },
+        {
+          "id": "740024820",
+          "name": "Nockeby torg Spårv",
+          "lat": 59.328988,
+          "lng": 17.928321
+        },
+        {
+          "id": "740001181",
+          "name": "Nockeby Spårv",
+          "lat": 59.328643,
+          "lng": 17.918565
+        }
+      ]
+    },
+    {
+      "id": "7",
+      "shortName": "7",
+      "longName": "Spårväg City",
+      "color": "#7C7878",
+      "textColor": "#FFFFFF",
+      "mode": 0,
+      "operator": "SL Lokalbanor",
+      "stations": [
+        {
+          "id": "740018280",
+          "name": "Stockholm Waldemarsudde",
+          "lat": 59.322578,
+          "lng": 18.111119
+        },
+        {
+          "id": "740046067",
+          "name": "Stockholm Bellmansro",
+          "lat": 59.324171,
+          "lng": 18.110928
+        },
+        {
+          "id": "740046066",
+          "name": "Stockholm Djurgårdsskolan",
+          "lat": 59.323214,
+          "lng": 18.105083
+        },
+        {
+          "id": "740018281",
+          "name": "Stockholm Skansen",
+          "lat": 59.324021,
+          "lng": 18.100587
+        },
+        {
+          "id": "740018282",
+          "name": "Stockholm Liljevalc Gröna Lund",
+          "lat": 59.325246,
+          "lng": 18.096786
+        },
+        {
+          "id": "740046031",
+          "name": "Stockholm Nordiska museet/Vasa",
+          "lat": 59.329283,
+          "lng": 18.095511
+        },
+        {
+          "id": "740046036",
+          "name": "Stockholm Djurgårdsbron",
+          "lat": 59.331807,
+          "lng": 18.092359
+        },
+        {
+          "id": "740046065",
+          "name": "Stockholm Styrmansgatan",
+          "lat": 59.331583,
+          "lng": 18.084664
+        },
+        {
+          "id": "740019408",
+          "name": "Stockholm Nybroplan",
+          "lat": 59.33273,
+          "lng": 18.076569
+        },
+        {
+          "id": "740037355",
+          "name": "Stockholm Kungsträdgården",
+          "lat": 59.332788,
+          "lng": 18.070632
+        },
+        {
+          "id": "740035997",
+          "name": "T-Centralen Spårv",
+          "lat": 59.332119,
+          "lng": 18.062134
+        }
+      ]
+    },
+    {
+      "id": "Tvärbanan",
+      "shortName": "Tvärbanan",
+      "longName": "Tvärbanan",
+      "color": "#E0822F",
+      "textColor": "#FFFFFF",
+      "mode": 0,
+      "operator": "SL Lokalbanor",
+      "stations": [
+        {
+          "id": "740024807",
+          "name": "Sickla",
+          "lat": 59.306816,
+          "lng": 18.121327
+        },
+        {
+          "id": "740024927",
+          "name": "Stockholm Sickla udde",
+          "lat": 59.306249,
+          "lng": 18.108767
+        },
+        {
+          "id": "740024926",
+          "name": "Stockholm Sickla kaj",
+          "lat": 59.302766,
+          "lng": 18.103615
+        },
+        {
+          "id": "740024929",
+          "name": "Stockholm Luma",
+          "lat": 59.303997,
+          "lng": 18.093337
+        },
+        {
+          "id": "740024928",
+          "name": "Stockholm Mårtensdal",
+          "lat": 59.302502,
+          "lng": 18.088478
+        },
+        {
+          "id": "740021705",
+          "name": "Gullmarsplan",
+          "lat": 59.299117,
+          "lng": 18.080772
+        },
+        {
+          "id": "740021706",
+          "name": "Globen",
+          "lat": 59.29428,
+          "lng": 18.077973
+        },
+        {
+          "id": "740024918",
+          "name": "Årsta Linde Spårv",
+          "lat": 59.293711,
+          "lng": 18.063699
+        },
+        {
+          "id": "740024684",
+          "name": "Årsta Valla Torg Spårv",
+          "lat": 59.295008,
+          "lng": 18.048441
+        },
+        {
+          "id": "740024919",
+          "name": "Årsta Årstafältet Spårv",
+          "lat": 59.296335,
+          "lng": 18.040172
+        },
+        {
+          "id": "740024920",
+          "name": "Årstaberg",
+          "lat": 59.299235,
+          "lng": 18.030231
+        },
+        {
+          "id": "740024921",
+          "name": "Årsta Årstadal Spårv",
+          "lat": 59.30649,
+          "lng": 18.025559
+        },
+        {
+          "id": "740004046",
+          "name": "Liljeholmen",
+          "lat": 59.310707,
+          "lng": 18.023129
+        },
+        {
+          "id": "740024922",
+          "name": "Liljeholmen Trekanten Spårv",
+          "lat": 59.314165,
+          "lng": 18.018313
+        },
+        {
+          "id": "740024923",
+          "name": "Gröndal Spårv",
+          "lat": 59.315773,
+          "lng": 18.010355
+        },
+        {
+          "id": "740024924",
+          "name": "Stockholm Stora Essingen",
+          "lat": 59.324755,
+          "lng": 17.99312
+        },
+        {
+          "id": "740024925",
+          "name": "Alvik strand Spårv",
+          "lat": 59.327687,
+          "lng": 17.982115
+        },
+        {
+          "id": "740020755",
+          "name": "Alvik",
+          "lat": 59.333636,
+          "lng": 17.980264
+        },
+        {
+          "id": "740071178",
+          "name": "Johannesfred Spårv",
+          "lat": 59.342435,
+          "lng": 17.970068
+        },
+        {
+          "id": "740064041",
+          "name": "Norra Ulvsunda Spårv",
+          "lat": 59.350717,
+          "lng": 17.962295
+        },
+        {
+          "id": "740064044",
+          "name": "Karlsbodavägen Spårv",
+          "lat": 59.356453,
+          "lng": 17.961375
+        },
+        {
+          "id": "740064051",
+          "name": "Bällsta bro Spårv",
+          "lat": 59.360376,
+          "lng": 17.961395
+        },
+        {
+          "id": "740064286",
+          "name": "Sundbyberg centrum Spårv",
+          "lat": 59.360916,
+          "lng": 17.970523
+        },
+        {
+          "id": "740064052",
+          "name": "Solna business park Spårv",
+          "lat": 59.359755,
+          "lng": 17.978786
+        },
+        {
+          "id": "740064053",
+          "name": "Solna centrum Spårv",
+          "lat": 59.361358,
+          "lng": 17.996267
+        },
+        {
+          "id": "740000759",
+          "name": "Solna",
+          "lat": 59.365104,
+          "lng": 18.010036
+        }
+      ]
+    }
+  ]
+}

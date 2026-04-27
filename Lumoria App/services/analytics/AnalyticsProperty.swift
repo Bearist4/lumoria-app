@@ -17,7 +17,7 @@ enum TicketTemplateProp: String, CaseIterable {
     case afterglow, studio, terminal, heritage, prism
     case express, orient, night, post, glow
     case concert
-    case underground, sign, infoscreen
+    case underground, sign, infoscreen, grid
 }
 
 enum OrientationProp: String, CaseIterable {

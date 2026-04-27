@@ -161,6 +161,11 @@ final class OnboardingCoordinator: ObservableObject {
     func confirmLeaveTutorial() async {
         let left = currentStep
         showLeaveAlert = false
+        // Also drop any in-flight entry sheets so the user actually
+        // sees the dismissal — the Welcome sheet is wired to this
+        // alert when the user skips from the welcome step itself.
+        showWelcome = false
+        showResume = false
         Analytics.track(.onboardingLeft(atStep: prop(for: left)))
         OnboardingFunnelDraftStore.clear()
         await writeShow(false)
@@ -218,6 +223,10 @@ final class OnboardingCoordinator: ObservableObject {
             pendingStyleStep  = false
             startedAt         = nil
             pendingResumeRoute = nil
+            // Surface the Welcome sheet immediately. ContentView's
+            // `.onChange(of: showWelcome)` flips the user back to the
+            // Memories tab so the sheet appears in the right context.
+            showWelcome = true
         } catch {
             print("[OnboardingCoordinator] replay failed:", error)
         }

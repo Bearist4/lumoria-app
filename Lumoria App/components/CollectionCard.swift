@@ -82,6 +82,10 @@ struct MemoryCard<SlotContent: View>: View {
     /// Palette family (e.g. "Blue", "Green") used for the bottom glow.
     /// Resolves to `Colors/<family>/300` at runtime.
     let colorFamily: String?
+    /// Stable seed used to scatter ticket previews horizontally inside
+    /// their slots. Same memory → same jitter across renders. 0 by
+    /// default keeps existing call sites compatible.
+    let cardSeed: UInt64
     let slotPreview: (Int) -> SlotContent
 
     // MARK: Sizes (from Figma)
@@ -113,6 +117,7 @@ struct MemoryCard<SlotContent: View>: View {
         emoji: String? = nil,
         filledCount: Int = 0,
         colorFamily: String? = nil,
+        cardSeed: UInt64 = 0,
         @ViewBuilder slotPreview: @escaping (Int) -> SlotContent
     ) {
         self.title = title
@@ -121,6 +126,7 @@ struct MemoryCard<SlotContent: View>: View {
         self.emoji = emoji
         self.filledCount = max(0, min(5, filledCount))
         self.colorFamily = colorFamily
+        self.cardSeed = cardSeed
         self.slotPreview = slotPreview
     }
 
@@ -155,8 +161,11 @@ struct MemoryCard<SlotContent: View>: View {
 
     private var cardView: some View {
         ZStack(alignment: .top) {
+            // 3% black tint per the latest Figma (Opacity/Black/inverse/3),
+            // not the elevated #fafafa fill we used before — slots inside
+            // now get to drag the card bg darker via their own gradients.
             RoundedRectangle(cornerRadius: cardCorner)
-                .fill(Color.Background.elevated)
+                .fill(Color.Background.fieldFill)
 
             if showsGlow { glow }
 
@@ -192,8 +201,22 @@ struct MemoryCard<SlotContent: View>: View {
                     if idx < filledCount {
                         slotPreview(idx)
                             .scaleEffect(previewScale, anchor: .top)
+                            // Drop shadow behind each ticket so the
+                            // slot above lifts off the slot below.
+                            // Clipped to the slot bounds by the
+                            // enclosing `clipShape`.
+                            .shadow(
+                                color: Color.black.opacity(0.22),
+                                radius: 6,
+                                x: 0,
+                                y: 3
+                            )
                             .allowsHitTesting(false)
-                            .offset(y: previewInset)
+                            // Slight horizontal jitter so tickets in
+                            // the pile don't all line up dead-centre.
+                            // Bound by `slotJitterRange` so they can't
+                            // graze the slot edge.
+                            .offset(x: slotJitterX(idx: idx), y: previewInset)
                     }
                 }
                 .frame(width: slotWidth, height: slotHeight, alignment: .top)
@@ -216,14 +239,36 @@ struct MemoryCard<SlotContent: View>: View {
         CGFloat(idx) * (slotHeight - slotOverlap)
     }
 
-    /// Peek distance from a slot's top edge to its ticket preview — matches
-    /// the Figma mini-ticket's `top: 8.7pt` positioning.
-    private var previewInset: CGFloat { 8 }
+    /// Peek distance from a slot's top edge to its ticket preview.
+    /// Lower than the Figma's 8.7pt baseline so the ticket sits a bit
+    /// further down inside the slot — gives the upper edge a stronger
+    /// "tab" feel and frees up vertical room for the ticket's drop
+    /// shadow to read.
+    private var previewInset: CGFloat { 12 }
 
-    /// Ticket preview scale inside the slot. 1.1 = 10% larger than the
-    /// caller-provided size so the ticket fills the slot with a bit of
-    /// bleed clipped by the slot mask.
-    private var previewScale: CGFloat { 1.1 }
+    /// Ticket preview scale inside the slot. Slightly under 1 so the
+    /// ticket is a few points narrower than the slot — leaves margin
+    /// for the random horizontal jitter applied per slot without ever
+    /// reaching the slot edge.
+    private var previewScale: CGFloat { 0.96 }
+
+    /// Half of the slot's free horizontal margin after `previewScale`
+    /// — capped so the random jitter never visibly crops the ticket.
+    /// `slotWidth × (1 - previewScale) / 2` ≈ 3.2pt on a 160pt slot.
+    private var slotJitterRange: CGFloat {
+        max(0, slotWidth * (1 - previewScale) / 2)
+    }
+
+    /// Deterministic horizontal jitter for ticket at `idx`. Stable
+    /// across renders (so swipes and re-loads don't reshuffle the
+    /// pile) and seeded by the optional `cardSeed` so different
+    /// memories don't all jitter the same way at idx 0.
+    private func slotJitterX(idx: Int) -> CGFloat {
+        guard slotJitterRange > 0 else { return 0 }
+        let seed = (cardSeed &* 2_654_435_761) &+ UInt64(idx) &+ 1
+        var rng = SeededJitter(seed: seed)
+        return CGFloat.random(in: -slotJitterRange...slotJitterRange, using: &rng)
+    }
 
     /// Total layout height of the 5-slot stack with overlap.
     private var totalStackHeight: CGFloat {
@@ -231,30 +276,29 @@ struct MemoryCard<SlotContent: View>: View {
     }
 
     private var slotGradient: some View {
-        // Opaque card-bg under the translucent gradient — turns the slot into
-        // a "pocket": whatever sits beneath it in z-order (i.e. the bottom of
-        // the previous slot's ticket) is hidden cleanly instead of ghosting
-        // through the gradient. The enclosing slot clipShape masks the shape.
-        Color.Background.elevated
-            .overlay {
-                LinearGradient(
-                    colors: [Color.clear, Color.Background.fieldFill],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .overlay {
-                // Bottom-only 1pt INSIDE stroke that traces the slot's
-                // rounded bl/br corners. Matches Figma `_TicketSlot`.
-                slotShape
-                    .strokeBorder(Color.Border.subtle, lineWidth: slotBorder)
-                    .mask {
-                        VStack(spacing: 0) {
-                            Color.clear
-                            Color.black.frame(height: slotCorner + slotBorder)
-                        }
+        // Per the latest Figma _TicketSlot: just a transparent →
+        // Opacity/Black/inverse/3 gradient over whatever's beneath
+        // (the card's own 3 % tint) plus a 5 %-black bottom hairline.
+        // No opaque underlay this time — each slot is already
+        // clipShape'd to its own bounds, so prior slots' content can't
+        // bleed through.
+        LinearGradient(
+            colors: [Color.clear, Color.Background.fieldFill],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .overlay {
+            // Bottom-only 1pt INSIDE stroke that traces the slot's
+            // rounded bl/br corners. Matches Figma `_TicketSlot`.
+            slotShape
+                .strokeBorder(Color.Border.subtle, lineWidth: slotBorder)
+                .mask {
+                    VStack(spacing: 0) {
+                        Color.clear
+                        Color.black.frame(height: slotCorner + slotBorder)
                     }
-            }
+                }
+        }
     }
 
     // MARK: - State overlay
@@ -377,9 +421,9 @@ struct MemoryCard<SlotContent: View>: View {
     private var resolvedTitle: String {
         if let title = title { return title }
         switch state {
-        case .new:    return "Create"
-        case .locked: return "New memory"
-        default:      return "Memory name"
+        case .new:    return String(localized: "Create")
+        case .locked: return String(localized: "New memory")
+        default:      return String(localized: "Memory name")
         }
     }
 
@@ -388,8 +432,25 @@ struct MemoryCard<SlotContent: View>: View {
         switch state {
         case .new:    return String(localized: "New memory")
         case .locked: return String(localized: "Invite pending")
-        default:      return "0 tickets"
+        default:      return String(localized: "0 tickets")
         }
+    }
+}
+
+// MARK: - Seeded RNG (slot jitter)
+
+/// splitmix64 wrapper used for the per-slot horizontal jitter — same
+/// shape as the one in the print carousel. Stable across renders
+/// because `MemoryCard` re-seeds it from `(cardSeed, idx)` each call.
+private struct SeededJitter: RandomNumberGenerator {
+    private var state: UInt64
+    init(seed: UInt64) { self.state = seed == 0 ? 0x9E3779B97F4A7C15 : seed }
+    mutating func next() -> UInt64 {
+        state &+= 0x9E3779B97F4A7C15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
+        z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
+        return z ^ (z >> 31)
     }
 }
 
@@ -402,7 +463,8 @@ extension MemoryCard where SlotContent == EmptyView {
         state: MemoryCardState = .normal,
         emoji: String? = nil,
         filledCount: Int = 0,
-        colorFamily: String? = nil
+        colorFamily: String? = nil,
+        cardSeed: UInt64 = 0
     ) {
         self.init(
             title: title,
@@ -411,6 +473,7 @@ extension MemoryCard where SlotContent == EmptyView {
             emoji: emoji,
             filledCount: filledCount,
             colorFamily: colorFamily,
+            cardSeed: cardSeed,
             slotPreview: { _ in EmptyView() }
         )
     }

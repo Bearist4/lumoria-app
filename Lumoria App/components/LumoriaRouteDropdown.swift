@@ -16,6 +16,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Height cap for the expanded list before it starts scrolling —
 /// roughly four route rows before the list becomes a scroller.
@@ -48,17 +49,24 @@ struct LumoriaRouteDropdown: View {
                         list
                             .frame(maxWidth: .infinity)
                             .offset(y: 54)
+                            // See LumoriaDropdown — single opacity
+                            // transition so the close fade is uniform.
+                            .transition(.opacity)
                     }
                 }
-            if let assistiveText, !isOpen {
+            if let assistiveText {
+                // See LumoriaDropdown — kept in layout when open so
+                // siblings below don't shift up under the menu overlay.
                 assistive(assistiveText)
+                    .opacity(isOpen ? 0 : 1)
             }
         }
         // Raise the whole field above sibling form rows while open
         // so the list draws on top of whatever sits beneath (the
         // Ticket Details section etc.). Same rationale as
-        // LumoriaDropdown.
-        .zIndex(isOpen ? 1 : 0)
+        // LumoriaDropdown — 10 so a focused station field at zIndex
+        // 1 can't sit on top.
+        .zIndex(isOpen ? 10 : 0)
     }
 
     // MARK: - Label
@@ -80,6 +88,13 @@ struct LumoriaRouteDropdown: View {
 
     private var field: some View {
         Button {
+            // See LumoriaDropdown — drop keyboard before opening so a
+            // focused station field below doesn't keep its raised
+            // zIndex and obscure the menu.
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil, from: nil, for: nil
+            )
             withAnimation(.easeInOut(duration: 0.15)) { isOpen.toggle() }
         } label: {
             HStack(spacing: 8) {

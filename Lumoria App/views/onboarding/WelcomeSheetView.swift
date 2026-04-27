@@ -52,7 +52,11 @@ struct WelcomeSheetView: View {
                 size: .medium,
                 position: .onBackground
             ) {
-                Task { await coordinator.dismissWelcomeSilently() }
+                // Same confirmation the mid-tutorial overlays use —
+                // "Leave the tutorial?" alert. Confirm runs
+                // `confirmLeaveTutorial`, which writes
+                // `show_onboarding=false` + step=.done to Supabase.
+                coordinator.showLeaveAlert = true
             }
             .padding(12)
             .accessibilityLabel(Text("Close"))

@@ -71,3 +71,21 @@ struct UndergroundTicket: Codable, Hashable {
     /// Optional so older tickets (pre-mode-field) still decode cleanly.
     var mode: Int? = nil
 }
+
+/// Picks a single hero-station font size that both FROM and TO can
+/// fit at, keyed off whichever name is longer. Without this each
+/// `Text` shrinks independently via `minimumScaleFactor`, producing
+/// the visible imbalance ("Zürich, Museum für Gestaltung" at 11pt
+/// next to "Zürich, Kronenstrasse" at 22pt). Returns the unscaled
+/// point size — callers multiply by their own `s` (width / frame)
+/// scale.
+func transitStationFontSize(origin: String, destination: String) -> CGFloat {
+    let maxLen = max(origin.count, destination.count)
+    switch maxLen {
+    case 0...14:  return 22
+    case 15...18: return 19
+    case 19...22: return 16
+    case 23...26: return 14
+    default:      return 12
+    }
+}

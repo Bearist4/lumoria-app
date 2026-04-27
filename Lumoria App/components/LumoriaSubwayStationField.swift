@@ -38,17 +38,33 @@ struct LumoriaSubwayStationField: View {
         VStack(alignment: .leading, spacing: 4) {
             labelRow
             inputField
+                // Suggestions float as an overlay anchored to the field
+                // so opening / closing the autocomplete never reflows
+                // sibling fields below (the From / To pair would
+                // otherwise jump as the list appears).
+                .overlay(alignment: .topLeading) {
+                    if isFocused, !filteredStations.isEmpty {
+                        suggestionsList
+                            .frame(maxWidth: .infinity)
+                            .offset(y: 54)
+                    }
+                }
 
-            if isFocused, !filteredStations.isEmpty {
-                suggestionsList
-            } else if let assistiveText, selected == nil {
+            if let assistiveText, selected == nil {
                 Text(assistiveText)
                     .font(.caption2)
                     .foregroundStyle(Color.Feedback.Neutral.text)
                     .lineSpacing(2)
                     .padding(.top, 2)
+                    // Hidden behind the suggestions overlay, but kept
+                    // in layout so toggling focus doesn't change the
+                    // VStack height.
+                    .opacity(isFocused && !filteredStations.isEmpty ? 0 : 1)
             }
         }
+        // Raise above sibling fields below while the suggestions list
+        // is open so it isn't drawn underneath the next station field.
+        .zIndex(isFocused && !filteredStations.isEmpty ? 1 : 0)
         .onChange(of: selected, initial: true) { _, sel in
             guard let sel, query.isEmpty else { return }
             query = formattedQuery(for: sel)
@@ -149,7 +165,6 @@ struct LumoriaSubwayStationField: View {
         )
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
-        .padding(.top, 4)
     }
 
     private func stationGlyph(lines: [TransitLine]) -> some View {
@@ -164,12 +179,15 @@ struct LumoriaSubwayStationField: View {
         .frame(width: 28, height: 28)
     }
 
-    /// Comma-joined list of line codes served by the station. Bus /
-    /// tram stops often have 4+ lines — cap the visible tail with an
-    /// "and N more" suffix so the suggestion row doesn't grow tall.
+    /// Comma-joined list of lines served by the station. Uses each
+    /// line's `displayLabel` so single-letter codes (Tokyo's "G",
+    /// "C") expand to "Ginza (G)" / "Chiyoda (C)" while already-
+    /// distinctive codes ("U1", "L") stay compact. Capped to the
+    /// first two so the suggestion row doesn't wrap on stations
+    /// served by many lines.
     private func lineListLabel(_ lines: [TransitLine]) -> String {
-        let head = lines.prefix(5).map(\.shortName).joined(separator: " · ")
-        let extra = lines.count - 5
+        let head = lines.prefix(2).map(\.displayLabel).joined(separator: " · ")
+        let extra = lines.count - 2
         return extra > 0 ? "\(head) · +\(extra)" : head
     }
 

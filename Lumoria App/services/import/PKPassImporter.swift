@@ -135,7 +135,7 @@ enum PKPassImporter {
         // Public-transport passes (signal / sign / infoscreen) aren't
         // in the PKPass wallet ecosystem either; same `.other` bypass
         // applies.
-        case .underground, .sign, .infoscreen:                      return .other
+        case .underground, .sign, .infoscreen, .grid:               return .other
         }
     }
 

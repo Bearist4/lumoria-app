@@ -54,6 +54,11 @@ struct TransitLine: Codable, Hashable {
     /// lets the map differentiate subway vs bus vs tram. Optional so
     /// older catalogs without the field still decode.
     let mode: Int?
+    /// Operator name for this specific line. Optional — when nil the
+    /// catalog-level `operatorName` is used. Set when a city has more
+    /// than one operator (e.g. Tokyo: Tokyo Metro + Toei) so each
+    /// ticket carries the right company on the badge.
+    let `operator`: String?
     let stations: [TransitStation]
 }
 
@@ -127,6 +132,40 @@ extension TransitLine {
     var resolvedMode: TransitMode {
         TransitMode.from(rawValue: mode) ?? .bus
     }
+
+    /// Compact, rider-friendly label used in the form dropdowns.
+    /// Returns the bare `shortName` when it already stands alone:
+    /// numeric / mixed codes (Vienna's "U1", NYC's "L"), word codes
+    /// that already read as the line name (Melbourne's "Alamein",
+    /// "Belgrave"). Single-letter codes whose `longName` carries
+    /// useful name info expand to "name (code)" — Tokyo's
+    /// "Chiyoda (C)" being the canonical case.
+    var displayLabel: String {
+        // Word-style short names (≥ 3 alphabetic characters) are
+        // already the rider-facing identity — no need to expand them
+        // with the route description (which is usually a "From - To"
+        // string for these networks).
+        let isWordCode = shortName.count >= 3
+            && shortName.allSatisfy(\.isLetter)
+        if isWordCode { return shortName }
+
+        let stripped = longName
+            .replacingOccurrences(of: " Line", with: "")
+            .replacingOccurrences(of: " line", with: "")
+            .trimmingCharacters(in: .whitespaces)
+        var nameOnly = stripped
+        if nameOnly.hasPrefix(shortName + " ") {
+            nameOnly = String(nameOnly.dropFirst(shortName.count + 1))
+        }
+        // Drop residual separators left after stripping a prefix.
+        let trimChars = CharacterSet(charactersIn: "- ·/–\t")
+        nameOnly = nameOnly.trimmingCharacters(in: trimChars)
+
+        if nameOnly.isEmpty || nameOnly == shortName || nameOnly.count > 14 {
+            return shortName
+        }
+        return "\(nameOnly) (\(shortName))"
+    }
 }
 
 /// One station entry on a line. `id` is the GTFS `stop_id` after
@@ -158,6 +197,10 @@ enum TransitCatalogLoader {
         case marseille = "Marseille"
         case zurich    = "Zurich"
         case berlin    = "Berlin"
+        case london    = "London"
+        case stockholm = "Stockholm"
+        case tokyo     = "Tokyo"
+        case melbourne = "Melbourne"
 
         var id: String { rawValue }
         var resourceName: String { rawValue }
@@ -174,7 +217,11 @@ enum TransitCatalogLoader {
             case .bordeaux:  return ["Bordeaux", "Bordeaux Métropole"]
             case .marseille: return ["Marseille", "Aix-Marseille-Provence"]
             case .zurich:    return ["Zurich", "Zürich"]
-            case .berlin:    return ["Berlin", "Berlin-Brandenburg"]
+            case .berlin:    return ["Berlin", "Berlin-Brandenburg", "VBB"]
+            case .london:    return ["London", "Greater London", "City of London", "TfL"]
+            case .stockholm: return ["Stockholm", "Stockholms län", "SL"]
+            case .tokyo:     return ["Tokyo", "Tōkyō", "東京", "Tokyo Metro", "Toei", "Tokyo-to"]
+            case .melbourne: return ["Melbourne", "Greater Melbourne", "Victoria", "VIC"]
             }
         }
     }

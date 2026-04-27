@@ -24,14 +24,7 @@ enum SettingsDestination: Hashable {
 struct SettingsView: View {
 
     @EnvironmentObject private var profileStore: ProfileStore
-    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @Environment(EntitlementStore.self) private var entitlement
-    #if DEBUG
-    @EnvironmentObject private var ticketsStore: TicketsStore
-    @EnvironmentObject private var memoriesStore: MemoriesStore
-    @State private var marketingSeedToast: String? = nil
-    @State private var isSeedingMarketing = false
-    #endif
     @Environment(\.brandSlug) private var brandSlug
     @State private var path: [SettingsDestination] = []
     @State private var showLogoutConfirm = false
@@ -58,15 +51,6 @@ struct SettingsView: View {
                     }
 
                     sectionCard {
-                        settingsRow(icon: "questionmark.circle", title: "Help center", right: .chevron) {
-                            path.append(.helpCenter)
-                        }
-                        settingsRow(icon: "arrow.counterclockwise", title: "Replay onboarding", right: .chevron) {
-                            Task { await onboardingCoordinator.resetForReplay() }
-                        }
-                    }
-
-                    sectionCard {
                         settingsRow(icon: "doc.text",       title: "Terms of Service", right: .external) {
                             Analytics.track(.legalLinkOpened(linkType: .tos))
                             openURL("https://lumoria.app/terms")
@@ -76,20 +60,6 @@ struct SettingsView: View {
                             openURL("https://lumoria.app/privacy")
                         }
                     }
-
-                    #if DEBUG
-                    sectionCard {
-                        settingsRow(
-                            icon: "wand.and.stars",
-                            title: "Seed marketing content",
-                            right: .chevron
-                        ) {
-                            Task { await runMarketingSeed() }
-                        }
-                        .disabled(isSeedingMarketing)
-                        .opacity(isSeedingMarketing ? 0.5 : 1)
-                    }
-                    #endif
 
                     sectionCard {
                         logoutRow
@@ -105,9 +75,6 @@ struct SettingsView: View {
             .background(Color.Background.default.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { Analytics.track(.settingsOpened) }
-            #if DEBUG
-            .lumoriaToast($marketingSeedToast)
-            #endif
             .alert(
                 "Log out of Lumoria?",
                 isPresented: $showLogoutConfirm
@@ -298,7 +265,7 @@ struct SettingsView: View {
 
             HStack(spacing: 8) {
                 Text(appVersion)
-                Text("Build")
+                Text(verbatim: appBuild)
             }
             .font(.subheadline)
             .foregroundStyle(Color.Text.tertiary)
@@ -309,6 +276,10 @@ struct SettingsView: View {
     private var appVersion: String {
         let v = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         return v
+    }
+
+    private var appBuild: String {
+        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
     }
 
     // MARK: - Log out
@@ -355,23 +326,6 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Marketing seed (Debug only)
-
-    #if DEBUG
-    @MainActor
-    private func runMarketingSeed() async {
-        guard !isSeedingMarketing else { return }
-        isSeedingMarketing = true
-        defer { isSeedingMarketing = false }
-
-        marketingSeedToast = "Seeding marketing content…"
-        let result = await MarketingSeeder.seed(
-            ticketsStore: ticketsStore,
-            memoriesStore: memoriesStore
-        )
-        marketingSeedToast = "Seeded \(result.ticketCount) tickets and \(result.memoryCount) memories."
-    }
-    #endif
 }
 
 // MARK: - Preview

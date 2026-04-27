@@ -20,9 +20,9 @@ enum EncryptionServiceError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .noActiveUser:    return "No signed-in user. Sign in to decrypt your data."
-        case .emptyCiphertext: return "Encrypted value is empty."
-        case .invalidBase64:   return "Encrypted value is not valid base64."
+        case .noActiveUser:    return String(localized: "No signed-in user. Sign in to decrypt your data.")
+        case .emptyCiphertext: return String(localized: "Encrypted value is empty.")
+        case .invalidBase64:   return String(localized: "Encrypted value is not valid base64.")
         }
     }
 }

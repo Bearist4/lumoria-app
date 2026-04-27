@@ -5,6 +5,7 @@
 //  Created by Benjamin Caillet on 13/04/2026.
 //
 
+import Combine
 import Supabase
 import SwiftUI
 import SwiftData
@@ -26,6 +27,7 @@ struct Lumoria_AppApp: App {
     @StateObject private var notificationPrefs = NotificationPrefsStore()
     @StateObject private var walletImport = WalletImportCoordinator()
     @StateObject private var onboardingCoordinator = OnboardingCoordinator()
+    @StateObject private var widgetRouter = WidgetDeepLinkRouter()
     @State private var entitlement = EntitlementStore(
         profileService: ProfileService(),
         appSettingsService: AppSettingsService()
@@ -92,6 +94,7 @@ struct Lumoria_AppApp: App {
                         .environmentObject(notificationPrefs)
                         .environmentObject(walletImport)
                         .environmentObject(onboardingCoordinator)
+                        .environmentObject(widgetRouter)
                         .environment(entitlement)
                         .environment(paywallState)
                         .sheet(isPresented: Binding(
@@ -225,6 +228,19 @@ struct Lumoria_AppApp: App {
         let isImportCustom = url.scheme == "lumoria"
             && url.host == "import"
             && url.path == "/pkpass"
+        // Widget tap — `lumoria://memory/<uuid>` opens the memory's detail
+        // view. Handler stashes the id; MemoriesView pushes it once the
+        // memories store has finished its initial load.
+        if url.scheme == "lumoria", url.host == "memory" {
+            let raw = url.pathComponents.first(where: { $0 != "/" })
+                ?? url.lastPathComponent
+            if let id = UUID(uuidString: raw) {
+                widgetRouter.pendingMemoryId = id
+                Analytics.track(.deepLinkOpened(scheme: "lumoria", host: "memory", kind: .other))
+            }
+            return
+        }
+
         if isImportUniversal || isImportCustom {
             let groupId = "group.bearista.Lumoria-App"
             if let container = FileManager.default
@@ -278,6 +294,14 @@ struct Lumoria_AppApp: App {
             }
         }
     }
+}
+
+/// Carries a memory id from `onOpenURL` (widget tap) down to MemoriesView,
+/// which is the only view that holds the NavigationStack path. ContentView
+/// also reads it so it can switch to the Memories tab on the way down.
+@MainActor
+final class WidgetDeepLinkRouter: ObservableObject {
+    @Published var pendingMemoryId: UUID?
 }
 
 /// Root container for the unauthenticated flow.

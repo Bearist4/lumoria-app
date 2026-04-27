@@ -134,10 +134,10 @@ struct SignTicketView: View {
                     )
 
                 Text(ticket.originStation)
-                    .font(.system(size: 22 * s, weight: .heavy))
+                    .font(.system(size: heroStationFont * s, weight: .heavy))
                     .foregroundStyle(ink)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.7)
                     .frame(width: 240 * s, alignment: .leading)
                     .padding(.leading, 46 * s)
                     .padding(.top, 93 * s)
@@ -159,10 +159,10 @@ struct SignTicketView: View {
                     )
 
                 Text(ticket.destinationStation)
-                    .font(.system(size: 22 * s, weight: .heavy))
+                    .font(.system(size: heroStationFont * s, weight: .heavy))
                     .foregroundStyle(ink)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.7)
                     .frame(width: 240 * s, alignment: .leading)
                     .padding(.leading, 46 * s)
                     .padding(.top, 147 * s)
@@ -293,6 +293,14 @@ struct SignTicketView: View {
     private var lineAccent: Color { Color(hex: ticket.lineColor) }
     private var ink: Color { Color(red: 0.12, green: 0.10, blue: 0.08) }
     private var muted: Color { Color(red: 0.45, green: 0.40, blue: 0.32) }
+
+    /// Shared FROM / TO size — see `SignalTicketView.heroStationFont`.
+    private var heroStationFont: CGFloat {
+        transitStationFontSize(
+            origin: ticket.originStation,
+            destination: ticket.destinationStation
+        )
+    }
 }
 
 #Preview("Sign · U1") {

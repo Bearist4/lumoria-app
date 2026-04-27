@@ -70,7 +70,8 @@ struct AddToMemorySheet: View {
                                     state: isMember(of: m) ? .added : .normal,
                                     emoji: m.emoji,
                                     filledCount: min(tickets.count, 5),
-                                    colorFamily: m.colorFamily
+                                    colorFamily: m.colorFamily,
+                                    cardSeed: UInt64(bitPattern: Int64(m.id.hashValue))
                                 ) { index in
                                     if index < tickets.count {
                                         MemoryCardSlot.frameForSlot(

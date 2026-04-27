@@ -48,6 +48,11 @@ struct NewTicketFunnelView: View {
     /// ~3.5s end-to-end). Flips true 4.5s after the funnel lands on
     /// `.success`. Resets when the user leaves the success step.
     @State private var allDoneOverlayReady: Bool = false
+    /// Outstanding gate timer. Cancelled and restarted whenever the
+    /// final ticket count changes (multi-leg journeys append to
+    /// `createdTickets` one leg at a time, so a gate started at the
+    /// initial count=1 reading would flip the overlay too early).
+    @State private var allDoneGateTask: Task<Void, Never>? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -77,6 +82,13 @@ struct NewTicketFunnelView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             bottomBar
         }
+        // Pin the whole funnel — including the safeAreaInset bottom bar —
+        // to the screen edges when the keyboard appears. Default SwiftUI
+        // keyboard avoidance shifts the entire layout up, which drags the
+        // bottom bar with it; this opts the funnel out so the bar stays
+        // fixed and the keyboard slides up over it. ScrollView still
+        // scrolls the focused field into view internally.
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .onboardingOverlay(
             step: .pickCategory,
             coordinator: onboardingCoordinator,
@@ -138,18 +150,15 @@ struct NewTicketFunnelView: View {
             }
 
             // Gate the .allDone overlay until the print-reveal animation
-            // has settled (~3.5s) plus a 1s breather. Reset when leaving
-            // success in case the user hits Back.
+            // has settled. Started on entry; restarted whenever the
+            // ticket count changes (see the createdTickets onChange
+            // below) so multi-leg journeys use the right duration.
             if newStep == .success {
                 allDoneOverlayReady = false
-                Task {
-                    try? await Task.sleep(nanoseconds: 3_500_000_000)
-                    if funnel.step == .success {
-                        allDoneOverlayReady = true
-                    }
-                }
+                startAllDoneGate()
             } else if oldStep == .success {
                 allDoneOverlayReady = false
+                allDoneGateTask?.cancel()
             }
 
             // Auto-persist only for new-ticket creation — the success
@@ -163,6 +172,13 @@ struct NewTicketFunnelView: View {
             Task {
                 await funnel.persist(using: ticketsStore)
             }
+        }
+        .onChange(of: funnel.createdTickets) { _, _ in
+            // Multi-leg journeys append legs one at a time. Restart
+            // the gate every time the count grows so the overlay
+            // waits for ALL prints to finish, not just the first.
+            guard funnel.step == .success else { return }
+            startAllDoneGate()
         }
         .onAppear {
             if let ticket = initialTicket, funnel.editingTicketId == nil {
@@ -180,16 +196,10 @@ struct NewTicketFunnelView: View {
             installOnboardingDraftBridge()
             // Cold-resume case: if hydration dropped us straight onto
             // the success step, the funnel.step onChange won't fire —
-            // run the 4.5s gate here so the .allDone overlay still
-            // waits for the print animation to settle.
+            // run the print-reveal gate here too.
             if funnel.step == .success {
                 allDoneOverlayReady = false
-                Task {
-                    try? await Task.sleep(nanoseconds: 3_500_000_000)
-                    if funnel.step == .success {
-                        allDoneOverlayReady = true
-                    }
-                }
+                startAllDoneGate()
             }
         }
         .onDisappear {
@@ -214,18 +224,16 @@ struct NewTicketFunnelView: View {
     // MARK: - Header
     //
     // Shared across every step — same vertical slot, same X position.
-    // On the success step the "New ticket" title is hidden (opacity 0)
-    // so the X lines up with the title's centerline on other steps,
-    // keeping the layout grid consistent across the flow. Tapping X
+    // Title swaps to "All done!" on the success step so it sits aligned
+    // with the X icon button per the Figma success layout. Tapping X
     // discards in-progress steps via an abandon alert, but dismisses
     // immediately on success (the ticket is already saved).
 
     private var header: some View {
         HStack(alignment: .center) {
-            Text("New ticket")
+            Text(funnel.step == .success ? "All done!" : "New ticket")
                 .font(.largeTitle.bold())
                 .foregroundStyle(Color.Text.primary)
-                .opacity(funnel.step == .success ? 0 : 1)
 
             Spacer()
 
@@ -284,6 +292,33 @@ struct NewTicketFunnelView: View {
     }
 
     // MARK: - Onboarding draft bridge
+
+    /// How long to wait before flipping `allDoneOverlayReady`. Tracks
+    /// the print animation's actual duration: single ticket runs
+    /// ~3.5 s end-to-end; multi-ticket sequences each print at ~2.0 s
+    /// apiece (see TicketStackCarousel.perTicketDuration).
+    private func printRevealGateNanoseconds() -> UInt64 {
+        let count = max(funnel.createdTickets.count, 1)
+        let seconds: TimeInterval = count > 1
+            ? Double(count) * 2.0 + 0.5
+            : 3.5
+        return UInt64(seconds * 1_000_000_000)
+    }
+
+    /// (Re)starts the gate timer with the current ticket count.
+    /// Cancelling any prior task so a stale timer (started when only
+    /// the first leg had been persisted) doesn't trip the overlay
+    /// before the rest of the legs finish printing.
+    private func startAllDoneGate() {
+        allDoneGateTask?.cancel()
+        let ns = printRevealGateNanoseconds()
+        allDoneGateTask = Task {
+            try? await Task.sleep(nanoseconds: ns)
+            if !Task.isCancelled, funnel.step == .success {
+                allDoneOverlayReady = true
+            }
+        }
+    }
 
     /// Wires funnel ↔ disk while the onboarding tutorial is active.
     /// Hydrates from any existing draft on first appear, then debounces

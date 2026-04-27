@@ -17,6 +17,7 @@ struct ContentView: View {
     @StateObject private var notificationsStore = NotificationsStore()
     @EnvironmentObject private var walletImport: WalletImportCoordinator
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @EnvironmentObject private var widgetRouter: WidgetDeepLinkRouter
 
     @State private var selectedTab: Int = 0
     /// `.pkpass` bytes delivered via the share extension. When non-nil
@@ -98,6 +99,9 @@ struct ContentView: View {
         }
         .onChange(of: onboardingCoordinator.showEndCover) { _, isShowing in
             if isShowing { selectedTab = 0 }
+        }
+        .onChange(of: widgetRouter.pendingMemoryId) { _, id in
+            if id != nil { selectedTab = 0 }
         }
         .onChange(of: walletImport.pending) { _, data in
             guard let data else { return }

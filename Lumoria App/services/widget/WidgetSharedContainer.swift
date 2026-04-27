@@ -14,6 +14,18 @@ enum WidgetSharedContainer {
     /// App Group identifier declared in both targets' entitlements.
     static let appGroup = "group.bearista.Lumoria-App"
 
+    /// `UserDefaults` instance backed by the App Group suite — both
+    /// targets read / write user preferences through this so the widget
+    /// stays in sync with what the user picked in Settings (e.g. the
+    /// distance unit toggle).
+    static let sharedDefaults = UserDefaults(suiteName: appGroup) ?? .standard
+
+    /// Keys read from `sharedDefaults` by the widget.
+    enum DefaultsKey {
+        /// Raw value of `MapDistanceUnit`. `"km"` (default) or `"mi"`.
+        static let distanceUnit = "map.distanceUnit"
+    }
+
     /// Filename of the JSON snapshot at the root of the shared container.
     static let snapshotFilename = "memory-widget-snapshot.json"
 

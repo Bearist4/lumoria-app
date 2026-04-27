@@ -29,7 +29,7 @@ struct LineHandle: View {
             Image(systemName: line.resolvedMode.symbol)
                 .font(iconFont)
                 .foregroundStyle(.white)
-            Text(line.shortName)
+            Text(line.displayLabel)
                 .font(labelFont)
                 .foregroundStyle(.white)
                 .lineLimit(1)

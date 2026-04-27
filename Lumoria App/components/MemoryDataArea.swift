@@ -19,7 +19,10 @@ struct MemoryDataArea: View {
     let tickets: [Ticket]
     let anchors: [JourneyAnchor]
 
-    @AppStorage("map.distanceUnit") private var distanceUnitRaw: String = MapDistanceUnit.km.rawValue
+    // Shared with the widget so a unit change in Settings flips both
+    // the in-app journey stats and the home-screen widget.
+    @AppStorage("map.distanceUnit", store: WidgetSharedContainer.sharedDefaults)
+    private var distanceUnitRaw: String = MapDistanceUnit.km.rawValue
 
     init(
         memory: Memory,
