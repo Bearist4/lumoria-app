@@ -2,23 +2,33 @@
 //
 // Generates a fresh 6-digit code (or first one for legacy rows without
 // any code yet), updates the row's code_hash + expiry, and emails the
-// plaintext to the address.
+// plaintext to the address keyed off the calling user's auth email.
 //
-// Auth: none. Anti-enumeration: silent success when the email is not on
-// the waitlist (no membership leak). Anti-spam: per-email 1-hour cooldown
+// Auth: required. Mirrors verify-beta-code — JWT verified via JWKS
+// because the project uses ES256 asymmetric keys that the gateway-level
+// verify_jwt rejects.
+//
+// Anti-enumeration: silent success when the auth email isn't on the
+// waitlist (no membership leak). Anti-spam: per-email 1-hour cooldown
 // keyed off `code_generated_at` directly on the DB row.
-//
-// Same JWT-bypass posture as delete-account / verify-beta-code is not
-// needed here because the function is intentionally callable without
-// auth from the website's "Resend code" button as well as from the iOS
-// post-signin redemption screen.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+import { createRemoteJWKSet, jwtVerify } from "https://esm.sh/jose@5.9.6";
 import { Resend } from "https://esm.sh/resend@4";
 import { generateCode, hashCode } from "../_shared/beta_code.ts";
 
 const CODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const COOLDOWN_MS = 60 * 60 * 1000;
+
+let _jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getJwks(supabaseUrl: string) {
+    if (!_jwks) {
+        _jwks = createRemoteJWKSet(
+            new URL(`${supabaseUrl}/auth/v1/.well-known/jwks.json`),
+        );
+    }
+    return _jwks;
+}
 
 function json(status: number, body: Record<string, unknown>): Response {
     return new Response(JSON.stringify(body), {
@@ -37,18 +47,24 @@ export async function handler(req: Request): Promise<Response> {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
     const RESEND_FROM = Deno.env.get("RESEND_FROM_ADDRESS") ?? "hello@lumoria.com";
 
-    let body: { email?: unknown } = {};
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (!/^bearer\s+/i.test(authHeader)) {
+        return json(401, { error: "unauthorized", reason: "missing_bearer" });
+    }
+    const jwt = authHeader.replace(/^bearer\s+/i, "");
+
+    let userEmail: string;
     try {
-        body = await req.json();
-    } catch {
-        return json(400, { error: "bad_request", reason: "invalid_json" });
-    }
-    if (typeof body.email !== "string") {
-        return json(400, { error: "bad_request", reason: "missing_email" });
-    }
-    const email = body.email.trim().toLowerCase();
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        return json(400, { error: "bad_request", reason: "bad_email_format" });
+        const { payload } = await jwtVerify(jwt, getJwks(SUPABASE_URL), {
+            issuer: `${SUPABASE_URL}/auth/v1`,
+        });
+        if (typeof payload.email !== "string" || payload.email.length === 0) {
+            return json(401, { error: "invalid_jwt", reason: "no_email_claim" });
+        }
+        userEmail = payload.email.trim().toLowerCase();
+    } catch (e) {
+        console.log("[resend-beta-code] jwt verify failed", String(e));
+        return json(401, { error: "invalid_jwt", reason: "verify_failed" });
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -56,11 +72,11 @@ export async function handler(req: Request): Promise<Response> {
     });
 
     // Look up the row. Silent OK if it doesn't exist — never confirm or
-    // deny waitlist membership to an unauthenticated caller.
+    // deny waitlist membership.
     const { data: row } = await admin
         .from("waitlist_subscribers")
         .select("id, email, code_generated_at")
-        .ilike("email", email)
+        .ilike("email", userEmail)
         .maybeSingle();
 
     if (!row) return json(200, { ok: true });
@@ -98,7 +114,7 @@ export async function handler(req: Request): Promise<Response> {
         const resend = new Resend(RESEND_API_KEY);
         await resend.emails.send({
             from: RESEND_FROM,
-            to: email,
+            to: userEmail,
             subject: "Your Lumoria beta code",
             html: buildEmailHtml(plaintext),
         });

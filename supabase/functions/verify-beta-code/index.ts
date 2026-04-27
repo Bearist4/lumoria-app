@@ -87,6 +87,7 @@ export async function handler(req: Request): Promise<Response> {
     const jwt = authHeader.replace(/^bearer\s+/i, "");
 
     let userId: string;
+    let userEmail: string;
     try {
         const { payload } = await jwtVerify(jwt, getJwks(SUPABASE_URL), {
             issuer: `${SUPABASE_URL}/auth/v1`,
@@ -94,22 +95,25 @@ export async function handler(req: Request): Promise<Response> {
         if (typeof payload.sub !== "string") {
             return json(401, { error: "invalid_jwt", reason: "no_sub_claim" });
         }
+        if (typeof payload.email !== "string" || payload.email.length === 0) {
+            return json(401, { error: "invalid_jwt", reason: "no_email_claim" });
+        }
         userId = payload.sub;
+        userEmail = payload.email.trim().toLowerCase();
     } catch (e) {
         console.log("[verify-beta-code] jwt verify failed", String(e));
         return json(401, { error: "invalid_jwt", reason: "verify_failed" });
     }
 
-    let body: { email?: unknown; code?: unknown } = {};
+    let body: { code?: unknown } = {};
     try {
         body = await req.json();
     } catch {
         return json(400, { error: "bad_request", reason: "invalid_json" });
     }
-    if (typeof body.email !== "string" || typeof body.code !== "string") {
+    if (typeof body.code !== "string") {
         return json(400, { error: "bad_request", reason: "missing_fields" });
     }
-    const email = body.email.trim().toLowerCase();
     const normalized = normalizeCode(body.code);
     if (!/^[0-9]{6}$/.test(normalized)) {
         return json(400, { error: "bad_request", reason: "bad_code_format" });
@@ -127,11 +131,14 @@ export async function handler(req: Request): Promise<Response> {
         .eq("auth_user_id", userId)
         .gt("attempted_at", since);
 
-    // Look up the waitlist row.
+    // Look up the waitlist row by JWT email. Code-only flow: the
+    // submitted code must match the row identified by the calling
+    // user's auth email. Apple Private Relay users will not match
+    // and need a separate "different email" path (future plan).
     const { data: row } = await admin
         .from("waitlist_subscribers")
         .select("id, email, code_hash, code_expires_at, supabase_user_id")
-        .ilike("email", email)
+        .ilike("email", userEmail)
         .maybeSingle();
 
     const submittedHash = await hashCode(normalized);
@@ -144,7 +151,7 @@ export async function handler(req: Request): Promise<Response> {
     // Always log the attempt.
     const { error: logErr } = await admin.from("beta_redemption_attempts").insert({
         auth_user_id: userId,
-        email_attempted: email,
+        email_attempted: userEmail,
         success: outcome === "ok",
     });
     if (logErr) {
