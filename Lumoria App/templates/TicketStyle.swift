@@ -87,6 +87,7 @@ enum TicketStyleCatalog {
         case .underground: return underground
         case .sign:        return sign
         case .infoscreen:  return infoscreen
+        case .grid:        return grid
         }
     }
 
@@ -456,6 +457,34 @@ enum TicketStyleCatalog {
                 background: Color(red: 0.07, green: 0.07, blue: 0.08),
                 textOnSurface: Color(red: 1, green: 0.72, blue: 0.14),
                 textOnBackground: .white,
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let grid: [TicketStyleVariant] = [
+        // Cream graph-paper base, line-colour band along the bottom.
+        // Body copy is black on a near-white card; the line accent is
+        // injected per-ticket from `UndergroundTicket.lineColor` so
+        // the swatch here just describes the chrome.
+        TicketStyleVariant(
+            id: "grid.default",
+            label: "Default",
+            backgroundAsset: "grid-bg",
+            textPrimary: .black,
+            textSecondary: .black.opacity(0.3),
+            accent: Color(hex: "FFD300"),
+            onAccent: .black,
+            divider: Color.black.opacity(0.08),
+            footerFill: .white,
+            footerText: .black,
+            footerScheme: .light,
+            swatch: StyleSwatchPalette(
+                surface: Color(red: 0.98, green: 0.96, blue: 0.92),
+                accent: Color(hex: "FFD300"),
+                background: Color(red: 0.98, green: 0.96, blue: 0.92),
+                textOnSurface: .black,
+                textOnBackground: .black,
                 layout: .twoZone
             )
         ),

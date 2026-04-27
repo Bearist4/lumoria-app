@@ -45,7 +45,7 @@ struct LumoriaNumberedData: View {
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.black.opacity(0.05))
+                .fill(Color("Colors/Opacity/Black/inverse/5"))
         )
     }
 }

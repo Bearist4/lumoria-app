@@ -13,6 +13,8 @@
 //
 
 import SwiftUI
+import MapKit
+import WidgetKit
 
 // MARK: - Preference values
 
@@ -67,7 +69,10 @@ enum MapStylePref: String, CaseIterable, Identifiable {
 /// property wrappers directly; this helper is for one-shot reads.
 enum MapPreferences {
     static var distanceUnit: MapDistanceUnit {
-        let raw = UserDefaults.standard.string(forKey: "map.distanceUnit")
+        // Same App Group store the @AppStorage binding writes to —
+        // keeps in-app one-shot reads (e.g. journey stats) in lockstep
+        // with the widget.
+        let raw = WidgetSharedContainer.sharedDefaults.string(forKey: "map.distanceUnit")
             ?? MapDistanceUnit.km.rawValue
         return MapDistanceUnit(rawValue: raw) ?? .km
     }
@@ -96,7 +101,12 @@ struct MapPreferencesView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    @AppStorage("map.distanceUnit") private var distanceUnitRaw: String = MapDistanceUnit.km.rawValue
+    // Distance unit lives in the App Group suite so the Memory widget
+    // can read it and format its `km` stat in miles when the user picks
+    // imperial. The other map prefs stay in standard defaults — they
+    // only affect in-app surfaces.
+    @AppStorage("map.distanceUnit", store: WidgetSharedContainer.sharedDefaults)
+    private var distanceUnitRaw: String = MapDistanceUnit.km.rawValue
     @AppStorage("map.style")        private var mapStyleRaw:    String = MapStylePref.standard.rawValue
     @AppStorage("map.showPOIs")     private var showPOIs:       Bool   = true
     @AppStorage("map.reduceMotion") private var reduceMotion:   Bool   = false
@@ -129,6 +139,12 @@ struct MapPreferencesView: View {
         }
         .background(Color.Background.default.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .onChange(of: distanceUnitRaw) { _, _ in
+            // Widgets don't observe `UserDefaults` — kick a timeline
+            // refresh so the Memory widget's km/mi label flips on the
+            // home screen as soon as the toggle changes.
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     // MARK: - Top bar
@@ -295,34 +311,21 @@ private struct MapStyleTile: View {
 
     @ViewBuilder
     private var preview: some View {
-        switch style {
-        case .standard:
-            LinearGradient(
-                colors: [Color(hex: "EDEAE1"), Color(hex: "D9E8F2")],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .overlay(
-                HStack {
-                    Capsule().fill(Color.white).frame(width: 60, height: 4)
-                    Capsule().fill(Color.white.opacity(0.7)).frame(width: 30, height: 3)
-                }
-                .padding(.leading, 8),
-                alignment: .center
-            )
-        case .hybrid:
-            LinearGradient(
-                colors: [Color(hex: "1A2A3C"), Color(hex: "2E3A4A")],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .overlay(
-                Image(systemName: "globe.asia.australia.fill")
-                    .font(.system(size: 40))
-                    .foregroundStyle(Color.white.opacity(0.35))
-            )
-        }
+        // Tiny live MapKit preview — gives a real sense of how each
+        // style looks on the actual map surfaces (Memory Map, ticket
+        // detail) instead of a flat decorative gradient.
+        Map(initialPosition: .region(MapStyleTile.previewRegion)) { }
+            .mapStyle(style == .standard ? .standard : .hybrid)
+            .allowsHitTesting(false)
     }
+
+    /// Centred over Paris so both styles have something recognisable
+    /// — streets and the river for standard, terrain and tile mosaic
+    /// for satellite.
+    private static let previewRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 48.858, longitude: 2.347),
+        span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+    )
 }
 
 // MARK: - Preview

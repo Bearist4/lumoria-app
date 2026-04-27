@@ -25,8 +25,6 @@ struct NewTicketSuccessStep: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            heroText
-
             previewCard
                 .frame(maxHeight: .infinity)
 
@@ -72,7 +70,7 @@ struct NewTicketSuccessStep: View {
                 case .concert:
                     let e = funnel.eventForm
                     return (0, e.venueLocation != nil, false)
-                case .underground, .sign, .infoscreen:
+                case .underground, .sign, .infoscreen, .grid:
                     let u = funnel.undergroundForm
                     return (0, u.originStation != nil, u.destinationStation != nil)
                 default:
@@ -145,32 +143,6 @@ struct NewTicketSuccessStep: View {
         onBackHome()
     }
 
-    // MARK: - Hero
-
-    /// `linear-gradient(270deg, pink → yellow → orange → blue)` — applied to
-    /// the first line only. 270deg in CSS = right→left, so the 0% stop sits
-    /// at the trailing edge and the 100% stop at the leading edge.
-    private var heroGradient: LinearGradient {
-        LinearGradient(
-            stops: [
-                .init(color: Color(hex: "FF9CCC"), location: 0.0),      // pink/300
-                .init(color: Color(hex: "FDDC51"), location: 0.34135),  // yellow/300
-                .init(color: Color(hex: "FFA96C"), location: 0.66827),  // orange/300
-                .init(color: Color(hex: "57B7F5"), location: 1.0),      // blue/300
-            ],
-            startPoint: .trailing,
-            endPoint: .leading
-        )
-    }
-
-    private var heroText: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("All done!")
-                .font(.largeTitle.bold())
-                .foregroundStyle(heroGradient)
-        }
-    }
-
     // MARK: - Preview
 
     @ViewBuilder
@@ -187,6 +159,12 @@ struct NewTicketSuccessStep: View {
             RoundedRectangle(cornerRadius: 24, style: .continuous)
                 .fill(Color.Background.elevated)
         )
+        // Clip at the card so the multi-ticket carousel's in-flight
+        // ticket — which can briefly overflow the carousel area while
+        // it's rotated 90° during print — is bounded by the rounded
+        // card edge instead of being sliced mid-ticket by an inner
+        // `.clipped()`.
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     @ViewBuilder

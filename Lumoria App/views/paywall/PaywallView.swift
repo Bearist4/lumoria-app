@@ -2,20 +2,37 @@
 //  PaywallView.swift
 //  Lumoria App
 //
-//  Real paywall layout. Phase 2 ships a single default hero per the
-//  trigger variant; Phase 3 splits the hero into 4 personalised blocks.
+//  Sheet-style paywall matching the Figma design.
 //
-//  Figma — default: 969-20169 · trial: 969-20173 · trial used: 969-20171
+//  The file is split into:
+//    - `PaywallContent`: a pure SwiftUI view driven entirely by inputs.
+//      No environment, no services, no async work in init. Used by
+//      Xcode #Preview blocks so the canvas doesn't need to launch the
+//      full app process.
+//    - `PaywallView`: the live, app-wired entry point. Reads
+//      EntitlementStore from environment, owns a PurchaseService, and
+//      forwards the resolved props to PaywallContent.
+//
+//  Default (969:20169) — title "Lumoria Premium", single "Upgrade now"
+//    CTA, used by every non-limit trigger.
+//  Limit reached (969:20173 / 969:20171) — title
+//    "Out of {memories|tickets}" with the resource word coloured
+//    orange, two-CTA row: primary purchase button + secondary
+//    "Invite a friend".
 //
 
 import SwiftUI
+
+// MARK: - Wired entry point
 
 struct PaywallView: View {
     let trigger: PaywallTrigger
     @Environment(\.dismiss) private var dismiss
     @Environment(EntitlementStore.self) private var entitlement
     @State private var purchase: PurchaseService
-    @State private var selected: PaywallPlan = .annual
+    @State private var selected: PaywallPlan = .monthly
+    @State private var showInvite: Bool = false
+    @State private var showTrialExplanation: Bool = false
     @State private var error: String? = nil
 
     init(trigger: PaywallTrigger, entitlement: EntitlementStore) {
@@ -24,130 +41,251 @@ struct PaywallView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 32) {
-                hero
-                planCard
-                primaryCTA
-                trustCopy
-                restoreLink
-                if let error { errorBanner(error) }
-            }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 32)
-        }
-        .overlay(alignment: .topTrailing) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title2)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.top, 16)
-            .padding(.trailing, 16)
-        }
+        PaywallContent(
+            trigger: trigger,
+            selected: $selected,
+            prices: storeKitPrices,
+            trialAvailable: entitlement.trialAvailable,
+            monthlyPriceLabel: purchase.displayPrice(for: .monthly) ?? "$3.99",
+            isPurchasing: purchase.isPurchasing,
+            errorMessage: error,
+            onClose: { dismiss() },
+            onPurchase: handlePurchaseTap,
+            onInvite: { showInvite = true }
+        )
         .task {
             await purchase.loadProducts()
         }
+        .sheet(isPresented: $showInvite) {
+            InviteExplanationView()
+        }
+        .sheet(isPresented: $showTrialExplanation) {
+            TrialExplanationView(
+                onStartTrial: {
+                    showTrialExplanation = false
+                    runPurchase()
+                },
+                isPurchasing: purchase.isPurchasing
+            )
+        }
     }
 
-    // MARK: - Hero (Phase 3 — per-variant SwiftUI compositions)
-
-    private var hero: some View {
-        PaywallHero(variant: trigger.variant)
+    /// Routes the primary CTA. The "Try for 14 days" path detours
+    /// through TrialExplanationView; the "Upgrade now" / "Buy lifetime"
+    /// path fires the purchase immediately.
+    private func handlePurchaseTap() {
+        if selected == .monthly && entitlement.trialAvailable {
+            showTrialExplanation = true
+        } else {
+            runPurchase()
+        }
     }
 
-    // MARK: - Plan card
+    private func runPurchase() {
+        Task {
+            if await purchase.purchase(selected) {
+                dismiss()
+            } else if let f = purchase.lastError {
+                error = description(of: f)
+            }
+        }
+    }
+
+    private var storeKitPrices: [PaywallPlan: String] {
+        var map: [PaywallPlan: String] = [:]
+        for plan in PaywallPlan.allCases {
+            if let p = purchase.displayPrice(for: plan) {
+                map[plan] = p
+            }
+        }
+        return map
+    }
+
+    private func description(of failure: PurchaseService.Failure) -> String {
+        switch failure {
+        case .notSignedIn:          return "You need to be signed in."
+        case .verificationFailed:   return "Couldn't verify the purchase. Try again."
+        case .rpcFailed(let m):     return "Server didn't accept the purchase. (\(m))"
+        case .storeKitError(let m): return m
+        }
+    }
+}
+
+// MARK: - Pure layout (preview-friendly)
+
+struct PaywallContent: View {
+
+    let trigger: PaywallTrigger
+    @Binding var selected: PaywallPlan
+    let prices: [PaywallPlan: String]
+    let trialAvailable: Bool
+    let monthlyPriceLabel: String
+    let isPurchasing: Bool
+    let errorMessage: String?
+    let onClose: () -> Void
+    let onPurchase: () -> Void
+    let onInvite: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            LumoriaIconButton(
+                systemImage: "xmark",
+                size: .large,
+                position: .onBackground,
+                action: onClose
+            )
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+
+            titleBlock
+                .padding(.horizontal, 24)
+                .padding(.top, 24)
+
+            featureList
+                .padding(.horizontal, 24)
+                .padding(.top, 32)
+
+            Spacer(minLength: 24)
+
+            PlanCard(selected: $selected, prices: prices)
+                .padding(.horizontal, 24)
+
+            footer
+                .padding(.horizontal, 24)
+                .padding(.top, 16)
+
+            if let errorMessage { errorBanner(errorMessage) }
+        }
+        .padding(.bottom, 24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .background(Color.Background.default)
+    }
+
+    // MARK: - Title + subtitle
 
     @ViewBuilder
-    private var planCard: some View {
-        let prices: [PaywallPlan: String] = {
-            var map: [PaywallPlan: String] = [:]
-            for plan in PaywallPlan.allCases {
-                if let p = purchase.displayPrice(for: plan) {
-                    map[plan] = p
-                }
-            }
-            return map
-        }()
-        PlanCard(
-            selected: $selected,
-            prices: prices,
-            trialAvailable: entitlement.trialAvailable
-        )
-    }
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            title
+                .font(.largeTitle.bold())
+                .foregroundStyle(.black)
 
-    // MARK: - CTA
-
-    private var primaryCTA: some View {
-        Button {
-            Task {
-                if await purchase.purchase(selected) {
-                    dismiss()
-                } else if let f = purchase.lastError {
-                    error = description(of: f)
-                }
-            }
-        } label: {
-            Text(ctaText)
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        .disabled(purchase.isPurchasing)
-    }
-
-    private var ctaText: String {
-        if selected == .lifetime {
-            return "Buy lifetime"
-        }
-        if entitlement.trialAvailable {
-            return "Start free trial"
-        }
-        return "Subscribe"
-    }
-
-    private var trustCopy: some View {
-        VStack(spacing: 4) {
-            Text(trustLine)
-                .font(.footnote)
+            Text(subtitle)
+                .font(.body)
                 .foregroundStyle(Color.Text.secondary)
-                .multilineTextAlignment(.center)
-            Text("By continuing you agree to our Terms and Privacy.")
-                .font(.caption2)
-                .foregroundStyle(Color.Text.tertiary)
-                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 
-    private var trustLine: String {
-        if selected == .lifetime {
-            return "One-time purchase. No subscription."
+    @ViewBuilder
+    private var title: some View {
+        if let resource = trigger.limitedResource {
+            (Text("Out of ")
+                .foregroundStyle(.black)
+             + Text(resource.rawValue)
+                .foregroundStyle(Color(red: 1.0, green: 0.616, blue: 0.298))
+            )
+        } else {
+            Text("Lumoria Premium")
         }
-        if entitlement.trialAvailable {
-            return "Free for 14 days, then \(priceTrailer). Cancel anytime."
-        }
-        return "Cancel anytime in Settings."
     }
 
-    private var priceTrailer: String {
-        guard let p = purchase.displayPrice(for: selected) else {
-            return selected == .annual ? "$24.99/year" : "$3.99/month"
+    private var subtitle: String {
+        if let resource = trigger.limitedResource {
+            return "You've reached the limit for free \(resource.rawValue). Upgrade today or invite a friend to Lumoria to create a new one."
         }
-        return selected == .annual ? "\(p)/year" : "\(p)/month"
+        return "Upgrade today to Lumoria Premium and enjoy creating tickets to the fullest."
     }
 
-    // MARK: - Restore
+    // MARK: - Feature bullets
 
-    private var restoreLink: some View {
-        Button("Restore purchases") {
-            Task { _ = await purchase.restore() }
+    private var featureList: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            featureRow(symbol: "star",                  text: "All templates across all categories")
+            featureRow(symbol: "checkmark.seal",        text: "Clean exports, no Lumoria mark")
+            featureRow(symbol: "list.bullet.clipboard", text: "Import tickets from Wallet")
+            featureRow(symbol: "map",                   text: "Map, Timeline, Widgets…")
+            featureRow(symbol: "printer",               text: "Print-ready quality")
         }
-        .font(.footnote)
-        .foregroundStyle(.tint)
+    }
+
+    private func featureRow(symbol: String, text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Image(systemName: symbol)
+                .font(.headline)
+                .foregroundStyle(.black)
+                .frame(width: 32, height: 32)
+            Text(text)
+                .font(.headline)
+                .foregroundStyle(.black)
+        }
+    }
+
+    // MARK: - Footer
+
+    private var footer: some View {
+        VStack(spacing: 12) {
+            if trialAvailable && selected == .monthly {
+                trustLine
+            }
+            ctaRow
+        }
+    }
+
+    private var trustLine: some View {
+        Text("14-day free trial, then \(monthlyPriceLabel)/month")
+            .font(.footnote)
+            .foregroundStyle(Color.Text.secondary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    @ViewBuilder
+    private var ctaRow: some View {
+        if trigger.isLimitReached {
+            HStack(spacing: 12) {
+                purchaseButton
+                inviteButton
+            }
+        } else {
+            purchaseButton
+        }
+    }
+
+    private var purchaseButton: some View {
+        Button {
+            onPurchase()
+        } label: {
+            Text(purchaseButtonLabel)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 60)
+                .background(Color.black, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .disabled(isPurchasing)
+    }
+
+    private var purchaseButtonLabel: String {
+        if selected == .monthly && trialAvailable {
+            return "Try for 14 days"
+        }
+        return "Upgrade now"
+    }
+
+    private var inviteButton: some View {
+        Button {
+            onInvite()
+        } label: {
+            Text("Invite a friend")
+                .font(.headline)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .frame(height: 60)
+                .background(Color(red: 0.929, green: 0.929, blue: 0.929),
+                            in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
     }
 
     private func errorBanner(_ msg: String) -> some View {
@@ -155,14 +293,54 @@ struct PaywallView: View {
             .font(.footnote)
             .foregroundStyle(Color.Feedback.Danger.icon)
             .multilineTextAlignment(.center)
-    }
-
-    private func description(of failure: PurchaseService.Failure) -> String {
-        switch failure {
-        case .notSignedIn:        return "You need to be signed in."
-        case .verificationFailed: return "Couldn't verify the purchase. Try again."
-        case .rpcFailed(let m):   return "Server didn't accept the purchase. (\(m))"
-        case .storeKitError(let m): return m
-        }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
     }
 }
+
+// MARK: - Previews (lightweight — render PaywallContent directly)
+
+#if DEBUG
+
+private struct PaywallPreview: View {
+    let trigger: PaywallTrigger
+    let trialAvailable: Bool
+    @State private var selected: PaywallPlan = .monthly
+
+    var body: some View {
+        PaywallContent(
+            trigger: trigger,
+            selected: $selected,
+            prices: [
+                .monthly:  "$3.99",
+                .annual:   "$24.99",
+                .lifetime: "$59.99",
+            ],
+            trialAvailable: trialAvailable,
+            monthlyPriceLabel: "$3.99",
+            isPurchasing: false,
+            errorMessage: nil,
+            onClose:    { },
+            onPurchase: { },
+            onInvite:   { }
+        )
+    }
+}
+
+#Preview("Default — Lumoria Premium") {
+    PaywallPreview(trigger: .upgradeFromSettings, trialAvailable: false)
+}
+
+#Preview("Out of memories · trial available") {
+    PaywallPreview(trigger: .memoryLimit, trialAvailable: true)
+}
+
+#Preview("Out of memories · trial used") {
+    PaywallPreview(trigger: .memoryLimit, trialAvailable: false)
+}
+
+#Preview("Out of tickets · trial available") {
+    PaywallPreview(trigger: .ticketLimit, trialAvailable: true)
+}
+
+#endif

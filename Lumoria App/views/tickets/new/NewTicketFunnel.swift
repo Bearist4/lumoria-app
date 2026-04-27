@@ -71,7 +71,7 @@ enum TicketCategory: String, CaseIterable, Identifiable, Codable {
         case .plane:         return [.afterglow, .studio, .terminal, .heritage, .prism]
         case .train:         return [.express, .orient, .night, .post, .glow]
         case .concert:       return [.concert]
-        case .publicTransit: return [.underground, .sign, .infoscreen]
+        case .publicTransit: return [.underground, .sign, .infoscreen, .grid]
         default:             return []
         }
     }
@@ -465,7 +465,7 @@ struct UndergroundFormInput: Codable {
         let dateString = Self.dateFormatter.string(from: date)
         return plannedLegs.enumerated().map { idx, leg in
             // Ticket numbers are auto-suffixed per leg so the user
-            // can see them as "TRA-…-1", "-2"… without retyping.
+            // can see them as "ABC123XYZ-1", "-2"… without retyping.
             let baseTicket = ticketNumber
                 .trimmingCharacters(in: .whitespaces)
             let ticketNum = plannedLegs.count > 1 && !baseTicket.isEmpty
@@ -474,7 +474,11 @@ struct UndergroundFormInput: Codable {
             return UndergroundTicket(
                 lineShortName: leg.line.shortName,
                 lineName: leg.line.longName,
-                companyName: operatorName,
+                // Multi-operator cities (e.g. Tokyo: Metro + Toei) carry
+                // a per-line operator on the catalog. Prefer that so a
+                // Marunouchi ticket reads "Tokyo Metro" even when the
+                // journey also touches a Toei line.
+                companyName: leg.line.operator ?? operatorName,
                 lineColor: leg.line.color,
                 originStation: leg.origin.name,
                 destinationStation: leg.destination.name,
@@ -635,7 +639,7 @@ final class NewTicketFunnel: ObservableObject {
             case .night:        return trainForm.isNightValid
             case .post, .glow:  return trainForm.isPostGlowValid
             case .concert:      return eventForm.isConcertValid
-            case .underground, .sign, .infoscreen:
+            case .underground, .sign, .infoscreen, .grid:
                 return undergroundForm.isValid
             default:            return form.isMinimallyValid
             }
@@ -673,12 +677,14 @@ final class NewTicketFunnel: ObservableObject {
 
     /// Fills blank optional fields with template-appropriate placeholder
     /// values and records the labels in `autoFilledFields`. Required
-    /// fields are never touched (they're gated by `canAdvance`). Skipped
-    /// during edit so a user clearing a field by intent isn't silently
-    /// overwritten.
+    /// fields are never touched (they're gated by `canAdvance`). Runs on
+    /// both create (from `advance()`) and edit (from `updateExisting`),
+    /// so a user who clears Fare / Zones / Ticket on an existing ticket
+    /// gets the city-appropriate placeholders back instead of an empty
+    /// dash on the rendered ticket.
     private func applyAestheticDefaults() {
         autoFilledFields = []
-        guard !isEditing, let template else { return }
+        guard let template else { return }
         let trim: (String) -> String = { $0.trimmingCharacters(in: .whitespaces) }
 
         switch template {
@@ -699,9 +705,9 @@ final class NewTicketFunnel: ObservableObject {
             // here when a template gains new aesthetic placeholders.
             break
 
-        case .underground, .sign, .infoscreen:
+        case .underground, .sign, .infoscreen, .grid:
             if trim(undergroundForm.ticketNumber).isEmpty {
-                undergroundForm.ticketNumber = Self.randomRef(prefix: "TRA")
+                undergroundForm.ticketNumber = Self.randomTransitTicketNumber()
                 autoFilledFields.append(String(localized: "Ticket number"))
             }
             if trim(undergroundForm.zones).isEmpty {
@@ -709,7 +715,9 @@ final class NewTicketFunnel: ObservableObject {
                 autoFilledFields.append(String(localized: "Zones"))
             }
             if trim(undergroundForm.fare).isEmpty {
-                undergroundForm.fare = "—"
+                undergroundForm.fare = Self.defaultFare(
+                    for: undergroundForm.selectedCity
+                )
                 autoFilledFields.append(String(localized: "Fare"))
             }
         }
@@ -722,6 +730,37 @@ final class NewTicketFunnel: ObservableObject {
         let year = Calendar.current.component(.year, from: Date())
         let suffix = Int.random(in: 10_000...999_999)
         return "\(prefix)-\(year)-\(String(format: "%06d", suffix))"
+    }
+
+    /// Pure `[A-Z0-9]` reference for transit tickets — operator-issued
+    /// tags rarely embed dates / agency prefixes the way concert tickets
+    /// do, so we drop them here for a more authentic look.
+    private static func randomTransitTicketNumber(length: Int = 10) -> String {
+        let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        return String((0..<length).compactMap { _ in chars.randomElement() })
+    }
+
+    /// Hard-coded single-ride fares per supported city, formatted in the
+    /// local currency. Approximate snapshot at time of writing — refresh
+    /// when operators raise prices. Used as the auto-filled placeholder
+    /// when the user leaves the Fare field empty.
+    private static func defaultFare(for city: TransitCatalogLoader.City?) -> String {
+        guard let city else { return "—" }
+        switch city {
+        case .vienna:    return "2.40 €"
+        case .newYork:   return "$2.90"
+        case .paris:     return "2.15 €"
+        case .nantes:    return "1.80 €"
+        case .lyon:      return "2.10 €"
+        case .bordeaux:  return "1.80 €"
+        case .marseille: return "2.10 €"
+        case .zurich:    return "2.80 CHF"
+        case .berlin:    return "3.80 €"
+        case .london:    return "£2.80"
+        case .stockholm: return "42 kr"
+        case .tokyo:     return "¥180"
+        case .melbourne: return "A$5.50"
+        }
     }
 
     func goBack() {
@@ -1068,6 +1107,8 @@ final class NewTicketFunnel: ObservableObject {
             return undergroundForm.legPayloads.first.map(TicketPayload.sign)
         case .infoscreen:
             return undergroundForm.legPayloads.first.map(TicketPayload.infoscreen)
+        case .grid:
+            return undergroundForm.legPayloads.first.map(TicketPayload.grid)
         }
     }
 
@@ -1081,6 +1122,7 @@ final class NewTicketFunnel: ObservableObject {
         case .underground: return .underground(ticket)
         case .sign:        return .sign(ticket)
         case .infoscreen:  return .infoscreen(ticket)
+        case .grid:        return .grid(ticket)
         default:           return nil
         }
     }
@@ -1108,7 +1150,7 @@ final class NewTicketFunnel: ObservableObject {
         // count on the memory map. All three template kinds
         // (signal / sign / infoscreen) share the same leg payload,
         // differing only in which `TicketPayload` case they wrap.
-        if template == .underground || template == .sign || template == .infoscreen {
+        if template == .underground || template == .sign || template == .infoscreen || template == .grid {
             await createUndergroundTickets(using: store)
             return
         }
@@ -1158,6 +1200,15 @@ final class NewTicketFunnel: ObservableObject {
         let activeTemplate = template ?? .underground
         let styleId = selectedStyleId ?? activeTemplate.defaultStyle.id
 
+        // Collect locally first, then commit all at once. Appending leg-
+        // by-leg to `createdTickets` causes the SuccessStep to remount
+        // its preview from `TicketSaveRevealView` (count == 1) to
+        // `TicketStackCarousel` (count > 1) mid-persist, so the carousel
+        // snapshots a partial array and never prints later legs. One
+        // atomic assignment means the carousel sees the full set on
+        // first render.
+        var collected: [Ticket] = []
+
         for (idx, payload) in payloads.enumerated() {
             let pair = idx < locations.count ? locations[idx] : nil
             guard let wrapped = Self.transitPayload(
@@ -1179,11 +1230,11 @@ final class NewTicketFunnel: ObservableObject {
                     ?? String(localized: "Couldn’t save ticket \(idx + 1) of \(payloads.count).")
                 return
             }
-            createdTickets.append(ticket)
-            if createdTicket == nil {
-                createdTicket = ticket
-            }
+            collected.append(ticket)
         }
+
+        createdTickets = collected
+        createdTicket = collected.first
         errorMessage = nil
     }
 
@@ -1210,6 +1261,10 @@ final class NewTicketFunnel: ObservableObject {
     /// so the save + loader + refresh can run on the host view, not
     /// inside the (possibly already-dismissed) funnel.
     func buildUpdatedTicket() -> Ticket? {
+        // Edit flow doesn't go through `advance()`, so re-fill cleared
+        // optional fields here — otherwise a user who blanked Fare /
+        // Zones / Ticket number would persist with empty meta cells.
+        applyAestheticDefaults()
         guard let payload = buildPayload(),
               let original = editingOriginal else { return nil }
         let (origin, destination) = resolveLocations()
@@ -1237,7 +1292,7 @@ final class NewTicketFunnel: ObservableObject {
             return (trainForm.originStationLocation, trainForm.destinationStationLocation)
         case .concert:
             return (eventForm.venueLocation, nil)
-        case .underground, .sign, .infoscreen:
+        case .underground, .sign, .infoscreen, .grid:
             // For multi-leg journeys, subsequent legs' stations sit
             // inside `legPayloads`. The "primary" leg (first) is what
             // the top-level ticket represents.
@@ -1445,16 +1500,51 @@ final class NewTicketFunnel: ObservableObject {
             eventForm.ticketNumber = t.ticketNumber
             eventForm.venueLocation = ticket.originLocation
 
-        case .underground(let t), .sign(let t), .infoscreen(let t):
+        case .underground(let t), .sign(let t), .infoscreen(let t), .grid(let t):
             undergroundForm.originStation = ticket.originLocation
             undergroundForm.destinationStation = ticket.destinationLocation
             undergroundForm.date = Self.shortDateFormatter.date(from: t.date) ?? Date()
             undergroundForm.ticketNumber = t.ticketNumber
             undergroundForm.zones = t.zones
             undergroundForm.fare = t.fare
+
+            // Pre-seed `selectedCity` from the station's city so the
+            // city dropdown renders populated on edit. `replan()` will
+            // refine `catalogCity` from the loaded catalog and we
+            // mirror that back below.
+            if undergroundForm.selectedCity == nil,
+               let hint = ticket.originLocation?.city
+                ?? ticket.destinationLocation?.city {
+                undergroundForm.selectedCity =
+                    TransitCatalogLoader.City.allCases.first {
+                        TransitCatalogLoader.catalog(for: $0)?
+                            .city.caseInsensitiveCompare(hint) == .orderedSame
+                    }
+            }
+
             // Re-plan on prefill so the form shows the line chosen by
             // the original ticket even if the catalog has moved on.
             undergroundForm.replan()
+
+            // Mirror the resolved catalog city back so the dropdown
+            // reflects what the router actually used.
+            if undergroundForm.selectedCity == nil,
+               let resolved = undergroundForm.catalogCity {
+                undergroundForm.selectedCity = resolved
+            }
+
+            // `replan()` only auto-picks when exactly one route exists.
+            // On edit, fall back to the route whose first leg uses the
+            // saved line short-name; default to index 0 otherwise so
+            // the dropdown isn't left empty.
+            if undergroundForm.selectedRouteIndex == nil,
+               !undergroundForm.plannedRoutes.isEmpty {
+                let savedLine = t.lineShortName
+                let match = undergroundForm.plannedRoutes.firstIndex { route in
+                    route.contains { $0.line.shortName == savedLine }
+                }
+                undergroundForm.selectedRouteIndex = match ?? 0
+            }
         }
 
         step = .form
@@ -1632,7 +1722,7 @@ final class NewTicketFunnel: ObservableObject {
                 showTime: "20:30",
                 ticketNumber: "CON-2026-000142"
             ))
-        case .underground, .sign, .infoscreen:
+        case .underground, .sign, .infoscreen, .grid:
             let demo = UndergroundTicket(
                 lineShortName: "U1",
                 lineName: "U1 Leopoldau – Reumannplatz",
@@ -1642,13 +1732,14 @@ final class NewTicketFunnel: ObservableObject {
                 destinationStation: "Karlsplatz",
                 stopsCount: 1,
                 date: "15 Jul 2026",
-                ticketNumber: "TRA-2026-000142",
+                ticketNumber: "K7Q3X8M2WL",
                 zones: "All zones",
                 fare: "2.50 €"
             )
             switch template {
             case .sign:       return .sign(demo)
             case .infoscreen: return .infoscreen(demo)
+            case .grid:       return .grid(demo)
             default:          return .underground(demo)
             }
         }

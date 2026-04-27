@@ -50,14 +50,6 @@ struct NotificationsView: View {
                         )
                     }
 
-                    section(title: "New content") {
-                        toggleRow(
-                            title: "New templates",
-                            subtitle: "When fresh designs land in the app",
-                            isOn: $newTemplates
-                        )
-                    }
-
                 section(title: "Memories") {
                     toggleRow(
                         title: "On this day",

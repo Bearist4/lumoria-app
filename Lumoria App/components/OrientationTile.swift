@@ -42,8 +42,8 @@ struct OrientationTile: View {
     private var title: String {
         if let titleOverride { return titleOverride }
         switch orientation {
-        case .horizontal: return "Landscape"
-        case .vertical:   return "Portrait"
+        case .horizontal: return String(localized: "Landscape")
+        case .vertical:   return String(localized: "Portrait")
         }
     }
 

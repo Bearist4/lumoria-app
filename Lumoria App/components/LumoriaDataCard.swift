@@ -84,8 +84,11 @@ struct LumoriaDataCard: View {
             Text(primaryValue)
                 .font(.largeTitle.bold()).fontDesign(.rounded)
                 .foregroundStyle(accentColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
+                // Wrap long values (e.g. category names like "Public
+                // Transport") onto a second line instead of truncating.
+                .lineLimit(2)
+                .minimumScaleFactor(0.7)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let suffix = valueSuffix {
                 Text(suffix)

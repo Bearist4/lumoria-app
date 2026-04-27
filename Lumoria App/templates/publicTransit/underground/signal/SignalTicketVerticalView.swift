@@ -92,10 +92,10 @@ struct SignalTicketVerticalView: View {
                     )
 
                 Text(ticket.originStation)
-                    .font(.system(size: 22 * s, weight: .bold, design: .rounded))
+                    .font(.system(size: heroStationFont * s, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.7)
                     .frame(width: 190 * s, alignment: .leading)
                     .padding(.leading, 16 * s)
                     .padding(.top, 130 * s)
@@ -124,10 +124,10 @@ struct SignalTicketVerticalView: View {
                     )
 
                 Text(ticket.destinationStation)
-                    .font(.system(size: 22 * s, weight: .bold, design: .rounded))
+                    .font(.system(size: heroStationFont * s, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.5)
+                    .minimumScaleFactor(0.7)
                     .frame(maxWidth: 228 * s, alignment: .trailing)
                     .padding(.trailing, 16 * s)
                     .padding(.top, 260 * s)
@@ -176,6 +176,14 @@ struct SignalTicketVerticalView: View {
                 .padding(.horizontal, 4 * s)
         }
         .frame(width: 56 * s, height: 56 * s)
+    }
+
+    /// Shared FROM / TO font size — same idea as SignalTicketView.
+    private var heroStationFont: CGFloat {
+        transitStationFontSize(
+            origin: ticket.originStation,
+            destination: ticket.destinationStation
+        )
     }
 
     private var bulletFontSize: CGFloat {
@@ -295,16 +303,16 @@ struct SignalTicketVerticalView: View {
         guard let raw = ticket.mode,
               let mode = TransitMode(rawValue: raw)
         else {
-            return "TRANSIT"
+            return String(localized: "TRANSIT")
         }
         switch mode {
-        case .subway:                 return "SUBWAY"
-        case .tram, .cableTram:       return "TRAM"
-        case .bus, .trolleybus:       return "BUS"
-        case .rail:                   return "TRAIN"
-        case .ferry:                  return "FERRY"
-        case .aerialLift, .funicular: return "CABLE"
-        case .monorail:               return "MONORAIL"
+        case .subway:                 return String(localized: "SUBWAY")
+        case .tram, .cableTram:       return String(localized: "TRAM")
+        case .bus, .trolleybus:       return String(localized: "BUS")
+        case .rail:                   return String(localized: "TRAIN")
+        case .ferry:                  return String(localized: "FERRY")
+        case .aerialLift, .funicular: return String(localized: "CABLE")
+        case .monorail:               return String(localized: "MONORAIL")
         }
     }
 }

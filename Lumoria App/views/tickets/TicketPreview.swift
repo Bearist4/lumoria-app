@@ -79,6 +79,9 @@ struct TicketPreview: View {
 
         case (.infoscreen(let t), .horizontal):   InfoscreenTicketView(ticket: t)
         case (.infoscreen(let t), .vertical):     InfoscreenTicketVerticalView(ticket: t)
+
+        case (.grid(let t), .horizontal):         GridTicketView(ticket: t)
+        case (.grid(let t), .vertical):           GridTicketVerticalView(ticket: t)
         }
     }
 }

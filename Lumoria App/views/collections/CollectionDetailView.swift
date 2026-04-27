@@ -239,7 +239,7 @@ struct MemoryDetailView: View {
             Text(currentMemory.name)
                 .font(.title.bold())
                 .lineSpacing(6)
-                .foregroundStyle(Color.Text.OnColor.black)
+                .foregroundStyle(Color.Text.primary)
                 .lineLimit(2)
                 .truncationMode(.tail)
         }

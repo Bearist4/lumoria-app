@@ -3,7 +3,8 @@
 //  Lumoria App
 //
 //  Teardrop pin used to plot tickets on a map. A 47pt circle with a 4pt
-//  white ring and a white drop tail.
+//  background-colored ring and matching drop tail (white in light mode,
+//  near-black in dark mode via `Color.Background.default`).
 //
 //  Two modes:
 //    • Single ticket — solid category color + SF Symbol glyph.
@@ -55,7 +56,7 @@ struct TicketMapPin: View {
         }
         .frame(width: circleSize, height: circleSize)
         .overlay(
-            Circle().stroke(Color.white, lineWidth: borderWidth)
+            Circle().stroke(Color.Background.default, lineWidth: borderWidth)
         )
     }
 
@@ -115,9 +116,9 @@ struct TicketMapPin: View {
 
     private var tail: some View {
         DownTriangle()
-            .fill(Color.white)
+            .fill(Color.Background.default)
             .frame(width: tailSize, height: tailSize)
-            .zIndex(-1) // sits behind the circle's white ring
+            .zIndex(-1) // sits behind the circle's ring
     }
 }
 

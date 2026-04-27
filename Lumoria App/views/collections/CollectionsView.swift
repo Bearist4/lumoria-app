@@ -14,6 +14,7 @@ struct MemoriesView: View {
     @EnvironmentObject private var notificationsStore: NotificationsStore
     @EnvironmentObject private var pushService: PushNotificationService
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @EnvironmentObject private var widgetRouter: WidgetDeepLinkRouter
     @Environment(EntitlementStore.self) private var entitlement
     @Environment(Paywall.PresentationState.self) private var paywallState
     @State private var showNewMemory = false
@@ -50,7 +51,8 @@ struct MemoriesView: View {
                                         state: .normal,
                                         emoji: m.emoji,
                                         filledCount: min(tickets.count, 5),
-                                        colorFamily: m.colorFamily
+                                        colorFamily: m.colorFamily,
+                                        cardSeed: UInt64(bitPattern: Int64(m.id.hashValue))
                                     ) { idx in
                                         if idx < tickets.count {
                                             MemoryCardSlot.frameForSlot(
@@ -100,6 +102,12 @@ struct MemoriesView: View {
                 MemoryDetailView(memory: m)
             }
             .task { await store.load() }
+            .onChange(of: widgetRouter.pendingMemoryId, initial: true) { _, id in
+                tryConsumePendingWidgetMemory(id: id)
+            }
+            .onChange(of: store.memories) { _, _ in
+                tryConsumePendingWidgetMemory(id: widgetRouter.pendingMemoryId)
+            }
             .sheet(isPresented: $showNewMemory) {
                 NewMemoryView { name, color, emoji, startDate, endDate in
                     guard let color else { return }
@@ -174,6 +182,23 @@ struct MemoriesView: View {
                 )
             )
         }
+    }
+
+    // MARK: - Widget deep link
+
+    /// Pushes the memory referenced by a widget tap onto the navigation
+    /// stack. No-op until both the id and the loaded memory are present —
+    /// caller invokes this from both `onChange` paths so cold launch (id
+    /// arrives before store load) and warm tap (load already done) both
+    /// land on detail. Resets path first so user always sees detail at
+    /// the top, regardless of prior navigation state.
+    private func tryConsumePendingWidgetMemory(id: UUID?) {
+        guard let id,
+              let memory = store.memories.first(where: { $0.id == id })
+        else { return }
+        navigationPath = NavigationPath()
+        navigationPath.append(memory)
+        widgetRouter.pendingMemoryId = nil
     }
 
     // MARK: - Onboarding resume routing

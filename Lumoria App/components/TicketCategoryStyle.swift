@@ -39,9 +39,9 @@ enum TicketCategoryStyle: String, CaseIterable, Identifiable {
     /// Background color of the pill / pin — palette 300 weight.
     var backgroundColor: Color { Color("Colors/\(colorFamily)/300") }
 
-    /// Text/icon color on top of `backgroundColor`. Yellow is bright enough
-    /// to need black; the others take white.
-    var onColor: Color { self == .train ? .black : .white }
+    /// Text/icon color on top of `backgroundColor`. Resolves to ~white in
+    /// light mode and ~black in dark mode via the inverse-95 opacity token.
+    var onColor: Color { Color("Colors/Opacity/White/inverse/95") }
 
     /// SF Symbol name for the category glyph.
     var systemImage: String {
@@ -89,7 +89,7 @@ extension TicketTemplateKind {
             return .train
         case .concert:
             return .concert
-        case .underground, .sign, .infoscreen:
+        case .underground, .sign, .infoscreen, .grid:
             return .publicTransit
         }
     }

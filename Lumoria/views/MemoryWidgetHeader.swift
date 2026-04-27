@@ -19,7 +19,7 @@ struct MemoryWidgetHeader: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(memory.name)
                 .font(.title2).bold()
-                .foregroundStyle(.black)
+                .foregroundStyle(Color.Text.primary)
                 .lineLimit(1)
                 .truncationMode(.tail)
 

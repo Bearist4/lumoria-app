@@ -147,7 +147,7 @@ struct MemoryWidgetMediumView: View {
 
     private var statsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            statText("\(memory.kmTotal ?? 0) km.")
+            statText(formattedDistance(km: memory.kmTotal ?? 0))
                 .padding(.top, 19)
                 .padding(.leading, 16)
 
@@ -177,5 +177,18 @@ struct MemoryWidgetMediumView: View {
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
+    }
+
+    /// Formats the journey's total distance using the user's
+    /// `map.distanceUnit` pick (App Group default written by Settings).
+    /// Defaults to kilometres when nothing has been chosen.
+    private func formattedDistance(km: Int) -> String {
+        let raw = WidgetSharedContainer.sharedDefaults
+            .string(forKey: WidgetSharedContainer.DefaultsKey.distanceUnit) ?? "km"
+        if raw == "mi" {
+            let miles = Int((Double(km) * 0.621371).rounded())
+            return "\(miles) mi."
+        }
+        return "\(km) km."
     }
 }

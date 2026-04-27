@@ -19,6 +19,7 @@ struct ProfileView: View {
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memoriesStore: MemoriesStore
     @EnvironmentObject private var profileStore: ProfileStore
+    @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     // Draft values while editing.
     @State private var draftName: String = ""
@@ -419,6 +420,10 @@ struct ProfileView: View {
                     showMenu = false
                     beginEdit()
                 },
+                LumoriaMenuItem(title: "Restart onboarding") {
+                    showMenu = false
+                    Task { await restartOnboarding() }
+                },
                 LumoriaMenuItem(title: "Delete my account", kind: .destructive) {
                     showMenu = false
                     showDeleteConfirm = true
@@ -446,6 +451,18 @@ struct ProfileView: View {
         avatarPickerItem = nil
         saveError = nil
         withAnimation(.easeInOut(duration: 0.2)) { isEditing = false }
+    }
+
+    // MARK: - Restart onboarding
+
+    /// Flips the user's `show_onboarding` flag back to `true` and resets
+    /// `onboarding_step` to `welcome` in Supabase via the coordinator,
+    /// which also surfaces the Welcome sheet. Dismisses Profile so
+    /// ContentView's tab-switch (driven by `showWelcome`) lands the
+    /// user back on Memories.
+    private func restartOnboarding() async {
+        await onboardingCoordinator.resetForReplay()
+        dismiss()
     }
 
     // MARK: - Save

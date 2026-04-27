@@ -29,6 +29,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
     case underground
     case sign
     case infoscreen
+    case grid
 
     var id: String { rawValue }
 
@@ -49,6 +50,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .underground: return "Signal"
         case .sign:        return "Sign"
         case .infoscreen:  return "Infoscreen"
+        case .grid:        return "Grid"
         }
     }
 
@@ -58,7 +60,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .express, .orient, .night, .post, .glow:            return String(localized: "Train ticket")
         case .afterglow, .studio, .heritage, .terminal, .prism:  return String(localized: "Plane ticket")
         case .concert:                                              return String(localized: "Concert ticket")
-        case .underground, .sign, .infoscreen:                   return String(localized: "Public transport ticket")
+        case .underground, .sign, .infoscreen, .grid:           return String(localized: "Public transport ticket")
         }
     }
 
@@ -101,7 +103,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
                 .init(systemImage: "calendar.badge.clock", label: "Date, doors & showtime"),
                 .init(systemImage: "ticket.fill",          label: "Ticket number"),
             ]
-        case .underground, .sign, .infoscreen:
+        case .underground, .sign, .infoscreen, .grid:
             return [
                 .init(systemImage: "tram.fill",            label: "Origin & destination stations"),
                 .init(systemImage: "point.topleft.down.to.point.bottomright.curvepath",
@@ -236,6 +238,7 @@ enum TicketPayload: Encodable {
     case underground(UndergroundTicket)
     case sign(UndergroundTicket)
     case infoscreen(UndergroundTicket)
+    case grid(UndergroundTicket)
 
     func encode(to encoder: Encoder) throws {
         switch self {
@@ -253,6 +256,7 @@ enum TicketPayload: Encodable {
         case .underground(let v): try v.encode(to: encoder)
         case .sign(let v):        try v.encode(to: encoder)
         case .infoscreen(let v):  try v.encode(to: encoder)
+        case .grid(let v):        try v.encode(to: encoder)
         }
     }
 
@@ -272,6 +276,7 @@ enum TicketPayload: Encodable {
         case .underground: return .underground
         case .sign:        return .sign
         case .infoscreen:  return .infoscreen
+        case .grid:        return .grid
         }
     }
 }
@@ -322,6 +327,13 @@ struct Ticket: Identifiable, Hashable {
         self.styleId = styleId
     }
 
-    static func == (lhs: Ticket, rhs: Ticket) -> Bool { lhs.id == rhs.id }
+    /// Equality includes `updatedAt` so SwiftUI's view diff re-renders
+    /// `TicketPreview` (and any wrapping cards) when the payload changes
+    /// on save — id-only equality made edits invisible until a full view
+    /// rebuild. Hash stays id-only; the resulting collisions on edit are
+    /// fine since equality is checked separately by Set / Dictionary.
+    static func == (lhs: Ticket, rhs: Ticket) -> Bool {
+        lhs.id == rhs.id && lhs.updatedAt == rhs.updatedAt
+    }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
 }

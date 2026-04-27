@@ -2,57 +2,26 @@
 //  MonthTag.swift
 //  Lumoria App
 //
-//  Small chip that sits inside a PlanCard tile.
-//  Figma: 968-17993
+//  Yellow capsule that sits inside the annual PlanCard tile.
+//  Figma: 968:17993 (yellow/300 #FDDC51, 16pt SF Pro Semibold black,
+//  4pt vertical / 16pt horizontal padding, fully rounded).
 //
 
 import SwiftUI
 
 struct MonthTag: View {
-    enum Kind: Equatable {
-        case trial(_ text: String)        // e.g. "14 days free"
-        case bestValue(_ text: String)    // e.g. "Best value"
-        case oneTime(_ text: String)      // e.g. "One-time"
-    }
-
-    let kind: Kind
+    let text: String
 
     var body: some View {
         Text(text)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(foreground)
-            .padding(.horizontal, 8)
+            .font(.callout.weight(.semibold))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 16)
             .padding(.vertical, 4)
-            .background(background, in: Capsule())
-    }
-
-    private var text: String {
-        switch kind {
-        case .trial(let t), .bestValue(let t), .oneTime(let t): return t
-        }
-    }
-
-    private var foreground: Color {
-        switch kind {
-        case .trial:     return Color.white
-        case .bestValue: return Color.white
-        case .oneTime:   return Color.Text.primary
-        }
-    }
-
-    private var background: Color {
-        switch kind {
-        case .trial:     return Color.accentColor
-        case .bestValue: return Color.green
-        case .oneTime:   return Color.gray.opacity(0.2)
-        }
+            .background(Color(red: 0.992, green: 0.863, blue: 0.318), in: Capsule())
     }
 }
 
 #Preview {
-    VStack(spacing: 8) {
-        MonthTag(kind: .trial("14 days free"))
-        MonthTag(kind: .bestValue("Best value"))
-        MonthTag(kind: .oneTime("One-time"))
-    }
+    MonthTag(text: "2 months free")
 }

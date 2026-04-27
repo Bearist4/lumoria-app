@@ -140,6 +140,10 @@ struct NewUndergroundFormStep: View {
         case .marseille: return "Marseille"
         case .zurich:    return "Zürich"
         case .berlin:    return "Berlin"
+        case .london:    return "London"
+        case .stockholm: return "Stockholm"
+        case .tokyo:     return "Tokyo"
+        case .melbourne: return "Melbourne"
         }
     }
 
@@ -149,6 +153,10 @@ struct NewUndergroundFormStep: View {
         case .newYork:   return "🇺🇸"
         case .zurich:    return "🇨🇭"
         case .berlin:    return "🇩🇪"
+        case .london:    return "🇬🇧"
+        case .stockholm: return "🇸🇪"
+        case .tokyo:     return "🇯🇵"
+        case .melbourne: return "🇦🇺"
         case .paris,
              .nantes,
              .lyon,

@@ -12,6 +12,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 /// Max height the open dropdown list grows to before it starts
 /// scrolling. ~5 rows at 56pt. Defined at module scope because Swift
@@ -51,10 +52,22 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                         list
                             .frame(maxWidth: .infinity)
                             .offset(y: 54)
+                            // Fade the whole subtree as one opacity
+                            // layer — without an explicit transition,
+                            // SwiftUI animates the background and the
+                            // rows separately and the close looks
+                            // staggered (background drops first, rows
+                            // linger).
+                            .transition(.opacity)
                     }
                 }
-            if let assistiveText, !isOpen {
+            if let assistiveText {
+                // Kept in layout when the menu is open so siblings below
+                // (other form fields) don't jump up as the caption
+                // disappears. Hidden visually because the menu overlay
+                // sits on top of it anyway.
                 assistive(assistiveText)
+                    .opacity(isOpen ? 0 : 1)
             }
         }
         // Raise the whole dropdown above its parent VStack siblings
@@ -63,7 +76,10 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
         // which would otherwise hide the list behind whatever sits
         // below this dropdown — cf. UndergroundFormStep where two
         // LumoriaSubwayStationFields sit beneath the city dropdown).
-        .zIndex(isOpen ? 1 : 0)
+        // 10 (not 1) so the menu wins even against a focused
+        // station field that's also sitting at zIndex 1 while its
+        // suggestions are showing.
+        .zIndex(isOpen ? 10 : 0)
     }
 
     // MARK: Label
@@ -85,6 +101,14 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
 
     private var field: some View {
         Button {
+            // Resign any focused responder (e.g. a station search
+            // TextField sitting beneath this dropdown) before opening.
+            // Otherwise the focused field's overlay keeps its raised
+            // zIndex and the menu opens behind it.
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil, from: nil, for: nil
+            )
             withAnimation(.easeInOut(duration: 0.15)) { isOpen.toggle() }
         } label: {
             HStack(spacing: 8) {
