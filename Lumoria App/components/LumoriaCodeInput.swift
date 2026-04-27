@@ -2,6 +2,10 @@
 //  LumoriaCodeInput.swift
 //  Lumoria App
 //
+//  6-digit OTP-style numeric input. Per Figma node 1983:128613 — six
+//  equal-width cells, 50pt tall, soft border + low-alpha fill, SF Pro
+//  Rounded Semibold 20 digits, "0" tertiary-text placeholder when empty.
+//
 
 import SwiftUI
 
@@ -19,14 +23,14 @@ struct LumoriaCodeInput: View {
                 .textContentType(.oneTimeCode)
                 .focused($focused)
                 .opacity(0.001)
-                .frame(maxWidth: .infinity, maxHeight: 64)
+                .frame(maxWidth: .infinity, maxHeight: 50)
                 .onChange(of: code) { _, new in
                     let cleaned = Self.sanitize(new)
                     if cleaned != new { code = cleaned }
                     if Self.isComplete(cleaned) { onComplete?(cleaned) }
                 }
 
-            HStack(spacing: 10) {
+            HStack(spacing: 4) {
                 ForEach(0..<length, id: \.self) { i in
                     digitCell(at: i)
                 }
@@ -42,16 +46,23 @@ struct LumoriaCodeInput: View {
         let chars = Array(code)
         let char: Character? = index < chars.count ? chars[index] : nil
         let isCursor = index == chars.count && focused
+        let isEmpty = char == nil
 
-        return Text(char.map { String($0) } ?? "")
-            .font(.system(size: 28, weight: .semibold, design: .monospaced))
-            .frame(width: 44, height: 56)
-            .background(Color(.systemGray6))
-            .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(isCursor ? Color.accentColor : Color.clear, lineWidth: 2)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+        return ZStack {
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.black.opacity(0.03))
+            RoundedRectangle(cornerRadius: 16)
+                .strokeBorder(
+                    isCursor ? Color.accentColor : Color.black.opacity(0.07),
+                    lineWidth: isCursor ? 2 : 1
+                )
+            Text(isEmpty ? "0" : String(char!))
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .foregroundStyle(isEmpty ? Color(.tertiaryLabel) : Color.primary)
+                .tracking(-0.43)
+        }
+        .frame(maxWidth: .infinity, minHeight: 50, maxHeight: 50)
     }
 
     static func sanitize(_ raw: String) -> String {

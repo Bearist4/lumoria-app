@@ -159,9 +159,10 @@ final class AuthManager: ObservableObject {
         case network
     }
 
-    /// Calls `verify-beta-code`. On success, refreshes `isBetaSubscriber`
-    /// so the UI updates immediately.
-    func redeemBetaCode(email: String, code: String) async throws -> BetaRedemptionOutcome {
+    /// Calls `verify-beta-code`. The server resolves the waitlist email
+    /// from the JWT, so the client only sends the code. On success,
+    /// refreshes `isBetaSubscriber` immediately.
+    func redeemBetaCode(_ code: String) async throws -> BetaRedemptionOutcome {
         struct Resp: Decodable { let outcome: BetaRedemptionOutcome }
 
         do {
@@ -170,7 +171,7 @@ final class AuthManager: ObservableObject {
                 "verify-beta-code",
                 options: FunctionInvokeOptions(
                     headers: ["Authorization": "Bearer \(session.accessToken)"],
-                    body: ["email": email, "code": code]
+                    body: ["code": code]
                 )
             )
             if resp.outcome == .ok {
@@ -183,15 +184,15 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Calls `resend-beta-code`. Server-side is silent on no-match (no
-    /// membership leak), so we don't surface whether the email is on the
-    /// waitlist either.
-    func resendBetaCode(email: String) async {
+    /// Calls `resend-beta-code`. Server uses the JWT email and is silent
+    /// on no-match, so callers get no membership leak.
+    func resendBetaCode() async {
         do {
+            let session = try await supabase.auth.session
             try await supabase.functions.invoke(
                 "resend-beta-code",
                 options: FunctionInvokeOptions(
-                    body: ["email": email]
+                    headers: ["Authorization": "Bearer \(session.accessToken)"]
                 )
             )
         } catch {
