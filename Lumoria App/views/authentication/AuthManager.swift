@@ -44,6 +44,7 @@ final class AuthManager: ObservableObject {
                 if valid, let user = session?.user {
                     provisionDataKey(for: user.id)
                     identifyUser(user)
+                    await autoLinkBetaByEmail()
                     await checkBetaStatus()
                     await claimPendingInviteIfAny()
                 }
@@ -60,6 +61,7 @@ final class AuthManager: ObservableObject {
                         ))
                     }
                     identifyUser(user)
+                    await autoLinkBetaByEmail()
                     await checkBetaStatus()
                     await claimPendingInviteIfAny()
                 }
@@ -113,6 +115,78 @@ final class AuthManager: ObservableObject {
             isBetaSubscriber = !records.isEmpty
         } catch {
             print("[AuthManager] Beta status check failed: \(error)")
+        }
+    }
+
+    /// Asks Postgres to link the calling auth user to a waitlist row whose
+    /// email matches `auth.users.email` exactly. Idempotent: returns false
+    /// when there is no match or the row is already linked. Silent on
+    /// error so a transient failure doesn't block the redemption screen
+    /// path — the user can still enter a code manually.
+    @discardableResult
+    private func autoLinkBetaByEmail() async -> Bool {
+        do {
+            let linked: Bool = try await supabase
+                .rpc("link_beta_by_email")
+                .execute()
+                .value
+            return linked
+        } catch {
+            print("[AuthManager] auto-link failed: \(error)")
+            return false
+        }
+    }
+
+    enum BetaRedemptionOutcome: String, Decodable {
+        case ok
+        case rateLimited = "rate_limited"
+        case notFound = "not_found"
+        case expired
+        case wrongCode = "wrong_code"
+        case alreadyClaimed = "already_claimed"
+    }
+
+    enum BetaRedemptionError: Error {
+        case network
+    }
+
+    /// Calls `verify-beta-code`. On success, refreshes `isBetaSubscriber`
+    /// so the UI updates immediately.
+    func redeemBetaCode(email: String, code: String) async throws -> BetaRedemptionOutcome {
+        struct Resp: Decodable { let outcome: BetaRedemptionOutcome }
+
+        do {
+            let session = try await supabase.auth.session
+            let resp: Resp = try await supabase.functions.invoke(
+                "verify-beta-code",
+                options: FunctionInvokeOptions(
+                    headers: ["Authorization": "Bearer \(session.accessToken)"],
+                    body: ["email": email, "code": code]
+                )
+            )
+            if resp.outcome == .ok {
+                await checkBetaStatus()
+            }
+            return resp.outcome
+        } catch {
+            print("[AuthManager] redeem-beta-code failed: \(error)")
+            throw BetaRedemptionError.network
+        }
+    }
+
+    /// Calls `resend-beta-code`. Server-side is silent on no-match (no
+    /// membership leak), so we don't surface whether the email is on the
+    /// waitlist either.
+    func resendBetaCode(email: String) async {
+        do {
+            try await supabase.functions.invoke(
+                "resend-beta-code",
+                options: FunctionInvokeOptions(
+                    body: ["email": email]
+                )
+            )
+        } catch {
+            print("[AuthManager] resend-beta-code failed: \(error)")
         }
     }
 }
