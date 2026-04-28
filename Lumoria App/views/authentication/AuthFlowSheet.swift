@@ -2,14 +2,26 @@
 //  AuthFlowSheet.swift
 //  Lumoria App
 //
-//  Root content of the floating bottom sheet that morphs through
-//  chooser → email → login or signup. Animation lives here so each
-//  step subview stays presentational.
+//  Two presentations driven by AuthFlowCoordinator:
+//
+//  1. AuthChooserSheetContent — small floating bottom sheet that appears
+//     first (Continue with email + Apple + Google).
+//  2. AuthFlowModalContent — full-height system sheet hosting the email
+//     entry, login, or signup step. The morph (email → login or signup)
+//     happens inside this modal as a content swap; the modal stays
+//     presented across all three states.
+//
+//  LandingView attaches both via separate bindings derived from the
+//  coordinator's step. Tapping Continue with email transitions step from
+//  .chooser to .email, which dismisses the floating sheet and presents
+//  the modal — handled by SwiftUI as the bindings flip.
 //
 
 import SwiftUI
 
-struct AuthFlowSheet: View {
+// MARK: - Floating bottom sheet content (chooser only)
+
+struct AuthChooserSheetContent: View {
     @ObservedObject var coordinator: AuthFlowCoordinator
     @EnvironmentObject private var auth: AuthManager
 
@@ -18,16 +30,80 @@ struct AuthFlowSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-            stepBody
-                .animation(.spring(duration: 0.35), value: coordinator.step)
+            HStack {
+                Spacer()
+                Button {
+                    Analytics.track(.authFlowDismissed(atStep: .chooser))
+                    coordinator.dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(Color.Text.primary)
+                        .frame(width: 44, height: 44)
+                        .background(Color.Background.fieldFill)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
+
+            AuthChooserStepView(
+                onContinueWithEmail: coordinator.continueWithEmail,
+                onApple: signInWithApple,
+                onGoogle: signInWithGoogle,
+                isSocialLoading: isSocialLoading,
+                socialError: socialError
+            )
         }
+    }
+
+    private func signInWithApple() {
+        socialError = nil
+        isSocialLoading = true
+        Task {
+            defer { isSocialLoading = false }
+            do { try await auth.signInWithApple() }
+            catch AppleSignInService.AppleSignInError.canceled { /* silent */ }
+            catch { socialError = error.localizedDescription }
+        }
+    }
+
+    private func signInWithGoogle() {
+        socialError = nil
+        isSocialLoading = true
+        Task {
+            defer { isSocialLoading = false }
+            do { try await auth.signInWithGoogle() }
+            catch GoogleSignInService.GoogleSignInError.canceled { /* silent */ }
+            catch { socialError = error.localizedDescription }
+        }
+    }
+}
+
+// MARK: - Full-height system modal (email/login/signup with morph)
+
+struct AuthFlowModalContent: View {
+    @ObservedObject var coordinator: AuthFlowCoordinator
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            Color.Background.default.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                header
+                stepBody
+                    .animation(.spring(duration: 0.35), value: coordinator.step)
+                Spacer(minLength: 0)
+            }
+        }
+        .presentationDragIndicator(.hidden)
+        .presentationCornerRadius(38)
     }
 
     @ViewBuilder
     private var header: some View {
         HStack {
-            if showsBack {
+            if coordinator.step != .email {
                 Button {
                     Analytics.track(.authFlowBackPressed(fromStep: stepProp))
                     coordinator.back()
@@ -56,21 +132,15 @@ struct AuthFlowSheet: View {
             }
         }
         .padding(.horizontal, 16)
-        .padding(.top, 12)
+        .padding(.top, 10)
     }
 
     @ViewBuilder
     private var stepBody: some View {
         switch coordinator.step {
         case .chooser:
-            AuthChooserStepView(
-                onContinueWithEmail: coordinator.continueWithEmail,
-                onApple: signInWithApple,
-                onGoogle: signInWithGoogle,
-                isSocialLoading: isSocialLoading,
-                socialError: socialError
-            )
-            .transition(.opacity.combined(with: .move(edge: .leading)))
+            // Should not appear here — chooser is a separate presentation.
+            EmptyView()
 
         case .email:
             EmailEntryStepView(
@@ -79,20 +149,25 @@ struct AuthFlowSheet: View {
                 errorMessage: coordinator.errorMessage,
                 onContinue: handleEmailSubmit
             )
-            .transition(.opacity.combined(with: .move(edge: .trailing)))
+            .transition(.asymmetric(
+                insertion: .opacity.combined(with: .move(edge: .leading)),
+                removal: .opacity.combined(with: .move(edge: .leading))
+            ))
 
         case .login(let email):
             InSheetLoginView(email: email, onSuccess: coordinator.dismiss)
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .trailing)),
+                    removal: .opacity.combined(with: .move(edge: .trailing))
+                ))
 
         case .signup(let email):
             InSheetSignupView(email: email, onSuccess: coordinator.dismiss)
-                .transition(.opacity.combined(with: .move(edge: .trailing)))
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .trailing)),
+                    removal: .opacity.combined(with: .move(edge: .trailing))
+                ))
         }
-    }
-
-    private var showsBack: Bool {
-        coordinator.step != .chooser
     }
 
     private var stepProp: AuthFlowStepProp {
@@ -113,37 +188,12 @@ struct AuthFlowSheet: View {
                 case .login: return .exists
                 case .signup: return .does_not_exist
                 case .email:
-                    // Still on email step → either rate-limited or transport error.
-                    // Distinguish via the surfaced error message; the coordinator
-                    // sets the rate-limit string verbatim.
                     let rateLimitMsg = String(localized: "Too many tries — try again in a moment")
                     return coordinator.errorMessage == rateLimitMsg ? .rate_limited : .error
                 case .chooser: return .error
                 }
             }()
             Analytics.track(.authFlowEmailSubmitted(emailDomain: domain, outcome: outcome))
-        }
-    }
-
-    private func signInWithApple() {
-        socialError = nil
-        isSocialLoading = true
-        Task {
-            defer { isSocialLoading = false }
-            do { try await auth.signInWithApple() }
-            catch AppleSignInService.AppleSignInError.canceled { /* silent */ }
-            catch { socialError = error.localizedDescription }
-        }
-    }
-
-    private func signInWithGoogle() {
-        socialError = nil
-        isSocialLoading = true
-        Task {
-            defer { isSocialLoading = false }
-            do { try await auth.signInWithGoogle() }
-            catch GoogleSignInService.GoogleSignInError.canceled { /* silent */ }
-            catch { socialError = error.localizedDescription }
         }
     }
 }

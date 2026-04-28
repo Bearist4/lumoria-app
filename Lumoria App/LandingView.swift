@@ -63,9 +63,38 @@ struct LandingView: View {
             .padding(.bottom, 20)
         }
         .navigationBarHidden(true)
-        .floatingBottomSheet(isPresented: $coordinator.isPresented) {
-            AuthFlowSheet(coordinator: coordinator)
+        .floatingBottomSheet(isPresented: chooserBinding) {
+            AuthChooserSheetContent(coordinator: coordinator)
         }
+        .sheet(isPresented: modalBinding) {
+            AuthFlowModalContent(coordinator: coordinator)
+        }
+    }
+
+    /// True only while the coordinator wants the chooser visible.
+    /// The setter swallows dismissals — actual dismiss flows through
+    /// `coordinator.dismiss()` on the X tap.
+    private var chooserBinding: Binding<Bool> {
+        Binding(
+            get: { coordinator.isPresented && coordinator.step == .chooser },
+            set: { newValue in
+                if !newValue && coordinator.step == .chooser {
+                    coordinator.dismiss()
+                }
+            }
+        )
+    }
+
+    /// True while the coordinator wants the email/login/signup modal.
+    private var modalBinding: Binding<Bool> {
+        Binding(
+            get: { coordinator.isPresented && coordinator.step != .chooser },
+            set: { newValue in
+                if !newValue && coordinator.step != .chooser {
+                    coordinator.dismiss()
+                }
+            }
+        )
     }
 
     private var headlineView: some View {
