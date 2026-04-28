@@ -107,10 +107,26 @@ export async function handler(req: Request): Promise<Response> {
         }
     }
 
-    const plaintext = generateCode();
-    const codeHash = await hashCode(plaintext);
+    // Generate a code whose hash doesn't already exist on any other
+    // active (unlinked, unexpired) row. Loops are extremely rare given
+    // 1M code space and small N, but the bound is defensive.
     const generatedAt = new Date().toISOString();
     const expiresAt = new Date(Date.now() + CODE_TTL_MS).toISOString();
+
+    let plaintext = "";
+    let codeHash = "";
+    for (let i = 0; i < 8; i++) {
+        plaintext = generateCode();
+        codeHash = await hashCode(plaintext);
+        const { count } = await admin
+            .from("waitlist_subscribers")
+            .select("id", { count: "exact", head: true })
+            .eq("code_hash", codeHash)
+            .neq("id", row.id)
+            .is("supabase_user_id", null)
+            .gt("code_expires_at", new Date().toISOString());
+        if ((count ?? 0) === 0) break;
+    }
 
     const { error: updErr } = await admin
         .from("waitlist_subscribers")

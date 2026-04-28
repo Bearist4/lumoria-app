@@ -14,13 +14,14 @@ struct BetaCodeRedemptionView: View {
     @EnvironmentObject private var auth: AuthManager
     @Environment(\.dismiss) private var dismiss
 
-    @State private var waitlistEmail: String = ""
     @State private var code: String = ""
     @State private var isVerifying = false
     @State private var isResending = false
     @State private var resendCooldownUntil: Date? = nil
     @State private var statusMessage: String? = nil
     @State private var statusIsError = false
+    @State private var showResendPrompt = false
+    @State private var resendEmail: String = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -48,37 +49,10 @@ struct BetaCodeRedemptionView: View {
                         .tracking(0.4)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Text("Enter the email you used on lumoria.com plus the 6-digit code we sent there.")
+                    Text("We've sent you a code to confirm your beta-tester account. Please enter the 6-digit code below.")
                         .font(.system(size: 17))
                         .tracking(-0.43)
                         .foregroundStyle(Color.primary)
-                }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 0) {
-                        Text("Waitlist email")
-                            .font(.system(size: 15, weight: .semibold))
-                            .tracking(-0.23)
-                            .foregroundStyle(Color.primary)
-                        Text("*")
-                            .font(.system(size: 15, weight: .semibold))
-                            .tracking(-0.23)
-                            .foregroundStyle(Color(red: 1.0, green: 0.526, blue: 0.494))
-                    }
-
-                    TextField("you@example.com", text: $waitlistEmail)
-                        .keyboardType(.emailAddress)
-                        .textContentType(.emailAddress)
-                        .autocapitalization(.none)
-                        .padding()
-                        .background(
-                            RoundedRectangle(cornerRadius: 16)
-                                .fill(Color.black.opacity(0.03))
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16)
-                                .strokeBorder(Color.black.opacity(0.07), lineWidth: 1)
-                        )
                 }
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -94,7 +68,7 @@ struct BetaCodeRedemptionView: View {
                     }
 
                     LumoriaCodeInput(code: $code) { _ in
-                        if isValidEmail { Task { await verify() } }
+                        Task { await verify() }
                     }
                 }
 
@@ -122,21 +96,21 @@ struct BetaCodeRedemptionView: View {
                                 .fill(Color.black)
                         )
                     }
-                    .disabled(isVerifying || !LumoriaCodeInput.isComplete(code) || !isValidEmail)
-                    .opacity((LumoriaCodeInput.isComplete(code) && isValidEmail) ? 1 : 0.5)
+                    .disabled(isVerifying || !LumoriaCodeInput.isComplete(code))
+                    .opacity(LumoriaCodeInput.isComplete(code) ? 1 : 0.5)
 
-                    Button(action: { Task { await resend() } }) {
+                    Button(action: { showResendPrompt = true }) {
                         Text(resendButtonLabel)
                             .font(.system(size: 17, weight: .semibold))
                             .tracking(-0.43)
-                            .foregroundStyle((canResend && isValidEmail) ? Color.primary : .secondary)
+                            .foregroundStyle(canResend ? Color.primary : .secondary)
                             .frame(maxWidth: .infinity, minHeight: 60)
                             .background(
                                 RoundedRectangle(cornerRadius: 16)
                                     .fill(Color.black.opacity(0.05))
                             )
                     }
-                    .disabled(!canResend || !isValidEmail)
+                    .disabled(!canResend)
                 }
 
                 Spacer(minLength: 0)
@@ -144,10 +118,21 @@ struct BetaCodeRedemptionView: View {
             .padding(.horizontal, 24)
             .padding(.top, 24)
         }
+        .alert("Send a new code", isPresented: $showResendPrompt) {
+            TextField("you@example.com", text: $resendEmail)
+                .keyboardType(.emailAddress)
+                .textContentType(.emailAddress)
+                .autocapitalization(.none)
+            Button("Send") { Task { await resend() } }
+                .disabled(!isValidResendEmail)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Enter the email you used on lumoria.com. We'll send a fresh 6-digit code there.")
+        }
     }
 
-    private var isValidEmail: Bool {
-        let trimmed = waitlistEmail.trimmingCharacters(in: .whitespaces)
+    private var isValidResendEmail: Bool {
+        let trimmed = resendEmail.trimmingCharacters(in: .whitespaces)
         let pattern = #"^[^@\s]+@[^@\s]+\.[^@\s]+$"#
         return trimmed.range(of: pattern, options: .regularExpression) != nil
     }
@@ -173,10 +158,7 @@ struct BetaCodeRedemptionView: View {
         defer { isVerifying = false }
 
         do {
-            let outcome = try await auth.redeemBetaCode(
-                code,
-                waitlistEmail: waitlistEmail.trimmingCharacters(in: .whitespaces)
-            )
+            let outcome = try await auth.redeemBetaCode(code)
             switch outcome {
             case .ok:
                 statusIsError = false
@@ -209,13 +191,13 @@ struct BetaCodeRedemptionView: View {
     private func resend() async {
         isResending = true
         defer { isResending = false }
-        await auth.resendBetaCode(
-            waitlistEmail: waitlistEmail.trimmingCharacters(in: .whitespaces)
-        )
+        let target = resendEmail.trimmingCharacters(in: .whitespaces)
+        await auth.resendBetaCode(waitlistEmail: target)
+        resendEmail = ""
         // Server-side cooldown is 1 hour; mirror in the UI.
         resendCooldownUntil = Date().addingTimeInterval(60 * 60)
         statusIsError = false
-        statusMessage = "If that email is on the waitlist, a new code is on the way."
+        statusMessage = "We've sent a new code to the email you used to subscribe to the beta."
     }
 }
 

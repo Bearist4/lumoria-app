@@ -187,17 +187,11 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Calls `verify-beta-code`. Pass the waitlist email if it differs
-    /// from the auth email (Apple Private Relay, typo, different inbox).
-    /// Pass nil to fall back to the JWT's email server-side. On success,
-    /// refreshes `isBetaSubscriber` immediately.
-    func redeemBetaCode(_ code: String, waitlistEmail: String? = nil) async throws -> BetaRedemptionOutcome {
+    /// Calls `verify-beta-code` with just the typed code. Server looks up
+    /// the waitlist row by `code_hash`, so no email is needed from the
+    /// client. On success, refreshes `isBetaSubscriber` immediately.
+    func redeemBetaCode(_ code: String) async throws -> BetaRedemptionOutcome {
         struct Resp: Decodable { let outcome: BetaRedemptionOutcome }
-
-        var body: [String: String] = ["code": code]
-        if let waitlistEmail, !waitlistEmail.isEmpty {
-            body["email"] = waitlistEmail
-        }
 
         do {
             let session = try await supabase.auth.session
@@ -205,7 +199,7 @@ final class AuthManager: ObservableObject {
                 "verify-beta-code",
                 options: FunctionInvokeOptions(
                     headers: ["Authorization": "Bearer \(session.accessToken)"],
-                    body: body
+                    body: ["code": code]
                 )
             )
             if resp.outcome == .ok {

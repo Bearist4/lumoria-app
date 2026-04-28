@@ -93,7 +93,6 @@ export async function handler(req: Request): Promise<Response> {
     const jwt = authHeader.replace(/^bearer\s+/i, "");
 
     let userId: string;
-    let userEmail: string;
     try {
         const { payload } = await jwtVerify(jwt, getJwks(SUPABASE_URL), {
             issuer: `${SUPABASE_URL}/auth/v1`,
@@ -101,17 +100,13 @@ export async function handler(req: Request): Promise<Response> {
         if (typeof payload.sub !== "string") {
             return json(401, { error: "invalid_jwt", reason: "no_sub_claim" });
         }
-        if (typeof payload.email !== "string" || payload.email.length === 0) {
-            return json(401, { error: "invalid_jwt", reason: "no_email_claim" });
-        }
         userId = payload.sub;
-        userEmail = payload.email.trim().toLowerCase();
     } catch (e) {
         console.log("[verify-beta-code] jwt verify failed", String(e));
         return json(401, { error: "invalid_jwt", reason: "verify_failed" });
     }
 
-    let body: { code?: unknown; email?: unknown } = {};
+    let body: { code?: unknown } = {};
     try {
         body = await req.json();
     } catch {
@@ -123,19 +118,6 @@ export async function handler(req: Request): Promise<Response> {
     const normalized = normalizeCode(body.code);
     if (!/^[0-9]{6}$/.test(normalized)) {
         return json(400, { error: "bad_request", reason: "bad_code_format" });
-    }
-
-    // Optional: caller may pass the waitlist email explicitly. This is
-    // the path Apple Private Relay / typo / different-inbox users take —
-    // their auth email won't match the waitlist row, so they tell us
-    // which row to look up. JWT email is the fallback.
-    let lookupEmail = userEmail;
-    if (typeof body.email === "string" && body.email.trim().length > 0) {
-        const trimmed = body.email.trim().toLowerCase();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) {
-            return json(400, { error: "bad_request", reason: "bad_email_format" });
-        }
-        lookupEmail = trimmed;
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -153,13 +135,25 @@ export async function handler(req: Request): Promise<Response> {
         .eq("success", false)
         .gt("attempted_at", since);
 
-    const { data: row } = await admin
+    // Look up rows by code hash. The 6-digit code itself is the
+    // identifier — we don't filter by email, expiry, or link status
+    // here so the decide() helper can return distinct outcomes for
+    // wrong code / expired / already-claimed.
+    //
+    // Hash uniqueness is enforced at code-generation time (the website
+    // and resend-beta-code regenerate on collision), so a typed code
+    // matches at most one row in practice. Defensively, if more than
+    // one row matches we fall through as wrong_code rather than
+    // guess which to link.
+    const submittedHash = await hashCode(normalized);
+    const { data: rows } = await admin
         .from("waitlist_subscribers")
         .select("id, email, code_hash, code_expires_at, supabase_user_id")
-        .ilike("email", lookupEmail)
-        .maybeSingle();
+        .eq("code_hash", submittedHash)
+        .limit(2);
 
-    const submittedHash = await hashCode(normalized);
+    const row = (rows && rows.length === 1) ? rows[0] : null;
+
     const { outcome } = decide({
         row: row as WaitlistRow | null,
         submittedHash,
@@ -169,7 +163,7 @@ export async function handler(req: Request): Promise<Response> {
     // Always log the attempt.
     const { error: logErr } = await admin.from("beta_redemption_attempts").insert({
         auth_user_id: userId,
-        email_attempted: lookupEmail,
+        email_attempted: row?.email ?? "",
         success: outcome === "ok",
     });
     if (logErr) {
