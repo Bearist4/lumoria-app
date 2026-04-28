@@ -165,7 +165,7 @@ struct BetaCodeRedemptionView: View {
             }
         } catch {
             statusIsError = true
-            statusMessage = "Network error. Please try again."
+            statusMessage = "Couldn't reach the server: \(error.localizedDescription)"
         }
     }
 

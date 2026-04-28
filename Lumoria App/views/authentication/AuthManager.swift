@@ -176,8 +176,15 @@ final class AuthManager: ObservableObject {
         case alreadyClaimed = "already_claimed"
     }
 
-    enum BetaRedemptionError: Error {
-        case network
+    enum BetaRedemptionError: Error, LocalizedError {
+        case transport(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .transport(let detail):
+                return detail
+            }
+        }
     }
 
     /// Calls `verify-beta-code`. The server resolves the waitlist email
@@ -201,7 +208,7 @@ final class AuthManager: ObservableObject {
             return resp.outcome
         } catch {
             print("[AuthManager] redeem-beta-code failed: \(error)")
-            throw BetaRedemptionError.network
+            throw BetaRedemptionError.transport(error.localizedDescription)
         }
     }
 
