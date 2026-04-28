@@ -70,14 +70,19 @@ private final class AppleSignInCoordinator: NSObject,
                                             ASAuthorizationControllerDelegate,
                                             ASAuthorizationControllerPresentationContextProviding {
     private var continuation: CheckedContinuation<ASAuthorizationAppleIDCredential, Error>?
+    private var controller: ASAuthorizationController?
 
     func perform(request: ASAuthorizationAppleIDRequest) async throws -> ASAuthorizationAppleIDCredential {
         try await withCheckedThrowingContinuation { cont in
             self.continuation = cont
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            controller.delegate = self
-            controller.presentationContextProvider = self
-            controller.performRequests()
+            let c = ASAuthorizationController(authorizationRequests: [request])
+            c.delegate = self
+            c.presentationContextProvider = self
+            // Retain — ASAuthorizationController.delegate is weak, and
+            // the system needs the controller alive until the auth
+            // sheet completes.
+            self.controller = c
+            c.performRequests()
         }
     }
 
@@ -85,7 +90,10 @@ private final class AppleSignInCoordinator: NSObject,
         controller: ASAuthorizationController,
         didCompleteWithAuthorization authorization: ASAuthorization
     ) {
-        defer { continuation = nil }
+        defer {
+            continuation = nil
+            controller = nil
+        }
         guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else {
             continuation?.resume(throwing: AppleSignInService.AppleSignInError.providerFailed("unexpected credential type"))
             return
@@ -97,7 +105,10 @@ private final class AppleSignInCoordinator: NSObject,
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        defer { continuation = nil }
+        defer {
+            continuation = nil
+            controller = nil
+        }
         if let asError = error as? ASAuthorizationError, asError.code == .canceled {
             continuation?.resume(throwing: AppleSignInService.AppleSignInError.canceled)
         } else {
