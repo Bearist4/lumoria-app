@@ -23,7 +23,10 @@ final class AuthManager: ObservableObject {
     /// window so returning signed-in users never see a landing flash.
     @Published var isRestoring = true
 
-    init() {
+    private let backend: AuthBackend
+
+    init(backend: AuthBackend = LiveAuthBackend()) {
+        self.backend = backend
         Task {
             // Restore any saved session before the auth listener fires so
             // `supabase.auth.currentUser` is populated by the time downstream
@@ -37,6 +40,38 @@ final class AuthManager: ObservableObject {
             isRestoring = false
             await listenForAuthChanges()
         }
+    }
+
+    // MARK: - Email-first flow
+
+    func checkEmailExists(_ email: String) async throws -> CheckEmailResult {
+        try await backend.checkEmailExists(email)
+    }
+
+    func signIn(email: String, password: String) async throws {
+        try await backend.signIn(email: email, password: password)
+        if backend.currentUserEmailUnconfirmed() {
+            // Mirror LogInView: bounce the session and surface the verify
+            // path so the UI can offer Resend.
+            try? await backend.signOut()
+            throw AuthFlowError.emailNotConfirmed(email: email)
+        }
+    }
+
+    func signUp(name: String, email: String, password: String) async throws {
+        try await backend.signUp(
+            name: name,
+            email: email,
+            password: password,
+            redirectTo: AuthRedirect.emailConfirmed
+        )
+    }
+
+    func resendVerification(email: String) async throws {
+        try await backend.resendVerification(
+            email: email,
+            redirectTo: AuthRedirect.emailConfirmed
+        )
     }
 
     private func listenForAuthChanges() async {
