@@ -120,11 +120,14 @@ struct LandingView: View {
                 if isSocialLoading {
                     ProgressView()
                 } else {
-                    googleGlyph
+                    Image("google-g")
+                        .resizable()
+                        .scaledToFit()
                         .frame(width: 18, height: 18)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 44)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
         }
         .disabled(isSocialLoading)
         .accessibilityLabel("Continue with Google")
@@ -143,31 +146,11 @@ struct LandingView: View {
                         .foregroundStyle(.white)
                 }
             }
-            .frame(maxWidth: .infinity, minHeight: 44)
+            .frame(maxWidth: .infinity)
+            .frame(height: 44)
         }
         .disabled(isSocialLoading)
         .accessibilityLabel("Continue with Apple")
-    }
-
-    /// Multi-color "G" — flat SVG-equivalent rendered with a stack of
-    /// stroke arcs. Approximates Google's official mark for an icon-only
-    /// button at 18pt. If you want pixel-perfect, drop in the official
-    /// asset and swap.
-    private var googleGlyph: some View {
-        Text("G")
-            .font(.system(size: 22, weight: .heavy, design: .rounded))
-            .foregroundStyle(
-                LinearGradient(
-                    stops: [
-                        .init(color: Color(red: 0.92, green: 0.26, blue: 0.21), location: 0),     // red
-                        .init(color: Color(red: 0.98, green: 0.74, blue: 0.02), location: 0.33),  // yellow
-                        .init(color: Color(red: 0.20, green: 0.66, blue: 0.33), location: 0.66),  // green
-                        .init(color: Color(red: 0.26, green: 0.52, blue: 0.96), location: 1),     // blue
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            )
     }
 
     private func signInWithApple() {
