@@ -3,6 +3,7 @@
 //  Lumoria App
 //
 //  Landing screen shown to unauthenticated users.
+//  Single "Get started" CTA that opens the morphing AuthFlowSheet.
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=948-8016
 //
 
@@ -11,25 +12,29 @@ import SwiftUI
 struct LandingView: View {
     @Environment(\.brandSlug) private var brandSlug
     @EnvironmentObject private var auth: AuthManager
+    @StateObject private var coordinator: AuthFlowCoordinator
 
-    @State private var showLogIn = false
-    @State private var showSignUp = false
-    @State private var isSocialLoading = false
-    @State private var socialError: String?
+    init(auth: AuthManager) {
+        _coordinator = StateObject(wrappedValue: AuthFlowCoordinator(auth: auth))
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.Background.default.ignoresSafeArea()
 
-            // Scrollable center content
             VStack(spacing: 0) {
                 Spacer()
 
-                logogramView
+                Image("brand/\(brandSlug)/logomark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 137, height: 137)
 
                 Spacer().frame(height: 54)
 
-                logotypeView
+                Image("brand/\(brandSlug)/logo")
+                    .resizable()
+                    .scaledToFit()
                     .frame(width: 226, height: 90)
                     .opacity(0.3)
 
@@ -44,146 +49,24 @@ struct LandingView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
 
-                // Reserve height for pinned buttons + safe area
-                Spacer().frame(height: 296)
+                Spacer().frame(height: 200)
             }
 
-            // Pinned bottom CTAs
-            VStack(spacing: 16) {
-                Button("Log in") { showLogIn = true }
-                    .lumoriaButtonStyle(.secondary)
-                Button("Sign up") { showSignUp = true }
-                    .lumoriaButtonStyle(.primary)
-
-                Text("or")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(Color.Text.primary)
-
-                if let socialError {
-                    Text(socialError)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .multilineTextAlignment(.center)
+            VStack {
+                Button("Get started") {
+                    Analytics.track(.authFlowStarted)
+                    coordinator.start()
                 }
-
-                HStack(spacing: 24) {
-                    googleIconButton
-                    appleIconButton
-                }
+                .lumoriaButtonStyle(.primary)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 20)
         }
         .navigationBarHidden(true)
-        .sheet(isPresented: $showLogIn) {
-            LogInView(onCreateAccount: {
-                showLogIn = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    showSignUp = true
-                }
-            })
-        }
-        .sheet(isPresented: $showSignUp) {
-            SignUpView(onLogIn: {
-                showSignUp = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    showLogIn = true
-                }
-            })
+        .floatingBottomSheet(isPresented: $coordinator.isPresented) {
+            AuthFlowSheet(coordinator: coordinator)
         }
     }
-
-    // MARK: - Logogram
-
-    private var logogramView: some View {
-        Image("brand/\(brandSlug)/logomark")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 137, height: 137)
-    }
-
-    // MARK: - Logotype
-
-    private var logotypeView: some View {
-        Image("brand/\(brandSlug)/logo")
-            .resizable()
-            .scaledToFit()
-    }
-
-    // MARK: - Social icon buttons
-
-    private var googleIconButton: some View {
-        Button(action: signInWithGoogle) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(.systemGray6))
-                if isSocialLoading {
-                    ProgressView()
-                } else {
-                    Image("google-g")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 18, height: 18)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-        }
-        .disabled(isSocialLoading)
-        .accessibilityLabel("Continue with Google")
-    }
-
-    private var appleIconButton: some View {
-        Button(action: signInWithApple) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.black)
-                if isSocialLoading {
-                    ProgressView().tint(.white)
-                } else {
-                    Image(systemName: "applelogo")
-                        .font(.system(size: 22, weight: .medium))
-                        .foregroundStyle(.white)
-                }
-            }
-            .frame(maxWidth: .infinity)
-            .frame(height: 44)
-        }
-        .disabled(isSocialLoading)
-        .accessibilityLabel("Continue with Apple")
-    }
-
-    private func signInWithApple() {
-        socialError = nil
-        isSocialLoading = true
-        Task {
-            defer { isSocialLoading = false }
-            do {
-                try await auth.signInWithApple()
-            } catch AppleSignInService.AppleSignInError.canceled {
-                // silent
-            } catch {
-                socialError = error.localizedDescription
-            }
-        }
-    }
-
-    private func signInWithGoogle() {
-        socialError = nil
-        isSocialLoading = true
-        Task {
-            defer { isSocialLoading = false }
-            do {
-                try await auth.signInWithGoogle()
-            } catch GoogleSignInService.GoogleSignInError.canceled {
-                // silent
-            } catch {
-                socialError = error.localizedDescription
-            }
-        }
-    }
-
-    // MARK: - Headline
 
     private var headlineView: some View {
         // "Tickets that last" in primary text (adapts to dark mode) +
@@ -206,10 +89,9 @@ struct LandingView: View {
             )
         )
         .font(.largeTitle.bold())
-
     }
 }
 
 #Preview {
-    LandingView()
+    LandingView(auth: AuthManager())
 }
