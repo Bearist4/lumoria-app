@@ -67,6 +67,22 @@ export async function handler(req: Request): Promise<Response> {
         return json(401, { error: "invalid_jwt", reason: "verify_failed" });
     }
 
+    let body: { email?: unknown } = {};
+    try {
+        body = await req.json();
+    } catch {
+        // Body is optional — silently fall through to JWT email.
+    }
+
+    let lookupEmail = userEmail;
+    if (typeof body.email === "string" && body.email.trim().length > 0) {
+        const trimmed = body.email.trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) {
+            return json(400, { error: "bad_request", reason: "bad_email_format" });
+        }
+        lookupEmail = trimmed;
+    }
+
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -76,7 +92,7 @@ export async function handler(req: Request): Promise<Response> {
     const { data: row } = await admin
         .from("waitlist_subscribers")
         .select("id, email, code_generated_at")
-        .ilike("email", userEmail)
+        .ilike("email", lookupEmail)
         .maybeSingle();
 
     if (!row) return json(200, { ok: true });
@@ -114,7 +130,7 @@ export async function handler(req: Request): Promise<Response> {
         const resend = new Resend(RESEND_API_KEY);
         await resend.emails.send({
             from: RESEND_FROM,
-            to: userEmail,
+            to: lookupEmail,
             subject: "Your Lumoria beta code",
             html: buildEmailHtml(plaintext),
         });

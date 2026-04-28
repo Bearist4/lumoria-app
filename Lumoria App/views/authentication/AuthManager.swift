@@ -187,11 +187,17 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Calls `verify-beta-code`. The server resolves the waitlist email
-    /// from the JWT, so the client only sends the code. On success,
+    /// Calls `verify-beta-code`. Pass the waitlist email if it differs
+    /// from the auth email (Apple Private Relay, typo, different inbox).
+    /// Pass nil to fall back to the JWT's email server-side. On success,
     /// refreshes `isBetaSubscriber` immediately.
-    func redeemBetaCode(_ code: String) async throws -> BetaRedemptionOutcome {
+    func redeemBetaCode(_ code: String, waitlistEmail: String? = nil) async throws -> BetaRedemptionOutcome {
         struct Resp: Decodable { let outcome: BetaRedemptionOutcome }
+
+        var body: [String: String] = ["code": code]
+        if let waitlistEmail, !waitlistEmail.isEmpty {
+            body["email"] = waitlistEmail
+        }
 
         do {
             let session = try await supabase.auth.session
@@ -199,7 +205,7 @@ final class AuthManager: ObservableObject {
                 "verify-beta-code",
                 options: FunctionInvokeOptions(
                     headers: ["Authorization": "Bearer \(session.accessToken)"],
-                    body: ["code": code]
+                    body: body
                 )
             )
             if resp.outcome == .ok {
@@ -212,15 +218,22 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Calls `resend-beta-code`. Server uses the JWT email and is silent
-    /// on no-match, so callers get no membership leak.
-    func resendBetaCode() async {
+    /// Calls `resend-beta-code`. Pass the waitlist email if it differs
+    /// from the auth email; nil falls back to the JWT email server-side.
+    /// Server is silent on no-match (no membership leak).
+    func resendBetaCode(waitlistEmail: String? = nil) async {
+        var body: [String: String] = [:]
+        if let waitlistEmail, !waitlistEmail.isEmpty {
+            body["email"] = waitlistEmail
+        }
+
         do {
             let session = try await supabase.auth.session
             try await supabase.functions.invoke(
                 "resend-beta-code",
                 options: FunctionInvokeOptions(
-                    headers: ["Authorization": "Bearer \(session.accessToken)"]
+                    headers: ["Authorization": "Bearer \(session.accessToken)"],
+                    body: body
                 )
             )
         } catch {

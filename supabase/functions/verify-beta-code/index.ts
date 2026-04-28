@@ -17,8 +17,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { createRemoteJWKSet, jwtVerify } from "https://esm.sh/jose@5.9.6";
 import { hashCode, isExpired, normalizeCode } from "../_shared/beta_code.ts";
 
-const ATTEMPT_LIMIT = 1;
-const WINDOW_HOURS = 24;
+// Rolling window. 6-digit space (1M) × 5 failures/hour = 200k years to brute
+// force, while a typo costs the user nothing more than another tap.
+const FAILED_ATTEMPT_LIMIT = 5;
+const WINDOW_HOURS = 1;
 
 let _jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
 function getJwks(supabaseUrl: string) {
@@ -49,9 +51,13 @@ export type Outcome =
 export function decide(args: {
     row: WaitlistRow | null;
     submittedHash: string;
-    attemptsIn24h: number;
+    /** Failed attempts in the trailing window. Successful redemptions
+     *  don't count — once linked, the user can't re-redeem anyway. */
+    failedAttemptsInWindow: number;
 }): { outcome: Outcome } {
-    if (args.attemptsIn24h >= ATTEMPT_LIMIT) return { outcome: "rate_limited" };
+    if (args.failedAttemptsInWindow >= FAILED_ATTEMPT_LIMIT) {
+        return { outcome: "rate_limited" };
+    }
     if (!args.row) return { outcome: "not_found" };
     if (args.row.supabase_user_id !== null) {
         return { outcome: "already_claimed" };
@@ -105,7 +111,7 @@ export async function handler(req: Request): Promise<Response> {
         return json(401, { error: "invalid_jwt", reason: "verify_failed" });
     }
 
-    let body: { code?: unknown } = {};
+    let body: { code?: unknown; email?: unknown } = {};
     try {
         body = await req.json();
     } catch {
@@ -119,39 +125,51 @@ export async function handler(req: Request): Promise<Response> {
         return json(400, { error: "bad_request", reason: "bad_code_format" });
     }
 
+    // Optional: caller may pass the waitlist email explicitly. This is
+    // the path Apple Private Relay / typo / different-inbox users take —
+    // their auth email won't match the waitlist row, so they tell us
+    // which row to look up. JWT email is the fallback.
+    let lookupEmail = userEmail;
+    if (typeof body.email === "string" && body.email.trim().length > 0) {
+        const trimmed = body.email.trim().toLowerCase();
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmed)) {
+            return json(400, { error: "bad_request", reason: "bad_email_format" });
+        }
+        lookupEmail = trimmed;
+    }
+
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
         auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Count attempts in the trailing 24h window.
+    // Count FAILED attempts in the trailing window. Successful
+    // redemptions don't count — once linked, the user can't re-redeem
+    // anyway. This keeps typos from locking out the user.
     const since = new Date(Date.now() - WINDOW_HOURS * 60 * 60 * 1000).toISOString();
-    const { count: attemptsIn24h } = await admin
+    const { count: failedAttempts } = await admin
         .from("beta_redemption_attempts")
         .select("id", { count: "exact", head: true })
         .eq("auth_user_id", userId)
+        .eq("success", false)
         .gt("attempted_at", since);
 
-    // Look up the waitlist row by JWT email. Code-only flow: the
-    // submitted code must match the row identified by the calling
-    // user's auth email. Apple Private Relay users will not match
-    // and need a separate "different email" path (future plan).
     const { data: row } = await admin
         .from("waitlist_subscribers")
         .select("id, email, code_hash, code_expires_at, supabase_user_id")
-        .ilike("email", userEmail)
+        .ilike("email", lookupEmail)
         .maybeSingle();
 
     const submittedHash = await hashCode(normalized);
     const { outcome } = decide({
         row: row as WaitlistRow | null,
         submittedHash,
-        attemptsIn24h: attemptsIn24h ?? 0,
+        failedAttemptsInWindow: failedAttempts ?? 0,
     });
 
     // Always log the attempt.
     const { error: logErr } = await admin.from("beta_redemption_attempts").insert({
         auth_user_id: userId,
-        email_attempted: userEmail,
+        email_attempted: lookupEmail,
         success: outcome === "ok",
     });
     if (logErr) {
