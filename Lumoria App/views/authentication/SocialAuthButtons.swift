@@ -15,43 +15,39 @@ struct SocialAuthButtons: View {
     var mode: Mode = .signIn
 
     @EnvironmentObject private var auth: AuthManager
+    @State private var rawNonce: String = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
 
     var body: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                Rectangle().fill(Color.Border.hairline).frame(height: 1)
+                Rectangle().fill(Color(.separator)).frame(height: 1)
                 Text("or")
                     .font(.footnote)
                     .foregroundStyle(Color.Text.secondary)
-                Rectangle().fill(Color.Border.hairline).frame(height: 1)
+                Rectangle().fill(Color(.separator)).frame(height: 1)
             }
 
-            // Sign in with Apple — native button.
-            // We don't use the SDK request/completion handlers here
-            // because AppleSignInService runs the whole flow itself
-            // (raw nonce + sha256 + Supabase exchange). The hidden
-            // Button overlay below is what actually fires when tapped.
-            ZStack {
-                SignInWithAppleButton(
-                    mode == .signIn ? .signIn : .signUp,
-                    onRequest: { _ in },
-                    onCompletion: { _ in }
-                )
-                .signInWithAppleButtonStyle(.black)
-                .frame(height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .allowsHitTesting(false)
-
-                Button(action: signInWithApple) {
-                    Color.clear
+            // Sign in with Apple — canonical SwiftUI pattern. We
+            // generate the raw nonce in onRequest, hash it for Apple,
+            // and forward the credential + raw nonce to Supabase in
+            // onCompletion.
+            SignInWithAppleButton(
+                mode == .signIn ? .signIn : .signUp,
+                onRequest: { request in
+                    let (raw, hashed) = AppleSignInService.makeNonce()
+                    self.rawNonce = raw
+                    AppleSignInService.configure(request, hashedNonce: hashed)
+                },
+                onCompletion: { result in
+                    handleAppleResult(result)
                 }
-                .buttonStyle(.plain)
-                .frame(height: 56)
-                .accessibilityLabel(mode == .signIn ? "Sign in with Apple" : "Sign up with Apple")
-                .disabled(isLoading)
-            }
+            )
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 56)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .disabled(isLoading)
 
             // Continue with Google
             Button(action: signInWithGoogle) {
@@ -66,11 +62,11 @@ struct SocialAuthButtons: View {
                 .frame(maxWidth: .infinity, minHeight: 56)
                 .background(
                     RoundedRectangle(cornerRadius: 16)
-                        .fill(Color.Background.fieldFill)
+                        .fill(Color(.systemGray6))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .strokeBorder(Color.Border.hairline, lineWidth: 1)
+                        .strokeBorder(Color(.separator), lineWidth: 1)
                 )
             }
             .disabled(isLoading)
@@ -84,13 +80,14 @@ struct SocialAuthButtons: View {
         }
     }
 
-    private func signInWithApple() {
+    private func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
         errorMessage = nil
         isLoading = true
+        let nonce = rawNonce
         Task {
             defer { isLoading = false }
             do {
-                try await auth.signInWithApple()
+                try await auth.signInWithApple(result: result, rawNonce: nonce)
             } catch AppleSignInService.AppleSignInError.canceled {
                 // silent
             } catch {

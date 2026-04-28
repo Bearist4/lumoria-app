@@ -3,6 +3,7 @@
 //  Lumoria App
 //
 
+import AuthenticationServices
 import Combine
 import Supabase
 import SwiftUI
@@ -146,15 +147,16 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Triggers Sign in with Apple and exchanges the resulting id_token
-    /// for a Supabase session. The auth-state listener picks up the new
-    /// session and runs the rest of the post-signin pipeline.
-    func signInWithApple() async throws {
-        _ = try await AppleSignInService.signIn()
+    /// Forwards the Apple credential delivered by SignInWithAppleButton
+    /// to Supabase. The view drives the system sheet directly via the
+    /// button's onRequest / onCompletion handlers and calls this with
+    /// the result + the raw nonce it generated.
+    func signInWithApple(result: Result<ASAuthorization, Error>, rawNonce: String) async throws {
+        _ = try await AppleSignInService.exchange(result, rawNonce: rawNonce)
     }
 
     /// Triggers Google Sign-In and exchanges the resulting id_token for
-    /// a Supabase session. Same downstream pipeline as Apple.
+    /// a Supabase session.
     func signInWithGoogle() async throws {
         _ = try await GoogleSignInService.signIn()
     }
