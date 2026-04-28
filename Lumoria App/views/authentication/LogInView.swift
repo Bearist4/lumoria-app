@@ -103,8 +103,6 @@ struct LogInView: View {
                                 ForgotPasswordView()
                             }
                         }
-
-                        SocialAuthButtons(mode: .signIn)
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 24)

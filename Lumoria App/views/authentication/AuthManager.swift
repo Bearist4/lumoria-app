@@ -147,10 +147,16 @@ final class AuthManager: ObservableObject {
         }
     }
 
-    /// Forwards the Apple credential delivered by SignInWithAppleButton
-    /// to Supabase. The view drives the system sheet directly via the
-    /// button's onRequest / onCompletion handlers and calls this with
-    /// the result + the raw nonce it generated.
+    /// Drives Sign in with Apple end-to-end via ASAuthorizationController
+    /// and exchanges the resulting id_token for a Supabase session. Used
+    /// by the icon-only "Continue with Apple" button on the landing page.
+    func signInWithApple() async throws {
+        _ = try await AppleSignInService.signIn()
+    }
+
+    /// Variant for SignInWithAppleButton's onRequest / onCompletion
+    /// handler-driven flow (e.g. when the button shows full text on a
+    /// dedicated auth screen). Keeps both paths supported.
     func signInWithApple(result: Result<ASAuthorization, Error>, rawNonce: String) async throws {
         _ = try await AppleSignInService.exchange(result, rawNonce: rawNonce)
     }

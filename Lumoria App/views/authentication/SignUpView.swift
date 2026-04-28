@@ -192,8 +192,6 @@ struct SignUpView: View {
                         }
                         .lumoriaButtonStyle(.primary)
                         .disabled(!canSubmit)
-
-                        SocialAuthButtons(mode: .signUp)
                     }
                     .padding(.horizontal, 24)
                     .padding(.top, 24)
