@@ -27,6 +27,10 @@ enum AnalyticsEvent {
     case passwordResetRequested(emailDomain: String)
     case sessionRestored(hadCache: Bool)
     case logout
+    case authFlowStarted
+    case authFlowEmailSubmitted(emailDomain: String, outcome: AuthFlowEmailOutcomeProp)
+    case authFlowBackPressed(fromStep: AuthFlowStepProp)
+    case authFlowDismissed(atStep: AuthFlowStepProp)
 
     // MARK: — Activation
 
@@ -164,6 +168,10 @@ extension AnalyticsEvent {
         case .passwordResetRequested: return "Password Reset Requested"
         case .sessionRestored: return "Session Restored"
         case .logout: return "Logout"
+        case .authFlowStarted: return "Auth Flow Started"
+        case .authFlowEmailSubmitted: return "Auth Flow Email Submitted"
+        case .authFlowBackPressed: return "Auth Flow Back Pressed"
+        case .authFlowDismissed: return "Auth Flow Dismissed"
 
         // Activation
         case .newTicketStarted: return "New Ticket Started"
@@ -291,6 +299,14 @@ extension AnalyticsEvent {
             return ["had_cache": hadCache]
         case .logout:
             return [:]
+        case .authFlowStarted:
+            return [:]
+        case .authFlowEmailSubmitted(let domain, let outcome):
+            return ["email_domain": domain, "outcome": outcome.rawValue]
+        case .authFlowBackPressed(let from):
+            return ["from_step": from.rawValue]
+        case .authFlowDismissed(let at):
+            return ["at_step": at.rawValue]
 
         // Activation
         case .newTicketStarted(let entry):

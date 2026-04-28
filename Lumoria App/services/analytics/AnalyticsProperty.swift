@@ -69,6 +69,14 @@ enum AuthErrorTypeProp: String, CaseIterable {
     case unknown
 }
 
+enum AuthFlowEmailOutcomeProp: String, CaseIterable {
+    case exists, does_not_exist, rate_limited, error
+}
+
+enum AuthFlowStepProp: String, CaseIterable {
+    case chooser, email, login, signup
+}
+
 enum FunnelStepProp: String, CaseIterable {
     case category, template, orientation, form, style, success
 }
