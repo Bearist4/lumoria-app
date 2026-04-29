@@ -35,6 +35,11 @@ final class AuthManager: ObservableObject {
             isAuthenticated = session != nil
             if let uid = session?.user.id {
                 provisionDataKey(for: uid)
+            } else {
+                // No session at launch → also wipe any leftover alternate
+                // icon. Self-heals when a previous session was signed out
+                // before the icon-reset behaviour shipped.
+                resetAppIconToDefault()
             }
             AuthCache.hasCache = true
             isRestoring = false
