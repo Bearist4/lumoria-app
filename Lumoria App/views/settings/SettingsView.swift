@@ -71,10 +71,6 @@ struct SettingsView: View {
                         }
                     }
 
-                    sectionCard {
-                        logoutRow
-                    }
-
                     footer
                         .padding(.top, 24)
                 }
@@ -143,12 +139,36 @@ struct SettingsView: View {
     // MARK: - Header
 
     private var header: some View {
-        Text("Settings")
-            .font(.largeTitle.bold())
-            .foregroundStyle(Color.Text.primary)
-            .padding(.horizontal, 0)
-            .padding(.top, 8)
-            .padding(.bottom, 8)
+        HStack {
+            Text("Settings")
+                .font(.largeTitle.bold())
+                .foregroundStyle(Color.Text.primary)
+            Spacer()
+            Button {
+                showLogoutConfirm = true
+            } label: {
+                if isSigningOut {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(Color.Text.primary)
+                        .frame(width: 48, height: 48)
+                        .background(Color(.black).opacity(0.05))
+                        .clipShape(Circle())
+                } else {
+                    Image(systemName: "rectangle.portrait.and.arrow.right")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(Color.Text.primary)
+                        .frame(width: 48, height: 48)
+                        .background(Color(.black).opacity(0.05))
+                        .clipShape(Circle())
+                }
+            }
+            .disabled(isSigningOut)
+            .accessibilityLabel("Log out")
+        }
+        .padding(.horizontal, 0)
+        .padding(.top, 8)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Profile card
@@ -297,37 +317,6 @@ struct SettingsView: View {
     }
 
     // MARK: - Log out
-
-    private var logoutRow: some View {
-        Button {
-            showLogoutConfirm = true
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "rectangle.portrait.and.arrow.right")
-                    .font(.headline)
-                    .foregroundStyle(Color.Feedback.Danger.text)
-                    .frame(width: 32, height: 32)
-
-                Text("Log out")
-                    .font(.body)
-                    .foregroundStyle(Color.Feedback.Danger.text)
-
-                Spacer(minLength: 0)
-
-                if isSigningOut {
-                    ProgressView()
-                        .controlSize(.small)
-                        .tint(Color.Feedback.Danger.icon)
-                        .padding(.trailing, 8)
-                }
-            }
-            .padding(8)
-            .frame(height: 64)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(isSigningOut)
-    }
 
     private func signOut() async {
         guard !isSigningOut else { return }
