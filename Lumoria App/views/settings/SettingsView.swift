@@ -24,11 +24,13 @@ enum SettingsDestination: Hashable {
 struct SettingsView: View {
 
     @EnvironmentObject private var profileStore: ProfileStore
+    @EnvironmentObject private var authManager: AuthManager
     @Environment(EntitlementStore.self) private var entitlement
     @Environment(\.brandSlug) private var brandSlug
     @State private var path: [SettingsDestination] = []
     @State private var showLogoutConfirm = false
     @State private var isSigningOut = false
+    @State private var showBetaRedemption = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -50,14 +52,22 @@ struct SettingsView: View {
                         }
                     }
 
+                    if !authManager.isBetaSubscriber {
+                        sectionCard {
+                            settingsRow(icon: "ticket",     title: "Redeem beta code", right: .chevron) {
+                                showBetaRedemption = true
+                            }
+                        }
+                    }
+
                     sectionCard {
                         settingsRow(icon: "doc.text",       title: "Terms of Service", right: .external) {
                             Analytics.track(.legalLinkOpened(linkType: .tos))
-                            openURL("https://lumoria.app/terms")
+                            openURL("https://getlumoria.app/terms")
                         }
                         settingsRow(icon: "lock.shield",    title: "Privacy Policy",   right: .external) {
                             Analytics.track(.legalLinkOpened(linkType: .privacy))
-                            openURL("https://lumoria.app/privacy")
+                            openURL("https://getlumoria.app/policy")
                         }
                     }
 
@@ -86,6 +96,10 @@ struct SettingsView: View {
                 }
             } message: {
                 Text("You can log back in anytime with the same email.")
+            }
+            .sheet(isPresented: $showBetaRedemption) {
+                BetaCodeRedemptionView()
+                    .environmentObject(authManager)
             }
             .navigationDestination(for: SettingsDestination.self) { dest in
                 switch dest {

@@ -25,12 +25,6 @@ struct ContentView: View {
     /// import flow doesn't depend on `AllTicketsView` being visible.
     @State private var pendingImportPassData: Data? = nil
     @EnvironmentObject private var authManager: AuthManager
-    /// Beta code redemption sheet — presented once per signed-in session
-    /// after the beta-status check settles unlinked. Dismiss-once: once
-    /// the user closes it, we don't re-prompt until next launch.
-    @State private var showBetaRedemption = false
-    @State private var hasOfferedBetaRedemption = false
-
     var body: some View {
         // iOS 18+ `Tab` API — renders the new liquid-glass floating
         // tab bar by default on iOS 26, letting each screen's content
@@ -113,18 +107,6 @@ struct ContentView: View {
             guard let data else { return }
             pendingImportPassData = data
             walletImport.pending = nil
-        }
-        .onChange(of: authManager.betaStatusKnown, initial: true) { _, known in
-            if known
-                && !authManager.isBetaSubscriber
-                && !hasOfferedBetaRedemption {
-                hasOfferedBetaRedemption = true
-                showBetaRedemption = true
-            }
-        }
-        .sheet(isPresented: $showBetaRedemption) {
-            BetaCodeRedemptionView()
-                .environmentObject(authManager)
         }
         .fullScreenCover(
             isPresented: Binding(
