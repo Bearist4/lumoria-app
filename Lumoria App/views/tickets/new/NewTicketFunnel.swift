@@ -698,11 +698,19 @@ final class NewTicketFunnel: ObservableObject {
                 autoFilledFields.append(String(localized: "Ticket number"))
             }
 
-        case .afterglow, .studio, .heritage, .terminal, .prism,
-             .express, .orient, .night, .post, .glow:
-            // Plane / train templates already fall through to "Class",
-            // "Business" etc. defaults inside `buildPayload`. Extend
-            // here when a template gains new aesthetic placeholders.
+        case .afterglow, .studio, .terminal, .heritage:
+            if trim(form.gate).isEmpty {
+                form.gate = Self.randomGate()
+                autoFilledFields.append(String(localized: "Gate"))
+            }
+            if trim(form.seat).isEmpty {
+                form.seat = Self.randomSeatNumberLetter()
+                autoFilledFields.append(String(localized: "Seat"))
+            }
+
+        case .prism, .express, .orient, .night, .post, .glow:
+            // Filled in by subsequent tasks. Stub for now so the switch
+            // remains exhaustive while plane/train migrates incrementally.
             break
 
         case .underground, .sign, .infoscreen, .grid:
