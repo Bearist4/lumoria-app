@@ -68,6 +68,23 @@ private func makeTrainFunnel(_ template: TicketTemplateKind) -> NewTicketFunnel 
 }
 
 @MainActor
+@Test func autofill_night_fillsBerth_notSeat() async throws {
+    let funnel = makeTrainFunnel(.night)
+    funnel.trainForm.car = ""
+    funnel.trainForm.seat = ""
+    funnel.trainForm.berth = ""
+
+    funnel.advance()
+
+    #expect(!funnel.trainForm.car.isEmpty)
+    #expect(funnel.trainForm.seat.isEmpty,
+            "night uses berth, not seat — seat must stay blank")
+    #expect(["Lower", "Upper", "Single", "Cabin"].contains(funnel.trainForm.berth))
+    #expect(funnel.autoFilledFields == ["Car", "Berth"])
+    #expect(!funnel.autoFilledFields.contains("Seat"))
+}
+
+@MainActor
 @Test func autofill_trainNumberLetterSeat_forExpress() async throws {
     let funnel = makeTrainFunnel(.express)
     funnel.trainForm.car = ""

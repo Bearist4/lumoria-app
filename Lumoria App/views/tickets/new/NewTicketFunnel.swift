@@ -743,8 +743,14 @@ final class NewTicketFunnel: ObservableObject {
             }
 
         case .night:
-            // Filled in by Task 6.
-            break
+            if trim(trainForm.car).isEmpty {
+                trainForm.car = Self.randomCar()
+                autoFilledFields.append(String(localized: "Car"))
+            }
+            if trim(trainForm.berth).isEmpty {
+                trainForm.berth = Self.randomBerth()
+                autoFilledFields.append(String(localized: "Berth"))
+            }
 
         case .underground, .sign, .infoscreen, .grid:
             if trim(undergroundForm.ticketNumber).isEmpty {
