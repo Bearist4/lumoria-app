@@ -3,6 +3,7 @@
 //  Lumoria App
 //
 
+import AuthenticationServices
 import Combine
 import Supabase
 import SwiftUI
@@ -13,12 +14,19 @@ final class AuthManager: ObservableObject {
         didSet { AuthCache.lastKnownAuthenticated = isAuthenticated }
     }
     @Published var isBetaSubscriber = false
+    /// True after the first beta-status check has settled. Lets the UI
+    /// avoid flashing the redemption screen during cold start before we
+    /// know whether the user is already linked.
+    @Published var betaStatusKnown = false
     /// True while the initial session restore is in flight. The app root
     /// shows a neutral splash instead of the landing screen during this
     /// window so returning signed-in users never see a landing flash.
     @Published var isRestoring = true
 
-    init() {
+    private let backend: AuthBackend
+
+    init(backend: AuthBackend = LiveAuthBackend()) {
+        self.backend = backend
         Task {
             // Restore any saved session before the auth listener fires so
             // `supabase.auth.currentUser` is populated by the time downstream
@@ -27,11 +35,48 @@ final class AuthManager: ObservableObject {
             isAuthenticated = session != nil
             if let uid = session?.user.id {
                 provisionDataKey(for: uid)
+            } else {
+                // No session at launch → also wipe any leftover alternate
+                // icon. Self-heals when a previous session was signed out
+                // before the icon-reset behaviour shipped.
+                resetAppIconToDefault()
             }
             AuthCache.hasCache = true
             isRestoring = false
             await listenForAuthChanges()
         }
+    }
+
+    // MARK: - Email-first flow
+
+    func checkEmailExists(_ email: String) async throws -> CheckEmailResult {
+        try await backend.checkEmailExists(email)
+    }
+
+    func signIn(email: String, password: String) async throws {
+        try await backend.signIn(email: email, password: password)
+        if backend.currentUserEmailUnconfirmed() {
+            // Mirror LogInView: bounce the session and surface the verify
+            // path so the UI can offer Resend.
+            try? await backend.signOut()
+            throw AuthFlowError.emailNotConfirmed(email: email)
+        }
+    }
+
+    func signUp(name: String, email: String, password: String) async throws {
+        try await backend.signUp(
+            name: name,
+            email: email,
+            password: password,
+            redirectTo: AuthRedirect.emailConfirmed
+        )
+    }
+
+    func resendVerification(email: String) async throws {
+        try await backend.resendVerification(
+            email: email,
+            redirectTo: AuthRedirect.emailConfirmed
+        )
     }
 
     private func listenForAuthChanges() async {
@@ -44,6 +89,7 @@ final class AuthManager: ObservableObject {
                 if valid, let user = session?.user {
                     provisionDataKey(for: user.id)
                     identifyUser(user)
+                    await autoLinkBetaByEmail()
                     await checkBetaStatus()
                     await claimPendingInviteIfAny()
                 }
@@ -60,16 +106,39 @@ final class AuthManager: ObservableObject {
                         ))
                     }
                     identifyUser(user)
+                    await autoLinkBetaByEmail()
                     await checkBetaStatus()
                     await claimPendingInviteIfAny()
                 }
             case .signedOut:
                 isAuthenticated = false
                 isBetaSubscriber = false
+                betaStatusKnown = false
+                resetAppIconToDefault()
                 Analytics.track(.logout)
                 Analytics.reset()
             default:
                 break
+            }
+        }
+    }
+
+    /// Reverts to the primary app icon on logout so the next user
+    /// doesn't inherit the previous user's chosen alternate icon.
+    /// Also wipes the `appearance.iconName` AppStorage value that drives
+    /// the in-app `brandSlug` env (logomark images on the landing screen,
+    /// settings, etc) so those revert in lock-step with the springboard
+    /// icon. iOS shows its system "You have changed the icon for…" alert
+    /// here — that's the unavoidable cost of the public API.
+    private func resetAppIconToDefault() {
+        UserDefaults.standard.removeObject(forKey: "appearance.iconName")
+        guard UIApplication.shared.supportsAlternateIcons,
+              UIApplication.shared.alternateIconName != nil else { return }
+        Task { @MainActor in
+            do {
+                try await UIApplication.shared.setAlternateIconName(nil)
+            } catch {
+                print("[AuthManager] resetAppIconToDefault failed: \(error)")
             }
         }
     }
@@ -102,7 +171,10 @@ final class AuthManager: ObservableObject {
     }
 
     private func checkBetaStatus() async {
-        guard let userId = supabase.auth.currentUser?.id.uuidString else { return }
+        guard let userId = supabase.auth.currentUser?.id.uuidString else {
+            betaStatusKnown = true
+            return
+        }
         do {
             let records: [WaitlistRecord] = try await supabase
                 .from("waitlist_subscribers")
@@ -113,6 +185,114 @@ final class AuthManager: ObservableObject {
             isBetaSubscriber = !records.isEmpty
         } catch {
             print("[AuthManager] Beta status check failed: \(error)")
+        }
+        betaStatusKnown = true
+    }
+
+    /// Asks Postgres to link the calling auth user to a waitlist row whose
+    /// email matches `auth.users.email` exactly. Idempotent: returns false
+    /// when there is no match or the row is already linked. Silent on
+    /// error so a transient failure doesn't block the redemption screen
+    /// path — the user can still enter a code manually.
+    @discardableResult
+    private func autoLinkBetaByEmail() async -> Bool {
+        do {
+            let linked: Bool = try await supabase
+                .rpc("link_beta_by_email")
+                .execute()
+                .value
+            return linked
+        } catch {
+            print("[AuthManager] auto-link failed: \(error)")
+            return false
+        }
+    }
+
+    /// Drives Sign in with Apple end-to-end via ASAuthorizationController
+    /// and exchanges the resulting id_token for a Supabase session. Used
+    /// by the icon-only "Continue with Apple" button on the landing page.
+    func signInWithApple() async throws {
+        _ = try await AppleSignInService.signIn()
+    }
+
+    /// Variant for SignInWithAppleButton's onRequest / onCompletion
+    /// handler-driven flow (e.g. when the button shows full text on a
+    /// dedicated auth screen). Keeps both paths supported.
+    func signInWithApple(result: Result<ASAuthorization, Error>, rawNonce: String) async throws {
+        _ = try await AppleSignInService.exchange(result, rawNonce: rawNonce)
+    }
+
+    /// Triggers Google Sign-In and exchanges the resulting id_token for
+    /// a Supabase session.
+    func signInWithGoogle() async throws {
+        _ = try await GoogleSignInService.signIn()
+    }
+
+    enum BetaRedemptionOutcome: String, Decodable {
+        case ok
+        case rateLimited = "rate_limited"
+        case notFound = "not_found"
+        case expired
+        case wrongCode = "wrong_code"
+        case alreadyClaimed = "already_claimed"
+    }
+
+    enum BetaRedemptionError: Error, LocalizedError {
+        case transport(String)
+
+        var errorDescription: String? {
+            switch self {
+            case .transport(let detail):
+                return detail
+            }
+        }
+    }
+
+    /// Calls `verify-beta-code` with just the typed code. Server looks up
+    /// the waitlist row by `code_hash`, so no email is needed from the
+    /// client. On success, refreshes `isBetaSubscriber` immediately.
+    func redeemBetaCode(_ code: String) async throws -> BetaRedemptionOutcome {
+        struct Resp: Decodable { let outcome: BetaRedemptionOutcome }
+
+        do {
+            let session = try await supabase.auth.session
+            let resp: Resp = try await supabase.functions.invoke(
+                "verify-beta-code",
+                options: FunctionInvokeOptions(
+                    headers: ["Authorization": "Bearer \(session.accessToken)"],
+                    body: ["code": code]
+                )
+            )
+            if resp.outcome == .ok {
+                await checkBetaStatus()
+            }
+            return resp.outcome
+        } catch {
+            print("[AuthManager] redeem-beta-code failed: \(error)")
+            throw BetaRedemptionError.transport(error.localizedDescription)
+        }
+    }
+
+    /// Calls `resend-beta-code`. Pass the waitlist email if it differs
+    /// from the auth email; nil falls back to the JWT email server-side.
+    /// Server is silent on no-match (no membership leak).
+    func resendBetaCode(waitlistEmail: String? = nil) async {
+        var body: [String: String] = [:]
+        if let waitlistEmail, !waitlistEmail.isEmpty {
+            body["email"] = waitlistEmail
+        }
+
+        do {
+            let session = try await supabase.auth.session
+            try await supabase.functions.invoke(
+                "resend-beta-code",
+                options: FunctionInvokeOptions(
+                    headers: ["Authorization": "Bearer \(session.accessToken)"],
+                    body: body
+                )
+            )
+        } catch {
+            print("[AuthManager] resend-beta-code failed: \(error)")
         }
     }
 }

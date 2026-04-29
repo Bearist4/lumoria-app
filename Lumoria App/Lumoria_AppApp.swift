@@ -307,8 +307,9 @@ final class WidgetDeepLinkRouter: ObservableObject {
 /// Root container for the unauthenticated flow.
 /// LandingView owns all auth sheet presentations.
 private struct AuthNavigationView: View {
+    @EnvironmentObject private var auth: AuthManager
     var body: some View {
-        LandingView()
+        LandingView(auth: auth)
     }
 }
 

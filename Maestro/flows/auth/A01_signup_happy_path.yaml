@@ -14,15 +14,23 @@ env:
 - extendedWaitUntil:
     visible: "Tickets that last forever"
     timeout: 10000
-- tapOn: "Sign up"
+- tapOn: "Get started"
 - extendedWaitUntil:
-    visible: "Let's get started"
+    visible: "Continue with email"
     timeout: 5000
-- tapOn: "Your name"
-- inputText: ${TEST_NAME}
-- hideKeyboard
+- tapOn: "Continue with email"
+- extendedWaitUntil:
+    visible: "We'll check if you already have an account"
+    timeout: 5000
 - tapOn: "Your email address"
 - inputText: ${TEST_EMAIL_FRESH}
+- hideKeyboard
+- tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Let's create your account"
+    timeout: 10000
+- tapOn: "Your name"
+- inputText: ${TEST_NAME}
 - hideKeyboard
 - tapOn: "Your password"
 # Belt-and-suspenders: if the uitest launch arg didn't reach the app, iOS
@@ -38,7 +46,7 @@ env:
     optional: true
 - inputText: ${TEST_SIGNUP_PASSWORD}
 - hideKeyboard
-- assertVisible: "Weak"
+- assertVisible: "Strong"
 - tapOn: "Create account"
 - extendedWaitUntil:
     visible: "Check your email"

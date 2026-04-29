@@ -23,6 +23,8 @@
 		69C058AE2F9B937D006E0561 /* LumoriaExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 69C058992F9B937B006E0561 /* LumoriaExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		69C0596C2F9D5A88006E0561 /* Shared.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69C0596B2F9D5A88006E0561 /* Shared.xcassets */; };
 		69C0596D2F9D5A88006E0561 /* Shared.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69C0596B2F9D5A88006E0561 /* Shared.xcassets */; };
+		69C05C0B2F9FFCA1006E0561 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 69C05C0A2F9FFCA1006E0561 /* GoogleSignIn */; };
+		69C05C0D2F9FFCA1006E0561 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 69C05C0C2F9FFCA1006E0561 /* GoogleSignInSwift */; };
 		69E4ACE92F9560AD0084A148 /* LumoriaPKPassImport.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 69E4ACDF2F9560AD0084A148 /* LumoriaPKPassImport.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -183,9 +185,11 @@
 				692E418D2F8FF4E000733174 /* ProgressiveBlurHeader in Frameworks */,
 				694D47912F8E2DD0007340A4 /* Functions in Frameworks */,
 				694D47992F8E2DD0007340A4 /* Supabase in Frameworks */,
+				69C05C0D2F9FFCA1006E0561 /* GoogleSignInSwift in Frameworks */,
 				694D478F2F8E2DD0007340A4 /* Auth in Frameworks */,
 				694D47972F8E2DD0007340A4 /* Storage in Frameworks */,
 				694D47952F8E2DD0007340A4 /* Realtime in Frameworks */,
+				69C05C0B2F9FFCA1006E0561 /* GoogleSignIn in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -302,6 +306,8 @@
 				694D47982F8E2DD0007340A4 /* Supabase */,
 				692E418C2F8FF4E000733174 /* ProgressiveBlurHeader */,
 				69B770A82F93BBBF003B520F /* AmplitudeUnified */,
+				69C05C0A2F9FFCA1006E0561 /* GoogleSignIn */,
+				69C05C0C2F9FFCA1006E0561 /* GoogleSignInSwift */,
 			);
 			productName = "Lumoria App";
 			productReference = 694D475B2F8D0EDE007340A4 /* Lumoria App.app */;
@@ -471,6 +477,7 @@
 				694D478D2F8E2DD0007340A4 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 				692E418B2F8FF4E000733174 /* XCRemoteSwiftPackageReference "ProgressiveBlurHeader" */,
 				69B770A72F93BBBF003B520F /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */,
+				69C05C092F9FFCA1006E0561 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 694D475C2F8D0EDE007340A4 /* Products */;
@@ -1205,6 +1212,14 @@
 				kind = branch;
 			};
 		};
+		69C05C092F9FFCA1006E0561 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1247,6 +1262,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 69B770A72F93BBBF003B520F /* XCRemoteSwiftPackageReference "AmplitudeUnified-Swift" */;
 			productName = AmplitudeUnified;
+		};
+		69C05C0A2F9FFCA1006E0561 /* GoogleSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69C05C092F9FFCA1006E0561 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignIn;
+		};
+		69C05C0C2F9FFCA1006E0561 /* GoogleSignInSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69C05C092F9FFCA1006E0561 /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;
+			productName = GoogleSignInSwift;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

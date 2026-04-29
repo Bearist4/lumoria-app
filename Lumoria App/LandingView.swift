@@ -3,6 +3,7 @@
 //  Lumoria App
 //
 //  Landing screen shown to unauthenticated users.
+//  Single "Get started" CTA that opens the morphing AuthFlowSheet.
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=948-8016
 //
 
@@ -10,88 +11,82 @@ import SwiftUI
 
 struct LandingView: View {
     @Environment(\.brandSlug) private var brandSlug
+    @EnvironmentObject private var auth: AuthManager
+    @StateObject private var coordinator: AuthFlowCoordinator
 
-    @State private var showLogIn = false
-    @State private var showSignUp = false
+    init(auth: AuthManager) {
+        _coordinator = StateObject(wrappedValue: AuthFlowCoordinator(auth: auth))
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Color.Background.default.ignoresSafeArea()
 
-            // Scrollable center content
             VStack(spacing: 0) {
                 Spacer()
 
-                logogramView
+                Image("brand/\(brandSlug)/logomark")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 137, height: 137)
 
                 Spacer().frame(height: 54)
 
-                logotypeView
+                Image("brand/\(brandSlug)/logo")
+                    .resizable()
+                    .scaledToFit()
                     .frame(width: 226, height: 90)
                     .opacity(0.3)
 
                 headlineView
 
-                Spacer().frame(height: 32)
-
-                Text("By signing up you agree to our Terms and Privacy Policy.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.Text.secondary)
-                    .tint(Color.Text.primary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
-                // Reserve height for pinned buttons + safe area
-                Spacer().frame(height: 176)
+                Spacer().frame(height: 200)
             }
 
-            // Pinned bottom CTAs
-            VStack(spacing: 16) {
-                Button("Log in") { showLogIn = true }
-                    .lumoriaButtonStyle(.secondary)
-                Button("Sign up") { showSignUp = true }
-                    .lumoriaButtonStyle(.primary)
+            VStack {
+                Button("Get started") {
+                    Analytics.track(.authFlowStarted)
+                    coordinator.start()
+                }
+                .lumoriaButtonStyle(.primary)
             }
             .padding(.horizontal, 24)
             .padding(.bottom, 20)
         }
         .navigationBarHidden(true)
-        .sheet(isPresented: $showLogIn) {
-            LogInView(onCreateAccount: {
-                showLogIn = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    showSignUp = true
-                }
-            })
+        .floatingBottomSheet(isPresented: chooserBinding) {
+            AuthChooserSheetContent(coordinator: coordinator)
         }
-        .sheet(isPresented: $showSignUp) {
-            SignUpView(onLogIn: {
-                showSignUp = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    showLogIn = true
-                }
-            })
+        .sheet(isPresented: modalBinding) {
+            AuthFlowModalContent(coordinator: coordinator)
         }
     }
 
-    // MARK: - Logogram
-
-    private var logogramView: some View {
-        Image("brand/\(brandSlug)/logomark")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 137, height: 137)
+    /// True only while the coordinator wants the chooser visible.
+    /// The setter swallows dismissals — actual dismiss flows through
+    /// `coordinator.dismiss()` on the X tap.
+    private var chooserBinding: Binding<Bool> {
+        Binding(
+            get: { coordinator.isPresented && coordinator.step == .chooser },
+            set: { newValue in
+                if !newValue && coordinator.step == .chooser {
+                    coordinator.dismiss()
+                }
+            }
+        )
     }
 
-    // MARK: - Logotype
-
-    private var logotypeView: some View {
-        Image("brand/\(brandSlug)/logo")
-            .resizable()
-            .scaledToFit()
+    /// True while the coordinator wants the email/login/signup modal.
+    private var modalBinding: Binding<Bool> {
+        Binding(
+            get: { coordinator.isPresented && coordinator.step != .chooser },
+            set: { newValue in
+                if !newValue && coordinator.step != .chooser {
+                    coordinator.dismiss()
+                }
+            }
+        )
     }
-
-    // MARK: - Headline
 
     private var headlineView: some View {
         // "Tickets that last" in primary text (adapts to dark mode) +
@@ -114,10 +109,9 @@ struct LandingView: View {
             )
         )
         .font(.largeTitle.bold())
-
     }
 }
 
 #Preview {
-    LandingView()
+    LandingView(auth: AuthManager())
 }

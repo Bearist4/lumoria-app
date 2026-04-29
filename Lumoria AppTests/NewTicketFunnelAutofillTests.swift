@@ -1,0 +1,160 @@
+//
+//  NewTicketFunnelAutofillTests.swift
+//  Lumoria AppTests
+//
+//  Each test populates the per-template required fields so canAdvance
+//  returns true and advance() actually runs applyAestheticDefaults().
+//  Required values are arbitrary (we never assert on them) — only the
+//  blank optional fields under test matter.
+//
+
+import Foundation
+import Testing
+@testable import Lumoria_App
+
+// MARK: - Helpers
+
+@MainActor
+private func makePlaneFunnel(_ template: TicketTemplateKind) -> NewTicketFunnel {
+    let funnel = NewTicketFunnel()
+    funnel.template = template
+    funnel.step = .form
+    // FlightFormInput.isMinimallyValid: airline, flightNumber, origin, destination.
+    funnel.form.airline = "Air Test"
+    funnel.form.flightNumber = "AT 123"
+    funnel.form.originCode = "AAA"
+    funnel.form.destinationCode = "BBB"
+    return funnel
+}
+
+@MainActor
+private func makeTrainFunnel(_ template: TicketTemplateKind) -> NewTicketFunnel {
+    let funnel = NewTicketFunnel()
+    funnel.template = template
+    funnel.step = .form
+    funnel.trainForm.originCity = "City A"
+    funnel.trainForm.destinationCity = "City B"
+    // Different templates need different extras to validate.
+    switch template {
+    case .express, .post, .glow:
+        funnel.trainForm.trainType = "Test"
+        funnel.trainForm.trainNumber = "001"
+    case .orient:
+        funnel.trainForm.company = "Test Rail"
+    case .night:
+        funnel.trainForm.company = "Test Rail"
+        funnel.trainForm.trainType = "Sleeper"
+        funnel.trainForm.trainNumber = "001"
+    default:
+        break
+    }
+    return funnel
+}
+
+// MARK: - Plane
+
+@MainActor
+@Test func autofill_planeBasic_fillsGateAndSeat_whenBlank() async throws {
+    let funnel = makePlaneFunnel(.afterglow)
+    funnel.form.gate = ""
+    funnel.form.seat = ""
+
+    funnel.advance()
+
+    #expect(!funnel.form.gate.isEmpty)
+    #expect(!funnel.form.seat.isEmpty)
+    #expect(funnel.autoFilledFields.contains("Gate"))
+    #expect(funnel.autoFilledFields.contains("Seat"))
+}
+
+@MainActor
+@Test func autofill_skipsAlreadyFilledFields() async throws {
+    let funnel = makePlaneFunnel(.afterglow)
+    funnel.form.gate = "F32"
+    funnel.form.seat = ""
+
+    funnel.advance()
+
+    #expect(funnel.form.gate == "F32",
+            "user-entered value must never be overwritten")
+    #expect(!funnel.form.seat.isEmpty)
+    #expect(funnel.autoFilledFields == ["Seat"],
+            "only blank fields should be reported as auto-filled")
+}
+
+@MainActor
+@Test func autofill_listsExactlyNewlyFilledLabels_inOrder() async throws {
+    let funnel = makePlaneFunnel(.prism)
+    funnel.form.gate = ""
+    funnel.form.seat = "11A"   // pre-filled — not in autoFilledFields
+    funnel.form.terminal = ""
+
+    funnel.advance()
+
+    #expect(funnel.autoFilledFields == ["Gate", "Terminal"],
+            "labels appear in switch-processing order, skipping pre-filled slots")
+}
+
+@MainActor
+@Test func autofill_night_fillsBerth_notSeat() async throws {
+    let funnel = makeTrainFunnel(.night)
+    funnel.trainForm.car = ""
+    funnel.trainForm.seat = ""
+    funnel.trainForm.berth = ""
+
+    funnel.advance()
+
+    #expect(!funnel.trainForm.car.isEmpty)
+    #expect(funnel.trainForm.seat.isEmpty,
+            "night uses berth, not seat — seat must stay blank")
+    #expect(["Lower", "Upper", "Single", "Cabin"].contains(funnel.trainForm.berth))
+    #expect(funnel.autoFilledFields == ["Car", "Berth"])
+    #expect(!funnel.autoFilledFields.contains("Seat"))
+}
+
+@MainActor
+@Test func autofill_trainNumberLetterSeat_forExpress() async throws {
+    let funnel = makeTrainFunnel(.express)
+    funnel.trainForm.car = ""
+    funnel.trainForm.seat = ""
+
+    funnel.advance()
+
+    #expect(!funnel.trainForm.car.isEmpty)
+    let seat = funnel.trainForm.seat
+    // ABCDEFGHJK alphabet — skips I per airline convention.
+    #expect(seat.range(of: "^[0-9]+[A-HJK]$", options: .regularExpression) != nil,
+            "expected number+letter seat for express, got \(seat)")
+    #expect(funnel.autoFilledFields == ["Car", "Seat"])
+}
+
+@MainActor
+@Test func autofill_trainNumberOnlySeat_forPost() async throws {
+    let funnel = makeTrainFunnel(.post)
+    funnel.trainForm.car = ""
+    funnel.trainForm.seat = ""
+
+    funnel.advance()
+
+    #expect(!funnel.trainForm.car.isEmpty)
+    #expect(!funnel.trainForm.seat.isEmpty)
+    let seat = funnel.trainForm.seat
+    #expect(seat.range(of: "^[0-9]+$", options: .regularExpression) != nil,
+            "expected number-only seat for post, got \(seat)")
+    #expect(funnel.autoFilledFields == ["Car", "Seat"])
+}
+
+@MainActor
+@Test func autofill_prism_alsoFillsTerminal() async throws {
+    let funnel = makePlaneFunnel(.prism)
+    funnel.form.gate = ""
+    funnel.form.seat = ""
+    funnel.form.terminal = ""
+
+    funnel.advance()
+
+    #expect(!funnel.form.gate.isEmpty)
+    #expect(!funnel.form.seat.isEmpty)
+    #expect(!funnel.form.terminal.isEmpty)
+    #expect(funnel.autoFilledFields == ["Gate", "Seat", "Terminal"])
+}

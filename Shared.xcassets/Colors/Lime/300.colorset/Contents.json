@@ -47,28 +47,6 @@
           "value": "high"
         }
       ]
-    },
-    {
-      "idiom": "universal",
-      "color": {
-        "color-space": "srgb",
-        "components": {
-          "red": "0x43",
-          "green": "0x59",
-          "blue": "0x05",
-          "alpha": "1.000"
-        }
-      },
-      "appearances": [
-        {
-          "appearance": "luminosity",
-          "value": "dark"
-        },
-        {
-          "appearance": "contrast",
-          "value": "high"
-        }
-      ]
     }
   ],
   "info": {

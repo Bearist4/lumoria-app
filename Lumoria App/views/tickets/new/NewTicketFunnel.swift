@@ -698,12 +698,59 @@ final class NewTicketFunnel: ObservableObject {
                 autoFilledFields.append(String(localized: "Ticket number"))
             }
 
-        case .afterglow, .studio, .heritage, .terminal, .prism,
-             .express, .orient, .night, .post, .glow:
-            // Plane / train templates already fall through to "Class",
-            // "Business" etc. defaults inside `buildPayload`. Extend
-            // here when a template gains new aesthetic placeholders.
-            break
+        case .afterglow, .studio, .terminal, .heritage:
+            if trim(form.gate).isEmpty {
+                form.gate = Self.randomGate()
+                autoFilledFields.append(String(localized: "Gate"))
+            }
+            if trim(form.seat).isEmpty {
+                form.seat = Self.randomSeatNumberLetter()
+                autoFilledFields.append(String(localized: "Seat"))
+            }
+
+        case .prism:
+            if trim(form.gate).isEmpty {
+                form.gate = Self.randomGate()
+                autoFilledFields.append(String(localized: "Gate"))
+            }
+            if trim(form.seat).isEmpty {
+                form.seat = Self.randomSeatNumberLetter()
+                autoFilledFields.append(String(localized: "Seat"))
+            }
+            if trim(form.terminal).isEmpty {
+                form.terminal = Self.randomPlaneTerminal()
+                autoFilledFields.append(String(localized: "Terminal"))
+            }
+
+        case .post, .glow, .orient:
+            if trim(trainForm.car).isEmpty {
+                trainForm.car = Self.randomCar()
+                autoFilledFields.append(String(localized: "Car"))
+            }
+            if trim(trainForm.seat).isEmpty {
+                trainForm.seat = Self.randomSeatNumber()
+                autoFilledFields.append(String(localized: "Seat"))
+            }
+
+        case .express:
+            if trim(trainForm.car).isEmpty {
+                trainForm.car = Self.randomCar()
+                autoFilledFields.append(String(localized: "Car"))
+            }
+            if trim(trainForm.seat).isEmpty {
+                trainForm.seat = Self.randomSeatNumberLetter()
+                autoFilledFields.append(String(localized: "Seat"))
+            }
+
+        case .night:
+            if trim(trainForm.car).isEmpty {
+                trainForm.car = Self.randomCar()
+                autoFilledFields.append(String(localized: "Car"))
+            }
+            if trim(trainForm.berth).isEmpty {
+                trainForm.berth = Self.randomBerth()
+                autoFilledFields.append(String(localized: "Berth"))
+            }
 
         case .underground, .sign, .infoscreen, .grid:
             if trim(undergroundForm.ticketNumber).isEmpty {
@@ -738,6 +785,44 @@ final class NewTicketFunnel: ObservableObject {
     private static func randomTransitTicketNumber(length: Int = 10) -> String {
         let chars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
         return String((0..<length).compactMap { _ in chars.randomElement() })
+    }
+
+    // MARK: - Plane / train slot generators
+
+    /// Plane gate, e.g. "A12", "F32". Letters A–H × 1…60.
+    private static func randomGate() -> String {
+        let letter = "ABCDEFGH".randomElement()!
+        return "\(letter)\(Int.random(in: 1...60))"
+    }
+
+    /// Airline-style seat, e.g. "1A", "14C", "27K". Skips letter "I"
+    /// per airline convention.
+    private static func randomSeatNumberLetter() -> String {
+        let row = Int.random(in: 1...40)
+        let letter = "ABCDEFGHJK".randomElement()!
+        return "\(row)\(letter)"
+    }
+
+    /// European-rail style seat — number only, e.g. "47".
+    private static func randomSeatNumber() -> String {
+        "\(Int.random(in: 1...80))"
+    }
+
+    /// Plane terminal label, e.g. "T3". Range T1…T5 covers the
+    /// realistic span for the templates we ship.
+    private static func randomPlaneTerminal() -> String {
+        "T\(Int.random(in: 1...5))"
+    }
+
+    /// Train carriage / car number, e.g. "7", "12". Range 1…18 covers
+    /// typical European inter-city consist lengths.
+    private static func randomCar() -> String {
+        "\(Int.random(in: 1...18))"
+    }
+
+    /// Sleeper-train berth label.
+    private static func randomBerth() -> String {
+        ["Lower", "Upper", "Single", "Cabin"].randomElement()!
     }
 
     /// Hard-coded single-ride fares per supported city, formatted in the
@@ -1723,24 +1808,66 @@ final class NewTicketFunnel: ObservableObject {
                 ticketNumber: "CON-2026-000142"
             ))
         case .underground, .sign, .infoscreen, .grid:
-            let demo = UndergroundTicket(
-                lineShortName: "U1",
-                lineName: "U1 Leopoldau – Reumannplatz",
-                companyName: "Wiener Linien",
-                lineColor: "#E3000F",
-                originStation: "Stephansplatz",
-                destinationStation: "Karlsplatz",
-                stopsCount: 1,
-                date: "15 Jul 2026",
-                ticketNumber: "K7Q3X8M2WL",
-                zones: "All zones",
-                fare: "2.50 €"
-            )
+            // Each public-transit template gets its own city so the
+            // selection grid showcases the breadth of supported
+            // networks rather than four near-identical Vienna cards.
             switch template {
-            case .sign:       return .sign(demo)
-            case .infoscreen: return .infoscreen(demo)
-            case .grid:       return .grid(demo)
-            default:          return .underground(demo)
+            case .sign:
+                return .sign(UndergroundTicket(
+                    lineShortName: "1",
+                    lineName: "Château de Vincennes – La Défense",
+                    companyName: "RATP",
+                    lineColor: "#FFCD00",
+                    originStation: "Bastille",
+                    destinationStation: "Concorde",
+                    stopsCount: 4,
+                    date: "15 Jul 2026",
+                    ticketNumber: "K7Q3X8M2WL",
+                    zones: "All zones",
+                    fare: "2.10 €"
+                ))
+            case .infoscreen:
+                return .infoscreen(UndergroundTicket(
+                    lineShortName: "Central",
+                    lineName: "Central line",
+                    companyName: "Transport for London",
+                    lineColor: "#DC241F",
+                    originStation: "Oxford Circus",
+                    destinationStation: "Bank",
+                    stopsCount: 3,
+                    date: "15 Jul 2026",
+                    ticketNumber: "K7Q3X8M2WL",
+                    zones: "1",
+                    fare: "£2.80"
+                ))
+            case .grid:
+                return .grid(UndergroundTicket(
+                    lineShortName: "G",
+                    lineName: "Ginza Line",
+                    companyName: "Tokyo Metro",
+                    lineColor: "#FF9500",
+                    originStation: "Shibuya",
+                    destinationStation: "Asakusa",
+                    stopsCount: 18,
+                    date: "15 Jul 2026",
+                    ticketNumber: "K7Q3X8M2WL",
+                    zones: "All zones",
+                    fare: "¥210"
+                ))
+            default:
+                return .underground(UndergroundTicket(
+                    lineShortName: "1",
+                    lineName: "Broadway – 7 Av Local",
+                    companyName: "MTA New York City Transit",
+                    lineColor: "#EE352E",
+                    originStation: "Times Sq – 42 St",
+                    destinationStation: "South Ferry",
+                    stopsCount: 17,
+                    date: "15 Jul 2026",
+                    ticketNumber: "K7Q3X8M2WL",
+                    zones: "All zones",
+                    fare: "$2.90"
+                ))
             }
         }
     }

@@ -24,7 +24,7 @@ struct ContentView: View {
     /// the funnel is presented over whatever tab the user is on, so the
     /// import flow doesn't depend on `AllTicketsView` being visible.
     @State private var pendingImportPassData: Data? = nil
-
+    @EnvironmentObject private var authManager: AuthManager
     var body: some View {
         // iOS 18+ `Tab` API — renders the new liquid-glass floating
         // tab bar by default on iOS 26, letting each screen's content
