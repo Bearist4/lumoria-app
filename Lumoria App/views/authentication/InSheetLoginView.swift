@@ -2,18 +2,21 @@
 //  InSheetLoginView.swift
 //  Lumoria App
 //
-//  Login surface rendered inside the floating auth sheet after the
-//  email-existence check returns `.exists`. Email is locked + prefilled.
-//  Calls AuthManager so the supabase client only lives in one place.
+//  Login surface rendered inside the floating auth modal after the
+//  email-existence check returns `.exists`. Email field is editable +
+//  prefilled from the email step. Calls AuthManager so the supabase
+//  client only lives in one place.
+//  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=948-8015
 //
 
 import SwiftUI
 
 struct InSheetLoginView: View {
-    let email: String
+    let initialEmail: String
     @EnvironmentObject private var auth: AuthManager
     var onSuccess: () -> Void = {}
 
+    @State private var email: String
     @State private var password = ""
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -21,47 +24,65 @@ struct InSheetLoginView: View {
     @State private var unverifiedEmail: String?
     @State private var resendStatus: String?
 
+    init(email: String, onSuccess: @escaping () -> Void = {}) {
+        self.initialEmail = email
+        self._email = State(initialValue: email)
+        self.onSuccess = onSuccess
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Welcome back")
-                    .font(.title2.bold())
+        VStack(alignment: .leading, spacing: 32) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Welcome to Lumoria")
+                    .font(.largeTitle.bold())
                     .foregroundStyle(Color.Text.primary)
-                Text(email)
-                    .font(.subheadline)
-                    .foregroundStyle(Color.Text.secondary)
-            }
-
-            LumoriaInputField(
-                label: "Password",
-                placeholder: "Your password",
-                text: $password,
-                isSecure: true,
-                contentType: .password
-            )
-
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(Color.Feedback.Danger.text)
-            }
-
-            HStack {
-                Spacer()
-                Button("Forgot password?") { showForgotPassword = true }
-                    .font(.footnote)
+                Text("Log in to Lumoria")
+                    .font(.body)
                     .foregroundStyle(Color.Text.primary)
             }
 
-            Button(action: submit) {
-                if isLoading {
-                    ProgressView().tint(Color.Text.OnColor.white)
-                } else {
-                    Text("Log in")
+            VStack(alignment: .leading, spacing: 20) {
+                LumoriaInputField(
+                    label: "Email address",
+                    placeholder: "email@address.com",
+                    text: $email,
+                    state: .disabled,
+                    contentType: .emailAddress,
+                    keyboardType: .emailAddress
+                )
+
+                LumoriaInputField(
+                    label: "Password",
+                    placeholder: "Your password",
+                    text: $password,
+                    isSecure: true,
+                    contentType: .password
+                )
+
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color.Feedback.Danger.text)
                 }
             }
-            .lumoriaButtonStyle(.primary)
-            .disabled(password.isEmpty || isLoading)
+
+            VStack(spacing: 12) {
+                Button(action: submit) {
+                    if isLoading {
+                        ProgressView().tint(Color.Text.OnColor.white)
+                    } else {
+                        Text("Log in")
+                    }
+                }
+                .lumoriaButtonStyle(.primary)
+                .disabled(email.isEmpty || password.isEmpty || isLoading)
+
+                Button("Forgot password?") { showForgotPassword = true }
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(Color.Text.primary)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 60)
+            }
         }
         .padding(.horizontal, 24)
         .padding(.top, 24)

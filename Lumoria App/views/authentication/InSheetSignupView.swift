@@ -2,11 +2,12 @@
 //  InSheetSignupView.swift
 //  Lumoria App
 //
-//  Signup surface rendered inside the floating auth sheet after the
-//  email-existence check returns `.doesNotExist`. Email locked. Strength
-//  bar reuses the algorithm from SignUpView (kept private there); we
-//  inline an equivalent rather than refactoring out — the existing view
-//  is left untouched.
+//  Signup surface rendered inside the floating auth modal after the
+//  email-existence check returns `.doesNotExist`. Email field is
+//  editable + prefilled. Strength bar + requirements list match the
+//  existing top-level SignUpView, kept inline so the original is
+//  untouched.
+//  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=948-8013
 //
 
 import SwiftUI
@@ -46,10 +47,11 @@ private enum InSheetPwStrength: Int {
 }
 
 struct InSheetSignupView: View {
-    let email: String
+    let initialEmail: String
     @EnvironmentObject private var auth: AuthManager
     var onSuccess: () -> Void = {}
 
+    @State private var email: String
     @State private var name = ""
     @State private var password = ""
     @State private var confirmPassword = ""
@@ -57,65 +59,95 @@ struct InSheetSignupView: View {
     @State private var errorMessage: String?
     @State private var showConfirmation = false
 
+    init(email: String, onSuccess: @escaping () -> Void = {}) {
+        self.initialEmail = email
+        self._email = State(initialValue: email)
+        self.onSuccess = onSuccess
+    }
+
     private var strength: InSheetPwStrength { .score(for: password) }
     private var passwordValid: Bool { password.count >= 8 && strength == .strong }
     private var passwordsMatch: Bool { !confirmPassword.isEmpty && password == confirmPassword }
     private var canSubmit: Bool {
-        !name.isEmpty && passwordValid && passwordsMatch && !isLoading
+        !name.isEmpty && !email.isEmpty && passwordValid && passwordsMatch && !isLoading
     }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Let's create your account")
-                        .font(.title2.bold())
-                        .foregroundStyle(Color.Text.primary)
-                    Text(email)
-                        .font(.subheadline)
+            VStack(alignment: .leading, spacing: 32) {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Welcome to Lumoria")
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(Color.Text.primary)
+                        Text("Let's create your account")
+                            .font(.body)
+                            .foregroundStyle(Color.Text.primary)
+                    }
+
+                    VStack(alignment: .leading, spacing: 20) {
+                        LumoriaInputField(
+                            label: "Name",
+                            placeholder: "Your name",
+                            text: $name,
+                            contentType: .name
+                        )
+
+                        LumoriaInputField(
+                            label: "Email address",
+                            placeholder: "email@address.com",
+                            text: $email,
+                            state: .disabled,
+                            contentType: .emailAddress,
+                            keyboardType: .emailAddress
+                        )
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            LumoriaInputField(
+                                label: "Password",
+                                placeholder: "Your password",
+                                text: $password,
+                                isSecure: true,
+                                contentType: .newPassword
+                            )
+
+                            HStack(spacing: 2) {
+                                ForEach(1...4, id: \.self) { i in
+                                    RoundedRectangle(cornerRadius: 2)
+                                        .fill(i <= strength.rawValue ? strength.color : Color("Colors/Opacity/Black/inverse/10"))
+                                        .frame(height: 4)
+                                }
+                            }
+                            Text(strength.label)
+                                .font(.caption)
+                                .foregroundStyle(strength == .empty ? Color.Text.secondary : strength.color)
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("At least 8 characters, with:")
+                                .foregroundStyle(Color.Text.secondary)
+                            requirementRow("1 uppercase letter (A–Z)")
+                            requirementRow("1 lowercase letter (a–z)")
+                            requirementRow("1 number (0–9)")
+                            requirementRow("1 special character (!@#$%^&*)")
+                        }
+                        .font(.footnote)
                         .foregroundStyle(Color.Text.secondary)
-                }
 
-                LumoriaInputField(
-                    label: "Name",
-                    placeholder: "Your name",
-                    text: $name,
-                    contentType: .name
-                )
+                        LumoriaInputField(
+                            label: "Confirm your password",
+                            placeholder: "Confirm your password",
+                            text: $confirmPassword,
+                            isSecure: true,
+                            contentType: .newPassword
+                        )
 
-                VStack(alignment: .leading, spacing: 8) {
-                    LumoriaInputField(
-                        label: "Password",
-                        placeholder: "Your password",
-                        text: $password,
-                        isSecure: true,
-                        contentType: .newPassword
-                    )
-
-                    HStack(spacing: 2) {
-                        ForEach(1...4, id: \.self) { i in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(i <= strength.rawValue ? strength.color : Color("Colors/Opacity/Black/inverse/10"))
-                                .frame(height: 4)
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(.footnote)
+                                .foregroundStyle(Color.Feedback.Danger.text)
                         }
                     }
-                    Text(strength.label)
-                        .font(.caption)
-                        .foregroundStyle(strength == .empty ? Color.Text.tertiary : strength.color)
-                }
-
-                LumoriaInputField(
-                    label: "Confirm password",
-                    placeholder: "Confirm your password",
-                    text: $confirmPassword,
-                    isSecure: true,
-                    contentType: .newPassword
-                )
-
-                if let errorMessage {
-                    Text(errorMessage)
-                        .font(.footnote)
-                        .foregroundStyle(Color.Feedback.Danger.text)
                 }
 
                 Button(action: submit) {
@@ -132,11 +164,17 @@ struct InSheetSignupView: View {
             .padding(.top, 24)
             .padding(.bottom, 32)
         }
-        .frame(maxHeight: 560)
         .alert("Check your email", isPresented: $showConfirmation) {
             Button("OK", role: .cancel) { onSuccess() }
         } message: {
             Text("We sent a confirmation link to \(email). Tap it on this iPhone to activate your account, then log in.")
+        }
+    }
+
+    private func requirementRow(_ text: LocalizedStringKey) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("•")
+            Text(text)
         }
     }
 
