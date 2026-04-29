@@ -40,15 +40,6 @@ struct LandingView: View {
 
                 headlineView
 
-                Spacer().frame(height: 32)
-
-                Text("By signing up you agree to our Terms and Privacy Policy.")
-                    .font(.footnote)
-                    .foregroundStyle(Color.Text.secondary)
-                    .tint(Color.Text.primary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
                 Spacer().frame(height: 200)
             }
 

@@ -109,10 +109,27 @@ final class AuthManager: ObservableObject {
                 isAuthenticated = false
                 isBetaSubscriber = false
                 betaStatusKnown = false
+                resetAppIconToDefault()
                 Analytics.track(.logout)
                 Analytics.reset()
             default:
                 break
+            }
+        }
+    }
+
+    /// Reverts to the primary app icon on logout so the next user
+    /// doesn't inherit the previous user's chosen alternate icon.
+    /// `setAlternateIconName(nil)` is a no-op when the primary icon is
+    /// already active, so this is safe regardless of state.
+    private func resetAppIconToDefault() {
+        guard UIApplication.shared.supportsAlternateIcons,
+              UIApplication.shared.alternateIconName != nil else { return }
+        Task { @MainActor in
+            do {
+                try await UIApplication.shared.setAlternateIconName(nil)
+            } catch {
+                print("[AuthManager] resetAppIconToDefault failed: \(error)")
             }
         }
     }
