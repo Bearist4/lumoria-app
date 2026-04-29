@@ -68,6 +68,34 @@ private func makeTrainFunnel(_ template: TicketTemplateKind) -> NewTicketFunnel 
 }
 
 @MainActor
+@Test func autofill_skipsAlreadyFilledFields() async throws {
+    let funnel = makePlaneFunnel(.afterglow)
+    funnel.form.gate = "F32"
+    funnel.form.seat = ""
+
+    funnel.advance()
+
+    #expect(funnel.form.gate == "F32",
+            "user-entered value must never be overwritten")
+    #expect(!funnel.form.seat.isEmpty)
+    #expect(funnel.autoFilledFields == ["Seat"],
+            "only blank fields should be reported as auto-filled")
+}
+
+@MainActor
+@Test func autofill_listsExactlyNewlyFilledLabels_inOrder() async throws {
+    let funnel = makePlaneFunnel(.prism)
+    funnel.form.gate = ""
+    funnel.form.seat = "11A"   // pre-filled — not in autoFilledFields
+    funnel.form.terminal = ""
+
+    funnel.advance()
+
+    #expect(funnel.autoFilledFields == ["Gate", "Terminal"],
+            "labels appear in switch-processing order, skipping pre-filled slots")
+}
+
+@MainActor
 @Test func autofill_night_fillsBerth_notSeat() async throws {
     let funnel = makeTrainFunnel(.night)
     funnel.trainForm.car = ""
