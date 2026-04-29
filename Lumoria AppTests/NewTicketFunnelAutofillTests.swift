@@ -66,3 +66,18 @@ private func makeTrainFunnel(_ template: TicketTemplateKind) -> NewTicketFunnel 
     #expect(funnel.autoFilledFields.contains("Gate"))
     #expect(funnel.autoFilledFields.contains("Seat"))
 }
+
+@MainActor
+@Test func autofill_prism_alsoFillsTerminal() async throws {
+    let funnel = makePlaneFunnel(.prism)
+    funnel.form.gate = ""
+    funnel.form.seat = ""
+    funnel.form.terminal = ""
+
+    funnel.advance()
+
+    #expect(!funnel.form.gate.isEmpty)
+    #expect(!funnel.form.seat.isEmpty)
+    #expect(!funnel.form.terminal.isEmpty)
+    #expect(funnel.autoFilledFields == ["Gate", "Seat", "Terminal"])
+}

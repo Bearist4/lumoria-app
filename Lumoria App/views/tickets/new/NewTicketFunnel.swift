@@ -708,9 +708,22 @@ final class NewTicketFunnel: ObservableObject {
                 autoFilledFields.append(String(localized: "Seat"))
             }
 
-        case .prism, .express, .orient, .night, .post, .glow:
-            // Filled in by subsequent tasks. Stub for now so the switch
-            // remains exhaustive while plane/train migrates incrementally.
+        case .prism:
+            if trim(form.gate).isEmpty {
+                form.gate = Self.randomGate()
+                autoFilledFields.append(String(localized: "Gate"))
+            }
+            if trim(form.seat).isEmpty {
+                form.seat = Self.randomSeatNumberLetter()
+                autoFilledFields.append(String(localized: "Seat"))
+            }
+            if trim(form.terminal).isEmpty {
+                form.terminal = Self.randomPlaneTerminal()
+                autoFilledFields.append(String(localized: "Terminal"))
+            }
+
+        case .express, .orient, .night, .post, .glow:
+            // Filled in by subsequent tasks.
             break
 
         case .underground, .sign, .infoscreen, .grid:
