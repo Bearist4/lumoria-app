@@ -171,12 +171,13 @@ struct AppearanceView: View {
         storedIconName = name ?? ""
         let current = UIApplication.shared.alternateIconName
         guard current != name else { return }
-        AlternateIconChanger.set(name) { error in
-            if let error {
+        Task { @MainActor in
+            do {
+                try await UIApplication.shared.setAlternateIconName(name)
+                WidgetSnapshotWriter.shared.refreshBrandLogomark()
+            } catch {
                 print("[AppearanceView] setAlternateIconName failed: \(error)")
                 storedIconName = previous
-            } else {
-                WidgetSnapshotWriter.shared.refreshBrandLogomark()
             }
         }
     }

@@ -128,11 +128,16 @@ final class AuthManager: ObservableObject {
     /// Also wipes the `appearance.iconName` AppStorage value that drives
     /// the in-app `brandSlug` env (logomark images on the landing screen,
     /// settings, etc) so those revert in lock-step with the springboard
-    /// icon. Silent — no system alert.
+    /// icon. iOS shows its system "You have changed the icon for…" alert
+    /// here — that's the unavoidable cost of the public API.
     private func resetAppIconToDefault() {
         UserDefaults.standard.removeObject(forKey: "appearance.iconName")
-        AlternateIconChanger.set(nil) { error in
-            if let error {
+        guard UIApplication.shared.supportsAlternateIcons,
+              UIApplication.shared.alternateIconName != nil else { return }
+        Task { @MainActor in
+            do {
+                try await UIApplication.shared.setAlternateIconName(nil)
+            } catch {
                 print("[AuthManager] resetAppIconToDefault failed: \(error)")
             }
         }
