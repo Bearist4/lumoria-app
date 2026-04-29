@@ -125,15 +125,14 @@ final class AuthManager: ObservableObject {
 
     /// Reverts to the primary app icon on logout so the next user
     /// doesn't inherit the previous user's chosen alternate icon.
-    /// `setAlternateIconName(nil)` is a no-op when the primary icon is
-    /// already active, so this is safe regardless of state.
+    /// Also wipes the `appearance.iconName` AppStorage value that drives
+    /// the in-app `brandSlug` env (logomark images on the landing screen,
+    /// settings, etc) so those revert in lock-step with the springboard
+    /// icon. Silent — no system alert.
     private func resetAppIconToDefault() {
-        guard UIApplication.shared.supportsAlternateIcons,
-              UIApplication.shared.alternateIconName != nil else { return }
-        Task { @MainActor in
-            do {
-                try await UIApplication.shared.setAlternateIconName(nil)
-            } catch {
+        UserDefaults.standard.removeObject(forKey: "appearance.iconName")
+        AlternateIconChanger.set(nil) { error in
+            if let error {
                 print("[AuthManager] resetAppIconToDefault failed: \(error)")
             }
         }
