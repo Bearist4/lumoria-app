@@ -14,8 +14,11 @@ struct AuthChooserStepView: View {
     let onApple: () -> Void
     let onGoogle: () -> Void
     let onDismiss: () -> Void
-    let isSocialLoading: Bool
+    let isAppleLoading: Bool
+    let isGoogleLoading: Bool
     let socialError: String?
+
+    private var anySocialLoading: Bool { isAppleLoading || isGoogleLoading }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 32) {
@@ -61,7 +64,7 @@ struct AuthChooserStepView: View {
     private var appleButton: some View {
         Button(action: onApple) {
             HStack(spacing: 5) {
-                if isSocialLoading {
+                if isAppleLoading {
                     ProgressView()
                 } else {
                     Image(systemName: "applelogo")
@@ -81,14 +84,14 @@ struct AuthChooserStepView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
-        .disabled(isSocialLoading)
+        .disabled(anySocialLoading)
         .accessibilityLabel("Continue with Apple")
     }
 
     private var googleButton: some View {
         Button(action: onGoogle) {
             HStack(spacing: 10) {
-                if isSocialLoading {
+                if isGoogleLoading {
                     ProgressView()
                 } else {
                     Image("google-g")
@@ -109,7 +112,7 @@ struct AuthChooserStepView: View {
             )
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .disabled(isSocialLoading)
+        .disabled(anySocialLoading)
         .accessibilityLabel("Continue with Google")
     }
 }

@@ -25,7 +25,8 @@ struct AuthChooserSheetContent: View {
     @ObservedObject var coordinator: AuthFlowCoordinator
     @EnvironmentObject private var auth: AuthManager
 
-    @State private var isSocialLoading = false
+    @State private var isAppleLoading = false
+    @State private var isGoogleLoading = false
     @State private var socialError: String?
 
     var body: some View {
@@ -37,16 +38,17 @@ struct AuthChooserSheetContent: View {
                 Analytics.track(.authFlowDismissed(atStep: .chooser))
                 coordinator.dismiss()
             },
-            isSocialLoading: isSocialLoading,
+            isAppleLoading: isAppleLoading,
+            isGoogleLoading: isGoogleLoading,
             socialError: socialError
         )
     }
 
     private func signInWithApple() {
         socialError = nil
-        isSocialLoading = true
+        isAppleLoading = true
         Task {
-            defer { isSocialLoading = false }
+            defer { isAppleLoading = false }
             do { try await auth.signInWithApple() }
             catch AppleSignInService.AppleSignInError.canceled { /* silent */ }
             catch { socialError = error.localizedDescription }
@@ -55,9 +57,9 @@ struct AuthChooserSheetContent: View {
 
     private func signInWithGoogle() {
         socialError = nil
-        isSocialLoading = true
+        isGoogleLoading = true
         Task {
-            defer { isSocialLoading = false }
+            defer { isGoogleLoading = false }
             do { try await auth.signInWithGoogle() }
             catch GoogleSignInService.GoogleSignInError.canceled { /* silent */ }
             catch { socialError = error.localizedDescription }
