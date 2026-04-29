@@ -17,28 +17,30 @@ struct EmailEntryStepView: View {
     let onContinue: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
+        VStack(alignment: .leading, spacing: 32) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Continue with email")
-                    .font(.title2.bold())
+                Text("Welcome to Lumoria")
+                    .font(.largeTitle.bold())
                     .foregroundStyle(Color.Text.primary)
-                Text("We'll check if you already have an account")
+                Text("Log in to Lumoria")
                     .font(.body)
-                    .foregroundStyle(Color.Text.secondary)
+                    .foregroundStyle(Color.Text.primary)
             }
 
-            LumoriaInputField(
-                label: "Email address",
-                placeholder: "Your email address",
-                text: $email,
-                contentType: .emailAddress,
-                keyboardType: .emailAddress
-            )
+            VStack(alignment: .leading, spacing: 20) {
+                LumoriaInputField(
+                    label: "Email address",
+                    placeholder: "Your email address",
+                    text: $email,
+                    contentType: .emailAddress,
+                    keyboardType: .emailAddress
+                )
 
-            if let errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(Color.Feedback.Danger.text)
+                if let errorMessage {
+                    Text(errorMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color.Feedback.Danger.text)
+                }
             }
 
             Button(action: onContinue) {

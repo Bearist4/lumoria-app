@@ -102,34 +102,26 @@ struct AuthFlowModalContent: View {
 
     @ViewBuilder
     private var header: some View {
+        // Single left-aligned control. On the email step it's an X that
+        // pops back to the chooser; on login/signup it's a back chevron
+        // that returns to the email step. Matches Figma 2000:140461.
         HStack {
-            if coordinator.step != .email {
-                Button {
-                    Analytics.track(.authFlowBackPressed(fromStep: stepProp))
-                    coordinator.back()
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(Color.Text.primary)
-                        .frame(width: 44, height: 44)
-                        .background(Color.Background.fieldFill)
-                        .clipShape(Circle())
-                }
-            } else {
-                Color.clear.frame(width: 44, height: 44)
-            }
-            Spacer()
             Button {
-                Analytics.track(.authFlowDismissed(atStep: stepProp))
-                coordinator.dismiss()
+                if coordinator.step == .email {
+                    Analytics.track(.authFlowDismissed(atStep: .email))
+                } else {
+                    Analytics.track(.authFlowBackPressed(fromStep: stepProp))
+                }
+                coordinator.back()
             } label: {
-                Image(systemName: "xmark")
+                Image(systemName: coordinator.step == .email ? "xmark" : "chevron.left")
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(Color.Text.primary)
                     .frame(width: 44, height: 44)
                     .background(Color.Background.fieldFill)
                     .clipShape(Circle())
             }
+            Spacer()
         }
         .padding(.horizontal, 16)
         .padding(.top, 10)
