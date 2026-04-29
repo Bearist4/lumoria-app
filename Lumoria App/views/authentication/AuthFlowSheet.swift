@@ -29,32 +29,17 @@ struct AuthChooserSheetContent: View {
     @State private var socialError: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Button {
-                    Analytics.track(.authFlowDismissed(atStep: .chooser))
-                    coordinator.dismiss()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.callout.weight(.semibold))
-                        .foregroundStyle(Color.Text.primary)
-                        .frame(width: 44, height: 44)
-                        .background(Color.Background.fieldFill)
-                        .clipShape(Circle())
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
-
-            AuthChooserStepView(
-                onContinueWithEmail: coordinator.continueWithEmail,
-                onApple: signInWithApple,
-                onGoogle: signInWithGoogle,
-                isSocialLoading: isSocialLoading,
-                socialError: socialError
-            )
-        }
+        AuthChooserStepView(
+            onContinueWithEmail: coordinator.continueWithEmail,
+            onApple: signInWithApple,
+            onGoogle: signInWithGoogle,
+            onDismiss: {
+                Analytics.track(.authFlowDismissed(atStep: .chooser))
+                coordinator.dismiss()
+            },
+            isSocialLoading: isSocialLoading,
+            socialError: socialError
+        )
     }
 
     private func signInWithApple() {
