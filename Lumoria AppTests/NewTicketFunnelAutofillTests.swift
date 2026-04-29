@@ -68,6 +68,22 @@ private func makeTrainFunnel(_ template: TicketTemplateKind) -> NewTicketFunnel 
 }
 
 @MainActor
+@Test func autofill_trainNumberLetterSeat_forExpress() async throws {
+    let funnel = makeTrainFunnel(.express)
+    funnel.trainForm.car = ""
+    funnel.trainForm.seat = ""
+
+    funnel.advance()
+
+    #expect(!funnel.trainForm.car.isEmpty)
+    let seat = funnel.trainForm.seat
+    // ABCDEFGHJK alphabet — skips I per airline convention.
+    #expect(seat.range(of: "^[0-9]+[A-HJK]$", options: .regularExpression) != nil,
+            "expected number+letter seat for express, got \(seat)")
+    #expect(funnel.autoFilledFields == ["Car", "Seat"])
+}
+
+@MainActor
 @Test func autofill_trainNumberOnlySeat_forPost() async throws {
     let funnel = makeTrainFunnel(.post)
     funnel.trainForm.car = ""

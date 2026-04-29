@@ -732,8 +732,18 @@ final class NewTicketFunnel: ObservableObject {
                 autoFilledFields.append(String(localized: "Seat"))
             }
 
-        case .express, .night:
-            // Filled in by subsequent tasks.
+        case .express:
+            if trim(trainForm.car).isEmpty {
+                trainForm.car = Self.randomCar()
+                autoFilledFields.append(String(localized: "Car"))
+            }
+            if trim(trainForm.seat).isEmpty {
+                trainForm.seat = Self.randomSeatNumberLetter()
+                autoFilledFields.append(String(localized: "Seat"))
+            }
+
+        case .night:
+            // Filled in by Task 6.
             break
 
         case .underground, .sign, .infoscreen, .grid:
