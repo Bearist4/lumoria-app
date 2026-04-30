@@ -2,9 +2,13 @@
 //  MemorySortSheet.swift
 //  Lumoria App
 //
-//  Bottom sheet for choosing how `MemoryDetailView` orders its tickets.
-//  Three fields × oldest/newest direction. Persists per memory via
-//  `MemoriesStore.updateSort`.
+//  Floating bottom-sheet content for choosing how `MemoryDetailView`
+//  orders its tickets. Three fields × oldest/newest direction. Persists
+//  per memory via `MemoriesStore.updateSort` (host wires the callback).
+//
+//  Presented through the app's shared `.floatingBottomSheet` modifier,
+//  so this view renders only the inner content — no `presentationDetents`,
+//  no native sheet chrome.
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=2028-143016
 //
@@ -13,12 +17,27 @@ import SwiftUI
 
 struct MemorySortSheet: View {
 
-    let memoryId: UUID
-    @Binding var field: MemorySortField
-    @Binding var ascending: Bool
+    let initialField: MemorySortField
+    let initialAscending: Bool
     let onChange: (_ field: MemorySortField, _ ascending: Bool) -> Void
+    let onDismiss: () -> Void
 
-    @Environment(\.dismiss) private var dismiss
+    @State private var field: MemorySortField
+    @State private var ascending: Bool
+
+    init(
+        initialField: MemorySortField,
+        initialAscending: Bool,
+        onChange: @escaping (MemorySortField, Bool) -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.initialField = initialField
+        self.initialAscending = initialAscending
+        self.onChange = onChange
+        self.onDismiss = onDismiss
+        _field = State(initialValue: initialField)
+        _ascending = State(initialValue: initialAscending)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -27,9 +46,7 @@ struct MemorySortSheet: View {
                     .font(.title3.bold())
                     .foregroundStyle(Color.Text.primary)
                 Spacer()
-                Button {
-                    dismiss()
-                } label: {
+                Button(action: onDismiss) {
                     Image(systemName: "xmark")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(Color.Text.secondary)
@@ -59,9 +76,6 @@ struct MemorySortSheet: View {
             .pickerStyle(.segmented)
         }
         .padding(24)
-        .background(Color.Background.default)
-        .presentationDetents([.height(360)])
-        .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder
@@ -89,11 +103,10 @@ struct MemorySortSheet: View {
 }
 
 #Preview {
-    @Previewable @State var field: MemorySortField = .dateAdded
-    @Previewable @State var ascending = true
-    return MemorySortSheet(
-        memoryId: UUID(),
-        field: $field,
-        ascending: $ascending
-    ) { _, _ in }
+    MemorySortSheet(
+        initialField: .dateAdded,
+        initialAscending: true,
+        onChange: { _, _ in },
+        onDismiss: { }
+    )
 }

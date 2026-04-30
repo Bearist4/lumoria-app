@@ -122,31 +122,26 @@ struct MemoryDetailView: View {
             AddExistingTicketSheet(memoryId: memory.id)
                 .environmentObject(ticketsStore)
         }
-        .sheet(isPresented: $showSortSheet) {
+        .floatingBottomSheet(isPresented: $showSortSheet) {
             MemorySortSheet(
-                memoryId: memory.id,
-                field: Binding(
-                    get: { currentMemory.sortField },
-                    set: { _ in }
-                ),
-                ascending: Binding(
-                    get: { currentMemory.sortAscending },
-                    set: { _ in }
-                )
-            ) { field, ascending in
-                Task {
-                    await memoriesStore.updateSort(
-                        memoryId: memory.id,
-                        field: field,
-                        ascending: ascending
-                    )
-                    Analytics.track(.memorySortChanged(
-                        field: field.rawValue,
-                        ascending: ascending,
-                        memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
-                    ))
-                }
-            }
+                initialField: currentMemory.sortField,
+                initialAscending: currentMemory.sortAscending,
+                onChange: { field, ascending in
+                    Task {
+                        await memoriesStore.updateSort(
+                            memoryId: memory.id,
+                            field: field,
+                            ascending: ascending
+                        )
+                        Analytics.track(.memorySortChanged(
+                            field: field.rawValue,
+                            ascending: ascending,
+                            memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
+                        ))
+                    }
+                },
+                onDismiss: { showSortSheet = false }
+            )
         }
         .alert(
             "Delete this memory?",
