@@ -101,28 +101,12 @@ struct MemorySortSheet: View {
                     }
                 }
                 Spacer(minLength: 0)
-                radio(isOn: field == option)
+                LumoriaRadio(isSelected: field == option)
             }
             .contentShape(Rectangle())
-            .padding(.vertical, 14)
+            .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
-    }
-
-    private func radio(isOn: Bool) -> some View {
-        ZStack {
-            Circle()
-                .stroke(
-                    isOn ? Color.Text.primary : Color.Text.tertiary.opacity(0.5),
-                    lineWidth: 1.5
-                )
-                .frame(width: 22, height: 22)
-            if isOn {
-                Circle()
-                    .fill(Color.Text.primary)
-                    .frame(width: 12, height: 12)
-            }
-        }
     }
 
     /// Capsule with two pill segments. The selected segment renders on
