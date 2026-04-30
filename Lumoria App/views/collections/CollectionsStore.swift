@@ -250,6 +250,44 @@ final class MemoriesStore: ObservableObject {
         }
     }
 
+    // MARK: - Reorder
+
+    /// Persists a manual order for tickets in a memory. Each ticket
+    /// gets a 0-based `display_order` matching its index in `ordered`.
+    /// Also flips `sort_field` to `.manual` so the new arrangement is
+    /// what the detail view shows by default.
+    func reorderTickets(
+        in memoryId: UUID,
+        ordered ticketIds: [UUID]
+    ) async {
+        do {
+            // Postgres `update` doesn't support bulk position updates;
+            // iterate. Sequential awaits keep the writes ordered.
+            for (index, ticketId) in ticketIds.enumerated() {
+                try await supabase
+                    .from("memory_tickets")
+                    .update(["display_order": index])
+                    .eq("memory_id", value: memoryId.uuidString)
+                    .eq("ticket_id", value: ticketId.uuidString)
+                    .execute()
+            }
+
+            // Flip sort_field to manual locally + remotely. updateSort
+            // already handles optimistic update + rollback.
+            await updateSort(memoryId: memoryId, field: .manual, ascending: true)
+
+            errorMessage = nil
+        } catch {
+            errorMessage = String(localized: "Couldn’t save the new order. \(error.localizedDescription)")
+            print("[MemoriesStore] reorderTickets failed:", error)
+            Analytics.track(.appError(
+                domain: .memory,
+                code: (error as NSError).code.description,
+                viewContext: "MemoriesStore.reorderTickets"
+            ))
+        }
+    }
+
     // MARK: - Delete
 
     func delete(_ memory: Memory) async {
