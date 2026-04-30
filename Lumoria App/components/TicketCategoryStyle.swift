@@ -75,6 +75,19 @@ enum TicketCategoryStyle: String, CaseIterable, Identifiable {
         case .publicTransit: return String(localized: "Public Transport")
         }
     }
+
+    /// Short, single-word label used in tight surfaces like the
+    /// `TicketEntryRow` pill. For categories without a shorter form it
+    /// falls back to `displayName`.
+    var pillLabel: String {
+        switch self {
+        case .publicTransit: return String(localized: "Transport")
+        case .food:          return String(localized: "Food")
+        case .movie:         return String(localized: "Movie")
+        case .garden:        return String(localized: "Park")
+        default:             return displayName
+        }
+    }
 }
 
 // MARK: - Template → category
