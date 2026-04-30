@@ -32,13 +32,24 @@ struct MemoryEditMode: View {
     @FocusState private var nameFocused: Bool
 
     init(memory: Memory, tickets: [Ticket], onExit: @escaping () -> Void) {
+        // Sort the entry list using the memory's current sort prefs so
+        // the edit view opens in the same order the user sees in
+        // reading mode. Without this, the raw store order (created_at
+        // desc) leaks through and reordering "starts from a different
+        // list" than what the user expected.
+        let sorted = MemorySortApplier.apply(
+            tickets,
+            field: memory.sortField,
+            ascending: memory.sortAscending,
+            memoryId: memory.id
+        )
         self.memory = memory
-        self.tickets = tickets
+        self.tickets = sorted
         self.onExit = onExit
         _emoji = State(initialValue: memory.emoji)
         _name = State(initialValue: memory.name)
         _colorFamily = State(initialValue: memory.colorFamily)
-        _orderedTicketIds = State(initialValue: tickets.map(\.id))
+        _orderedTicketIds = State(initialValue: sorted.map(\.id))
     }
 
     var body: some View {
