@@ -74,6 +74,7 @@ enum AnalyticsEvent {
     case templateDetailsViewed(category: TicketCategoryProp, template: TicketTemplateProp)
     case memoryEdited(nameChanged: Bool, emojiChanged: Bool, colorChanged: Bool,
                       memoryIdHash: String)
+    case memorySortChanged(field: String, ascending: Bool, memoryIdHash: String)
     case memoryDeleted(ticketCount: Int, memoryIdHash: String)
     case ticketAddedToMemory(memoryIdHash: String, newTicketCount: Int)
     case ticketRemovedFromMemory(memoryIdHash: String)
@@ -204,6 +205,7 @@ extension AnalyticsEvent {
         case .mapPinTapped: return "Map Pin Tapped"
         case .templateDetailsViewed: return "Template Details Viewed"
         case .memoryEdited: return "Memory Edited"
+        case .memorySortChanged: return "Memory Sort Changed"
         case .memoryDeleted: return "Memory Deleted"
         case .ticketAddedToMemory: return "Ticket Added To Memory"
         case .ticketRemovedFromMemory: return "Ticket Removed From Memory"
@@ -401,6 +403,10 @@ extension AnalyticsEvent {
             return ["name_changed": nameChanged,
                     "emoji_changed": emojiChanged,
                     "color_changed": colorChanged,
+                    "memory_id_hash": hash]
+        case .memorySortChanged(let field, let ascending, let hash):
+            return ["sort_field": field,
+                    "sort_ascending": ascending,
                     "memory_id_hash": hash]
         case .memoryDeleted(let count, let hash):
             return ["ticket_count": count, "memory_id_hash": hash]

@@ -24,6 +24,7 @@ struct MemoryDetailView: View {
     @State private var showMap = false
     @State private var showNewTicket = false
     @State private var showAddExistingTicket = false
+    @State private var showSortSheet = false
     @State private var previewColorFamily: String?
     /// ID of the ticket closest to vertical centre of the screen. Drives
     /// the shimmer's `isActive` so only the focused card consumes motion.
@@ -121,6 +122,32 @@ struct MemoryDetailView: View {
             AddExistingTicketSheet(memoryId: memory.id)
                 .environmentObject(ticketsStore)
         }
+        .sheet(isPresented: $showSortSheet) {
+            MemorySortSheet(
+                memoryId: memory.id,
+                field: Binding(
+                    get: { currentMemory.sortField },
+                    set: { _ in }
+                ),
+                ascending: Binding(
+                    get: { currentMemory.sortAscending },
+                    set: { _ in }
+                )
+            ) { field, ascending in
+                Task {
+                    await memoriesStore.updateSort(
+                        memoryId: memory.id,
+                        field: field,
+                        ascending: ascending
+                    )
+                    Analytics.track(.memorySortChanged(
+                        field: field.rawValue,
+                        ascending: ascending,
+                        memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
+                    ))
+                }
+            }
+        }
         .alert(
             "Delete this memory?",
             isPresented: $showDeleteConfirm
@@ -178,6 +205,7 @@ struct MemoryDetailView: View {
             .init(title: "Add existing ticket…") {
                 showAddExistingTicket = true
             },
+            .init(title: "Sort…") { showSortSheet = true },
             .init(title: "Edit") { showEdit = true },
             .init(title: "Delete", kind: .destructive) { showDeleteConfirm = true },
         ]
@@ -254,7 +282,12 @@ struct MemoryDetailView: View {
 
     @ViewBuilder
     private var contentCard: some View {
-        let tickets = ticketsStore.tickets(in: memory.id)
+        let tickets = MemorySortApplier.apply(
+            ticketsStore.tickets(in: memory.id),
+            field: currentMemory.sortField,
+            ascending: currentMemory.sortAscending,
+            memoryId: memory.id
+        )
 
         VStack(alignment: .leading, spacing: 0) {
             if tickets.isEmpty {
@@ -263,6 +296,10 @@ struct MemoryDetailView: View {
                 ticketsGrid(tickets)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 16)
+                    .animation(
+                        .easeInOut(duration: 0.25),
+                        value: tickets.map(\.id)
+                    )
             }
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
