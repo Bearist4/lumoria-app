@@ -22,6 +22,14 @@ struct MemoryDetailView: View {
 
     @State private var isEditing = false
     @State private var showDeleteConfirm = false
+
+    /// Spring used for the reading-mode ↔ edit-mode crossfade. Pulled
+    /// out so the menu's Edit handler and `MemoryEditMode.onExit`
+    /// share the same timing.
+    private let modeSwitchAnimation = Animation.spring(
+        response: 0.42,
+        dampingFraction: 0.85
+    )
     @State private var showMap = false
     @State private var showNewTicket = false
     @State private var showAddExistingTicket = false
@@ -34,15 +42,23 @@ struct MemoryDetailView: View {
     @State private var hasIntroducedTickets = false
 
     var body: some View {
-        Group {
+        ZStack {
             if isEditing {
                 MemoryEditMode(
                     memory: currentMemory,
                     tickets: ticketsStore.tickets(in: memory.id),
-                    onExit: { isEditing = false }
+                    onExit: { withAnimation(modeSwitchAnimation) { isEditing = false } }
                 )
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .scale(scale: 0.98, anchor: .center)),
+                    removal: .opacity.combined(with: .scale(scale: 1.02, anchor: .center))
+                ))
             } else {
                 readingModeBody
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .scale(scale: 1.02, anchor: .center)),
+                        removal: .opacity.combined(with: .scale(scale: 0.98, anchor: .center))
+                    ))
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -183,7 +199,9 @@ struct MemoryDetailView: View {
             .init(title: "Sort…") {
                 sortPresenter.present(memoryId: memory.id)
             },
-            .init(title: "Edit") { isEditing = true },
+            .init(title: "Edit") {
+                withAnimation(modeSwitchAnimation) { isEditing = true }
+            },
             .init(title: "Delete", kind: .destructive) { showDeleteConfirm = true },
         ]
     }

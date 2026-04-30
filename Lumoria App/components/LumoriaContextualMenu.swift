@@ -181,13 +181,20 @@ struct MenuPresenter: View {
 
                 LumoriaContextualMenu(items: wrapped)
                     .fixedSize()
-                    .scaleEffect(didAppear ? 1 : 0.92, anchor: .topTrailing)
                     .opacity(didAppear ? 1 : 0)
+                    // Slide in from ~12pt above its resting offset and
+                    // dissolve. Tap-outside reverses the same motion
+                    // because `didAppear` flips back to false in
+                    // `close(then:)` and the same animation runs in
+                    // reverse.
                     .offset(
                         x: anchor.maxX - menuWidth,
-                        y: anchor.maxY + gap - topInset
+                        y: (anchor.maxY + gap - topInset) + (didAppear ? 0 : -12)
                     )
-                    .animation(.easeOut(duration: 0.14), value: didAppear)
+                    .animation(
+                        .spring(response: 0.32, dampingFraction: 0.86),
+                        value: didAppear
+                    )
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         }
@@ -197,7 +204,9 @@ struct MenuPresenter: View {
 
     private func close(then action: @escaping () -> Void) {
         didAppear = false
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+        // Match the spring response above so the close motion finishes
+        // before the fullScreenCover dismisses.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
             action()
         }
     }
