@@ -3,9 +3,8 @@
 //  Lumoria App
 //
 //  Floating bottom-sheet for picking a memory's color family. 11
-//  swatches in an adaptive grid using the existing palette tokens.
-//  Reset reverts the local selection to the value the sheet opened
-//  with; Done commits.
+//  swatches in a fixed 4-column grid using the existing palette
+//  tokens. Done commits the current selection.
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=2028-143737
 //
@@ -20,9 +19,14 @@ struct MemoryColorPickerSheet: View {
 
     @State private var selection: ColorOption
 
-    private static let columns = [
-        GridItem(.adaptive(minimum: 80, maximum: 80), spacing: 8)
-    ]
+    /// Fixed 4-column grid. Eager `LazyVGrid` columns let the swatches
+    /// inherit the parent sheet's slide-in transition cleanly — adaptive
+    /// columns occasionally re-flow on first appear and look detached
+    /// from the sheet animation.
+    private static let columns: [GridItem] = Array(
+        repeating: GridItem(.flexible(), spacing: 8),
+        count: 4
+    )
 
     init(
         initialColor: ColorOption,
@@ -47,16 +51,11 @@ struct MemoryColorPickerSheet: View {
                 }
             }
 
-            HStack(spacing: 12) {
-                Button("Reset") { selection = initialColor }
-                    .buttonStyle(LumoriaButtonStyle(hierarchy: .secondary, size: .large))
-
-                Button("Done") {
-                    onCommit(selection)
-                    onDismiss()
-                }
-                .buttonStyle(LumoriaButtonStyle(hierarchy: .primary, size: .large))
+            Button("Done") {
+                onCommit(selection)
+                onDismiss()
             }
+            .buttonStyle(LumoriaButtonStyle(hierarchy: .primary, size: .large))
         }
         .padding(24)
     }
@@ -68,7 +67,7 @@ struct MemoryColorPickerSheet: View {
         } label: {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
                 .fill(option.swatchColor)
-                .frame(width: 80, height: 80)
+                .aspectRatio(1, contentMode: .fit)
                 .overlay(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
                         .stroke(

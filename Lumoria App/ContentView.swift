@@ -16,6 +16,7 @@ struct ContentView: View {
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var notificationsStore = NotificationsStore()
     @StateObject private var sortPresenter = MemorySortPresenter()
+    @StateObject private var colorPresenter = MemoryColorPresenter()
     @EnvironmentObject private var walletImport: WalletImportCoordinator
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @EnvironmentObject private var widgetRouter: WidgetDeepLinkRouter
@@ -52,6 +53,18 @@ struct ContentView: View {
         .environmentObject(profileStore)
         .environmentObject(notificationsStore)
         .environmentObject(sortPresenter)
+        .environmentObject(colorPresenter)
+        .floatingBottomSheet(isPresented: colorSheetBinding) {
+            if let initial = colorPresenter.initialColor {
+                MemoryColorPickerSheet(
+                    initialColor: initial,
+                    onCommit: { picked in
+                        colorPresenter.onCommit?(picked)
+                    },
+                    onDismiss: { colorPresenter.dismiss() }
+                )
+            }
+        }
         .floatingBottomSheet(isPresented: sortSheetBinding) {
             if let id = sortPresenter.memoryId,
                let memory = memoriesStore.memories.first(where: { $0.id == id }) {
@@ -163,6 +176,13 @@ struct ContentView: View {
         Binding(
             get: { sortPresenter.memoryId != nil },
             set: { if !$0 { sortPresenter.dismiss() } }
+        )
+    }
+
+    private var colorSheetBinding: Binding<Bool> {
+        Binding(
+            get: { colorPresenter.isPresented },
+            set: { if !$0 { colorPresenter.dismiss() } }
         )
     }
 }

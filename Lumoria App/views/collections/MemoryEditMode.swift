@@ -20,6 +20,7 @@ struct MemoryEditMode: View {
 
     @EnvironmentObject private var memoriesStore: MemoriesStore
     @EnvironmentObject private var ticketsStore: TicketsStore
+    @EnvironmentObject private var colorPresenter: MemoryColorPresenter
 
     // Buffered draft state — committed only when Done is tapped.
     @State private var emoji: String?
@@ -27,7 +28,6 @@ struct MemoryEditMode: View {
     @State private var colorFamily: String
     @State private var orderedTicketIds: [UUID]
 
-    @State private var showColorPicker = false
     @State private var showEmojiPicker = false
     @FocusState private var nameFocused: Bool
 
@@ -51,29 +51,24 @@ struct MemoryEditMode: View {
                     .padding(.top, 8)
                     .padding(.bottom, 8)
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        emojiCard
-                        nameCard
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 16)
-                    .padding(.bottom, 24)
+                // Header cards mirror the reading-mode title block —
+                // same 24h padding and 64pt vertical inset on either
+                // side so the gap to the tickets card stays constant
+                // when toggling edit mode.
+                VStack(alignment: .leading, spacing: 16) {
+                    emojiCard
+                    nameCard
                 }
-                .frame(maxHeight: 320)
+                .padding(.horizontal, 24)
+                .padding(.top, 64)
+                .padding(.bottom, 64)
 
                 ticketsList
             }
         }
-        .floatingBottomSheet(isPresented: $showColorPicker) {
-            MemoryColorPickerSheet(
-                initialColor: ColorOption.all.first(where: { $0.family == colorFamily })
-                    ?? memory.colorOption
-                    ?? ColorOption.all[0],
-                onCommit: { option in colorFamily = option.family },
-                onDismiss: { showColorPicker = false }
-            )
-        }
+        // Lock layout so the keyboard appearing for the name field
+        // doesn't push the ticket area up.
+        .ignoresSafeArea(.keyboard)
         .sheet(isPresented: $showEmojiPicker) {
             EmojiPickerSheet(emoji: $emoji) { showEmojiPicker = false }
                 .presentationDetents([.medium])
@@ -91,9 +86,14 @@ struct MemoryEditMode: View {
     private var topBar: some View {
         HStack(spacing: 8) {
             Button {
-                showColorPicker = true
+                let initial = ColorOption.all.first(where: { $0.family == colorFamily })
+                    ?? memory.colorOption
+                    ?? ColorOption.all[0]
+                colorPresenter.present(initialColor: initial) { picked in
+                    colorFamily = picked.family
+                }
             } label: {
-                Image(systemName: "paintbrush.fill")
+                Image(systemName: "paint.bucket.classic")
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Color.Text.primary)
                     .frame(width: 48, height: 48)
@@ -169,20 +169,11 @@ struct MemoryEditMode: View {
     // MARK: - Tickets list
 
     private var ticketsList: some View {
-        List {
-            ForEach(orderedTickets) { ticket in
-                TicketEntryRow(ticket: ticket, showHandle: false)
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 0, trailing: 16))
-            }
-            .onMove { source, dest in
-                orderedTicketIds.move(fromOffsets: source, toOffset: dest)
-            }
-        }
-        .listStyle(.plain)
-        .environment(\.editMode, .constant(.active))
-        .scrollContentBackground(.hidden)
+        ReorderableTicketList(
+            tickets: tickets,
+            orderedIds: $orderedTicketIds
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             UnevenRoundedRectangle(
                 topLeadingRadius: 32,
@@ -191,11 +182,9 @@ struct MemoryEditMode: View {
             )
             .fill(Color.Background.default)
         )
-    }
-
-    private var orderedTickets: [Ticket] {
-        let byId = Dictionary(uniqueKeysWithValues: tickets.map { ($0.id, $0) })
-        return orderedTicketIds.compactMap { byId[$0] }
+        // Bleed under the home indicator so the card looks anchored to
+        // the bottom edge — same as the reading-mode contentCard.
+        .ignoresSafeArea(edges: .bottom)
     }
 
     // MARK: - Commit
