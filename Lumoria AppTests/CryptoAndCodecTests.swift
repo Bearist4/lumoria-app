@@ -450,3 +450,23 @@ struct TicketRowDecodeTests {
         #expect(ticket.memoryIds.isEmpty)
     }
 }
+
+// MARK: - MemoryDateCodec (used for tickets.event_date_enc + memories.start/end)
+
+@Suite("MemoryDateCodec", .serialized)
+struct MemoryDateCodecTests {
+
+    init() { CryptoFixture.install() }
+
+    @Test("round-trips an arbitrary date")
+    func roundTrip() throws {
+        // 2026-04-30 14:32:08 UTC — non-aligned seconds so any precision
+        // loss in the codec surfaces.
+        let original = Date(timeIntervalSince1970: 1_777_660_328)
+        let cipher = try MemoryDateCodec.encrypt(original)
+        let decoded = try MemoryDateCodec.decrypt(cipher)
+
+        // ISO-8601 keeps second precision.
+        #expect(Int(original.timeIntervalSince1970) == Int(decoded.timeIntervalSince1970))
+    }
+}
