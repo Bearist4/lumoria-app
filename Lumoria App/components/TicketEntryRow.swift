@@ -15,13 +15,17 @@ import SwiftUI
 struct TicketEntryRow: View {
 
     let ticket: Ticket
+    /// Render the custom 40pt drag handle on the right. Set `false` when
+    /// the row sits inside a SwiftUI `List` with `.onMove` — the system
+    /// already injects its own handle on the trailing edge.
+    var showHandle: Bool = true
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
             LumoriaCategoryTag(category: ticket.kind.categoryStyle)
             title
             Spacer(minLength: 8)
-            handle
+            if showHandle { handle }
         }
         .padding(.horizontal, 16)
         .frame(height: 72)

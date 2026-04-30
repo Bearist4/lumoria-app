@@ -286,7 +286,7 @@ struct LumoriaInputField: View {
 
 // MARK: - Emoji picker sheet
 
-private struct EmojiPickerSheet: View {
+struct EmojiPickerSheet: View {
     @Binding var emoji: String?
     let onDone: () -> Void
 
