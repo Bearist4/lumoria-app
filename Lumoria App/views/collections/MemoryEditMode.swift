@@ -62,17 +62,18 @@ struct MemoryEditMode: View {
                     .padding(.top, 8)
                     .padding(.bottom, 8)
 
-                // Header cards mirror the reading-mode title block —
-                // same 24h padding and 64pt vertical inset on either
-                // side so the gap to the tickets card stays constant
-                // when toggling edit mode.
+                // Header cards. Padding matches Figma 2028:142207 — a
+                // small breath above and below so the tickets card
+                // sits right under the name field. The edit-mode
+                // header is taller than the reading-mode title block,
+                // so we don't reuse reading-mode's 64pt padding here.
                 VStack(alignment: .leading, spacing: 16) {
                     emojiCard
                     nameCard
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 64)
-                .padding(.bottom, 64)
+                .padding(.top, 16)
+                .padding(.bottom, 16)
 
                 ticketsList
             }

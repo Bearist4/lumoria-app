@@ -19,15 +19,6 @@ struct MemoryColorPickerSheet: View {
 
     @State private var selection: ColorOption
 
-    /// Fixed 4-column grid. Eager `LazyVGrid` columns let the swatches
-    /// inherit the parent sheet's slide-in transition cleanly — adaptive
-    /// columns occasionally re-flow on first appear and look detached
-    /// from the sheet animation.
-    private static let columns: [GridItem] = Array(
-        repeating: GridItem(.flexible(), spacing: 8),
-        count: 4
-    )
-
     init(
         initialColor: ColorOption,
         onCommit: @escaping (ColorOption) -> Void,
@@ -45,11 +36,12 @@ struct MemoryColorPickerSheet: View {
                 .font(.title2.bold())
                 .foregroundStyle(Color.Text.primary)
 
-            LazyVGrid(columns: Self.columns, spacing: 8) {
-                ForEach(ColorOption.all) { option in
-                    swatch(option)
-                }
-            }
+            // Eager `Grid` (not LazyVGrid) so every swatch is laid out
+            // before the sheet starts its slide-in transition.
+            // LazyVGrid resolves children just-in-time, which made the
+            // colors pop into place after the sheet card had already
+            // moved up.
+            colorGrid
 
             Button("Done") {
                 onCommit(selection)
@@ -58,6 +50,31 @@ struct MemoryColorPickerSheet: View {
             .buttonStyle(LumoriaButtonStyle(hierarchy: .primary, size: .large))
         }
         .padding(24)
+    }
+
+    /// 4-column eager grid. 11 colors split into 4 + 4 + 3 rows; the
+    /// trailing slot in the last row stays empty so the row preserves
+    /// the same column geometry.
+    @ViewBuilder
+    private var colorGrid: some View {
+        let rows = ColorOption.all.chunked(into: 4)
+        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                GridRow {
+                    ForEach(row) { option in
+                        swatch(option)
+                    }
+                    // Pad short rows with empty cells so all GridRows
+                    // share the same 4-column geometry.
+                    if row.count < 4 {
+                        ForEach(0..<(4 - row.count), id: \.self) { _ in
+                            Color.clear
+                                .aspectRatio(1, contentMode: .fit)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private func swatch(_ option: ColorOption) -> some View {
@@ -79,6 +96,16 @@ struct MemoryColorPickerSheet: View {
         .buttonStyle(.plain)
         .accessibilityLabel(option.name)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+}
+
+// MARK: - Helpers
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
+        }
     }
 }
 
