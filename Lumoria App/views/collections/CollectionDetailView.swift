@@ -77,7 +77,7 @@ struct MemoryDetailView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(
-            onboardingCoordinator.shouldHideTabBar ? .hidden : .visible,
+            (onboardingCoordinator.shouldHideTabBar || showSortSheet) ? .hidden : .visible,
             for: .tabBar
         )
         .onAppear {
@@ -126,7 +126,7 @@ struct MemoryDetailView: View {
             MemorySortSheet(
                 initialField: currentMemory.sortField,
                 initialAscending: currentMemory.sortAscending,
-                onChange: { field, ascending in
+                onCommit: { field, ascending in
                     Task {
                         await memoriesStore.updateSort(
                             memoryId: memory.id,

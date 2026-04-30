@@ -3,12 +3,11 @@
 //  Lumoria App
 //
 //  Floating bottom-sheet content for choosing how `MemoryDetailView`
-//  orders its tickets. Three fields × oldest/newest direction. Persists
-//  per memory via `MemoriesStore.updateSort` (host wires the callback).
+//  orders its tickets. Three fields (under a "Date" group) × oldest /
+//  newest direction. Edits buffer locally — Reset reverts to system
+//  defaults, Done commits + closes.
 //
-//  Presented through the app's shared `.floatingBottomSheet` modifier,
-//  so this view renders only the inner content — no `presentationDetents`,
-//  no native sheet chrome.
+//  Presented through the app's shared `.floatingBottomSheet` modifier.
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=2028-143016
 //
@@ -19,61 +18,68 @@ struct MemorySortSheet: View {
 
     let initialField: MemorySortField
     let initialAscending: Bool
-    let onChange: (_ field: MemorySortField, _ ascending: Bool) -> Void
+    let onCommit: (_ field: MemorySortField, _ ascending: Bool) -> Void
     let onDismiss: () -> Void
 
     @State private var field: MemorySortField
     @State private var ascending: Bool
 
+    /// Defaults that match the `memories` table column defaults (see
+    /// `20260512000001_memory_sort_prefs.sql`). Reset returns the sheet
+    /// to these values without persisting until Done.
+    private static let defaultField: MemorySortField = .dateAdded
+    private static let defaultAscending: Bool = true
+
     init(
         initialField: MemorySortField,
         initialAscending: Bool,
-        onChange: @escaping (MemorySortField, Bool) -> Void,
+        onCommit: @escaping (MemorySortField, Bool) -> Void,
         onDismiss: @escaping () -> Void
     ) {
         self.initialField = initialField
         self.initialAscending = initialAscending
-        self.onChange = onChange
+        self.onCommit = onCommit
         self.onDismiss = onDismiss
         _field = State(initialValue: initialField)
         _ascending = State(initialValue: initialAscending)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Sort tickets")
-                    .font(.title3.bold())
-                    .foregroundStyle(Color.Text.primary)
-                Spacer()
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.Text.secondary)
-                }
-                .accessibilityLabel("Close")
-            }
+        VStack(alignment: .leading, spacing: 24) {
+            Text("Sort by")
+                .font(.title3.bold())
+                .foregroundStyle(Color.Text.primary)
 
-            VStack(spacing: 0) {
-                ForEach(MemorySortField.allCases) { option in
-                    sortRow(option)
-                    if option != MemorySortField.allCases.last {
-                        Divider().opacity(0.4)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Date")
+                    .font(.footnote)
+                    .foregroundStyle(Color.Text.tertiary)
+
+                VStack(spacing: 0) {
+                    ForEach(Array(MemorySortField.allCases.enumerated()), id: \.element.id) { index, option in
+                        sortRow(option)
+                        if index < MemorySortField.allCases.count - 1 {
+                            Divider().opacity(0.4)
+                        }
                     }
                 }
             }
 
-            Picker("Direction", selection: Binding(
-                get: { ascending },
-                set: { newValue in
-                    ascending = newValue
-                    onChange(field, newValue)
+            directionPill
+
+            HStack(spacing: 12) {
+                Button("Reset") {
+                    field = Self.defaultField
+                    ascending = Self.defaultAscending
                 }
-            )) {
-                Text("Oldest first").tag(true)
-                Text("Newest first").tag(false)
+                .buttonStyle(LumoriaButtonStyle(hierarchy: .secondary, size: .large))
+
+                Button("Done") {
+                    onCommit(field, ascending)
+                    onDismiss()
+                }
+                .buttonStyle(LumoriaButtonStyle(hierarchy: .primary, size: .large))
             }
-            .pickerStyle(.segmented)
         }
         .padding(24)
     }
@@ -82,21 +88,78 @@ struct MemorySortSheet: View {
     private func sortRow(_ option: MemorySortField) -> some View {
         Button {
             field = option
-            onChange(option, ascending)
         } label: {
-            HStack {
-                Text(option.title)
-                    .font(.body)
-                    .foregroundStyle(Color.Text.primary)
-                Spacer()
-                if field == option {
-                    Image(systemName: "checkmark")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(option.title)
+                        .font(.body)
+                        .foregroundStyle(Color.Text.primary)
+                    if let subtitle = option.subtitle {
+                        Text(subtitle)
+                            .font(.footnote)
+                            .foregroundStyle(Color.Text.tertiary)
+                    }
                 }
+                Spacer(minLength: 0)
+                radio(isOn: field == option)
             }
             .contentShape(Rectangle())
-            .padding(.vertical, 12)
+            .padding(.vertical, 14)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func radio(isOn: Bool) -> some View {
+        ZStack {
+            Circle()
+                .stroke(
+                    isOn ? Color.Text.primary : Color.Text.tertiary.opacity(0.5),
+                    lineWidth: 1.5
+                )
+                .frame(width: 22, height: 22)
+            if isOn {
+                Circle()
+                    .fill(Color.Text.primary)
+                    .frame(width: 12, height: 12)
+            }
+        }
+    }
+
+    /// Capsule with two pill segments. The selected segment renders on
+    /// a white card with a subtle shadow; the inactive segment is plain
+    /// text. Mirrors the segmented control used elsewhere in Lumoria
+    /// (compact form filter chips) without the iOS default segmented
+    /// look the system Picker would render.
+    private var directionPill: some View {
+        HStack(spacing: 0) {
+            directionSegment(label: String(localized: "Oldest first"), value: true)
+            directionSegment(label: String(localized: "Newest first"), value: false)
+        }
+        .padding(4)
+        .background(
+            Capsule().fill(Color.Background.subtle)
+        )
+    }
+
+    private func directionSegment(label: String, value: Bool) -> some View {
+        Button {
+            ascending = value
+        } label: {
+            Text(label)
+                .font(.subheadline.weight(ascending == value ? .semibold : .regular))
+                .foregroundStyle(Color.Text.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(
+                    Capsule()
+                        .fill(ascending == value ? Color.Background.default : Color.clear)
+                        .shadow(
+                            color: ascending == value ? Color.black.opacity(0.06) : .clear,
+                            radius: 4,
+                            x: 0,
+                            y: 1
+                        )
+                )
         }
         .buttonStyle(.plain)
     }
@@ -104,9 +167,9 @@ struct MemorySortSheet: View {
 
 #Preview {
     MemorySortSheet(
-        initialField: .dateAdded,
+        initialField: .dateCreated,
         initialAscending: true,
-        onChange: { _, _ in },
+        onCommit: { _, _ in },
         onDismiss: { }
     )
 }
