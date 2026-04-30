@@ -30,6 +30,12 @@ struct ReorderableTicketList: View {
     /// would succeed.
     @GestureState private var dragSession: DragSession?
 
+    /// Mirror of the live drag translation. `dragSession` resets the
+    /// instant the gesture ends, so `.onEnded` would see nil if it
+    /// tried to read from it. We update this in `.onChanged` and read
+    /// it in `.onEnded`.
+    @State private var lastTranslation: CGFloat = 0
+
     private struct DragSession: Equatable {
         let ticketId: UUID
         var translation: CGFloat
@@ -67,10 +73,18 @@ struct ReorderableTicketList: View {
             )
             .opacity(isDragged ? 0.97 : 1)
             .zIndex(isDragged ? 1 : 0)
-            .animation(.interactiveSpring(response: 0.3), value: yOffset)
+            // Only animate non-dragged rows. The dragged row must
+            // follow the finger 1:1 — any spring response makes the
+            // visual position lag behind the actual translation, and
+            // the user drops "where they see the row" while the math
+            // commits "where the translation says it is."
+            .animation(
+                isDragged ? nil : .interactiveSpring(response: 0.3),
+                value: yOffset
+            )
             .gesture(
                 LongPressGesture(minimumDuration: 0.2)
-                    .sequenced(before: DragGesture(minimumDistance: 0))
+                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
                     .updating($dragSession) { value, state, _ in
                         switch value {
                         case .first(true):
@@ -85,17 +99,17 @@ struct ReorderableTicketList: View {
                             break
                         }
                     }
-                    .onEnded { value in
-                        // `dragSession` has already reset by the time
-                        // onEnded fires (that's how @GestureState works),
-                        // so pull the final translation from `value`.
-                        let finalTranslation: CGFloat
-                        if case .second(_, let drag?) = value {
-                            finalTranslation = drag.translation.height
-                        } else {
-                            finalTranslation = 0
+                    .onChanged { value in
+                        // Mirror the live translation to @State so
+                        // .onEnded can use it even after @GestureState
+                        // has already reset.
+                        if case .second(_, let drag) = value, let drag {
+                            lastTranslation = drag.translation.height
                         }
-                        commitDrop(of: ticket, translation: finalTranslation)
+                    }
+                    .onEnded { _ in
+                        commitDrop(of: ticket, translation: lastTranslation)
+                        lastTranslation = 0
                     }
             )
     }
