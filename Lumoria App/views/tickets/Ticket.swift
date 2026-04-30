@@ -297,6 +297,14 @@ struct Ticket: Identifiable, Hashable {
     /// Identifier of the chosen style variant from `TicketStyleCatalog`.
     /// Nil means: render with the template's default variant.
     var styleId: String?
+    /// Canonical event date for sort-by-event in `MemoryDetailView`.
+    /// Plane/train: departure. Concert/transit: the single date field.
+    /// Nil for tickets created before the column existed.
+    var eventDate: Date?
+    /// When this ticket was added to each memory (memory_tickets.added_at).
+    /// Sourced per row from the embedded junction; missing keys mean the
+    /// embedded query did not return the row (e.g. ticket not in memory).
+    var addedAtByMemory: [UUID: Date]
 
     var kind: TicketTemplateKind { payload.kind }
 
@@ -314,7 +322,9 @@ struct Ticket: Identifiable, Hashable {
         memoryIds: [UUID] = [],
         originLocation: TicketLocation? = nil,
         destinationLocation: TicketLocation? = nil,
-        styleId: String? = nil
+        styleId: String? = nil,
+        eventDate: Date? = nil,
+        addedAtByMemory: [UUID: Date] = [:]
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -325,6 +335,8 @@ struct Ticket: Identifiable, Hashable {
         self.originLocation = originLocation
         self.destinationLocation = destinationLocation
         self.styleId = styleId
+        self.eventDate = eventDate
+        self.addedAtByMemory = addedAtByMemory
     }
 
     /// Equality includes `updatedAt` so SwiftUI's view diff re-renders

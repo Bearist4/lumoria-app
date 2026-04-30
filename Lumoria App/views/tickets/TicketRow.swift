@@ -29,6 +29,7 @@ struct TicketRow: Decodable {
     let locationPrimaryEnc: String?
     let locationSecondaryEnc: String?
     let styleId: String?
+    let eventDateEnc: String?
     let createdAt: Date
     let updatedAt: Date
     let memoryTickets: [MemoryTicketLink]?
@@ -40,6 +41,7 @@ struct TicketRow: Decodable {
         case locationPrimaryEnc   = "location_primary_enc"
         case locationSecondaryEnc = "location_secondary_enc"
         case styleId              = "style_id"
+        case eventDateEnc         = "event_date_enc"
         case createdAt            = "created_at"
         case updatedAt            = "updated_at"
         case memoryTickets        = "memory_tickets"
@@ -47,13 +49,15 @@ struct TicketRow: Decodable {
 }
 
 /// Single row of the `memory_tickets` junction, embedded when reading a
-/// ticket. Only `memory_id` is kept — the rest (ticket id, added_at) is
-/// redundant on the ticket side.
+/// ticket. Carries the per-membership timestamp so the detail view can
+/// sort by "date added to memory".
 struct MemoryTicketLink: Decodable {
     let memoryId: UUID
+    let addedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case memoryId = "memory_id"
+        case addedAt  = "added_at"
     }
 }
 
@@ -68,6 +72,7 @@ struct NewTicketRow: Encodable {
     let locationPrimaryEnc: String?
     let locationSecondaryEnc: String?
     let styleId: String?
+    let eventDateEnc: String?
 
     enum CodingKeys: String, CodingKey {
         case userId               = "user_id"
@@ -75,6 +80,7 @@ struct NewTicketRow: Encodable {
         case locationPrimaryEnc   = "location_primary_enc"
         case locationSecondaryEnc = "location_secondary_enc"
         case styleId              = "style_id"
+        case eventDateEnc         = "event_date_enc"
         case orientation, payload
     }
 }
@@ -89,23 +95,26 @@ struct TicketUpdateRow: Encodable {
     let locationPrimaryEnc: String?
     let locationSecondaryEnc: String?
     let styleId: String?
+    let eventDateEnc: String?
 
     enum CodingKeys: String, CodingKey {
         case templateKind         = "template_kind"
         case locationPrimaryEnc   = "location_primary_enc"
         case locationSecondaryEnc = "location_secondary_enc"
         case styleId              = "style_id"
+        case eventDateEnc         = "event_date_enc"
         case orientation, payload
     }
 
     func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
-        try c.encode(templateKind, forKey: .templateKind)
-        try c.encode(orientation, forKey: .orientation)
-        try c.encode(payload, forKey: .payload)
-        try c.encode(locationPrimaryEnc, forKey: .locationPrimaryEnc)
+        try c.encode(templateKind,         forKey: .templateKind)
+        try c.encode(orientation,          forKey: .orientation)
+        try c.encode(payload,              forKey: .payload)
+        try c.encode(locationPrimaryEnc,   forKey: .locationPrimaryEnc)
         try c.encode(locationSecondaryEnc, forKey: .locationSecondaryEnc)
-        try c.encode(styleId, forKey: .styleId)
+        try c.encode(styleId,              forKey: .styleId)
+        try c.encode(eventDateEnc,         forKey: .eventDateEnc)
     }
 }
 
@@ -223,9 +232,14 @@ extension TicketRow {
             throw TicketRowError.unknownOrientation(orientation)
         }
         let payload = try TicketCodec.decodePayload(kind: kind, from: payload)
-        let memoryIds = (memoryTickets ?? []).map(\.memoryId)
+        let links   = memoryTickets ?? []
+        let memoryIds = links.map(\.memoryId)
+        let addedAtByMemory = Dictionary(
+            uniqueKeysWithValues: links.map { ($0.memoryId, $0.addedAt) }
+        )
         let origin      = try TicketLocation.decrypt(locationPrimaryEnc)
         let destination = try TicketLocation.decrypt(locationSecondaryEnc)
+        let eventDate   = try eventDateEnc.map { try MemoryDateCodec.decrypt($0) }
         return Ticket(
             id: id,
             createdAt: createdAt,
@@ -235,7 +249,9 @@ extension TicketRow {
             memoryIds: memoryIds,
             originLocation: origin,
             destinationLocation: destination,
-            styleId: styleId
+            styleId: styleId,
+            eventDate: eventDate,
+            addedAtByMemory: addedAtByMemory
         )
     }
 }
