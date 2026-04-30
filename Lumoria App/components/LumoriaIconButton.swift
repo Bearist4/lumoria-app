@@ -117,6 +117,7 @@ struct LumoriaIconButton: View {
     let menuItems: [LumoriaMenuItem]?
 
     @State private var isMenuShowing: Bool = false
+    @State private var anchor: CGRect = .zero
 
     init(
         systemImage: String,
@@ -162,13 +163,11 @@ struct LumoriaIconButton: View {
 
     // MARK: - Menu trigger
 
-    /// Button-styled trigger that anchors the Lumoria contextual menu
-    /// directly below itself via `.overlay(alignment: .topTrailing)`
-    /// — no popover arrow, no modal cover, no coord-space gymnastics.
-    /// The menu's top-trailing corner sits exactly 8pt below the
-    /// button's bottom edge via an offset of `size.dimension + 8`.
-    /// Dismissal: tapping an item closes the menu; tapping the icon
-    /// again toggles it off.
+    /// Button-styled trigger that presents the Lumoria contextual menu
+    /// via the shared `MenuPresenter`. The presenter hosts the dim
+    /// layer that catches tap-outside, the slide-down + dissolve
+    /// animation, and the anchor-based positioning. Dismissal: tap an
+    /// item, tap outside, or tap the icon again.
     @ViewBuilder
     private func menuTrigger(items: [LumoriaMenuItem]) -> some View {
         Button {
@@ -184,35 +183,27 @@ struct LumoriaIconButton: View {
         .overlay(alignment: .topTrailing) {
             if shouldShowBadge { badge }
         }
-        .overlay(alignment: .topTrailing) {
-            if isMenuShowing {
-                LumoriaContextualMenu(items: wrappedItems(items))
-                    .fixedSize()
-                    .offset(y: size.dimension + 8)
-                    .transition(
-                        .scale(scale: 0.92, anchor: .topTrailing)
-                            .combined(with: .opacity)
-                    )
-                    .zIndex(1000)
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onChange(of: proxy.frame(in: .global), initial: true) { _, frame in
+                        anchor = frame
+                    }
             }
-        }
-        .animation(.easeOut(duration: 0.14), value: isMenuShowing)
-    }
-
-    /// Wraps each menu item with a dismissal step so selecting any
-    /// option closes the menu before the action runs.
-    private func wrappedItems(_ items: [LumoriaMenuItem]) -> [LumoriaMenuItem] {
-        items.map { item in
-            LumoriaMenuItem(
-                title: item.title,
-                kind: item.kind,
-                isActive: item.isActive
-            ) {
-                isMenuShowing = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                    item.action()
-                }
-            }
+        )
+        .fullScreenCover(isPresented: $isMenuShowing) {
+            MenuPresenter(
+                anchor: anchor,
+                items: items,
+                onSelect: { item in
+                    isMenuShowing = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        item.action()
+                    }
+                },
+                onDismiss: { isMenuShowing = false }
+            )
+            .presentationBackground(.clear)
         }
     }
 
