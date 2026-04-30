@@ -175,8 +175,15 @@ struct MenuPresenter: View {
         GeometryReader { rootProxy in
             let topInset = rootProxy.safeAreaInsets.top
             ZStack(alignment: .topLeading) {
-                Color.black.opacity(0.001)
+                // Dismiss layer. `Color.black.opacity(0.001)` looks
+                // identical visually but iOS occasionally skips hit-
+                // testing on near-transparent `Color` views — using an
+                // explicit Rectangle with .contentShape guarantees the
+                // tap reaches us.
+                Rectangle()
+                    .fill(Color.black.opacity(0.001))
                     .contentShape(Rectangle())
+                    .ignoresSafeArea()
                     .onTapGesture { close(then: onDismiss) }
 
                 LumoriaContextualMenu(items: wrapped)
