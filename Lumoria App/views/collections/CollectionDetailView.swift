@@ -20,12 +20,11 @@ struct MemoryDetailView: View {
     @Environment(EntitlementStore.self) private var entitlement
     @Environment(Paywall.PresentationState.self) private var paywallState
 
-    @State private var showEdit = false
+    @State private var isEditing = false
     @State private var showDeleteConfirm = false
     @State private var showMap = false
     @State private var showNewTicket = false
     @State private var showAddExistingTicket = false
-    @State private var previewColorFamily: String?
     /// ID of the ticket closest to vertical centre of the screen. Drives
     /// the shimmer's `isActive` so only the focused card consumes motion.
     @State private var centredId: UUID?
@@ -35,44 +34,15 @@ struct MemoryDetailView: View {
     @State private var hasIntroducedTickets = false
 
     var body: some View {
-        ZStack(alignment: .top) {
-            // Base surface is the app default (white). Scroll-view
-            // overscroll at the bottom reveals this directly — no
-            // tinted bleed behind the bouncing card.
-            Color.Background.default
-                .ignoresSafeArea()
-
-            // Tint is pinned to the top of the screen (not the scroll
-            // content), so the title area keeps its colour even while
-            // scrolling. Height is generous enough to cover the safe
-            // area + top bar + title; any extra length is hidden by
-            // the content card that overlays it from its rounded top
-            // downward.
-            tintBackground
-                .frame(height: 420)
-                .frame(maxWidth: .infinity, alignment: .top)
-                .ignoresSafeArea(edges: [.top, .horizontal])
-                .animation(.easeInOut(duration: 0.35), value: activeColorFamily)
-
-            StickyBlurHeader(
-                maxBlurRadius: 8,
-                fadeExtension: 56,
-                tintOpacityTop: 0,
-                tintOpacityMiddle: 0
-            ) {
-                topBar
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .padding(.bottom, 8)
-            } content: {
-                VStack(alignment: .leading, spacing: 0) {
-                    title
-                        .padding(.horizontal, 24)
-                        .padding(.top, 64)
-                        .padding(.bottom, 64)
-
-                    contentCard
-                }
+        Group {
+            if isEditing {
+                MemoryEditMode(
+                    memory: currentMemory,
+                    tickets: ticketsStore.tickets(in: memory.id),
+                    onExit: { isEditing = false }
+                )
+            } else {
+                readingModeBody
             }
         }
         .toolbar(.hidden, for: .navigationBar)
@@ -103,15 +73,6 @@ struct MemoryDetailView: View {
         .navigationDestination(for: Ticket.self) { ticket in
             TicketDetailView(ticket: ticket)
         }
-        .sheet(isPresented: $showEdit, onDismiss: {
-            previewColorFamily = nil
-        }) {
-            EditMemoryView(
-                memory: currentMemory,
-                previewColorFamily: $previewColorFamily
-            )
-            .environmentObject(memoriesStore)
-        }
         .fullScreenCover(isPresented: $showNewTicket) {
             NewTicketFunnelView()
                 .environmentObject(ticketsStore)
@@ -141,6 +102,46 @@ struct MemoryDetailView: View {
                 memory: currentMemory,
                 tickets: ticketsStore.tickets(in: memory.id)
             )
+        }
+    }
+
+    // MARK: - Reading mode
+
+    /// The original detail-view body — header tint, sticky-blur top
+    /// bar, large title, and ticket grid card. Edit mode swaps this
+    /// out for `MemoryEditMode`.
+    @ViewBuilder
+    private var readingModeBody: some View {
+        ZStack(alignment: .top) {
+            Color.Background.default
+                .ignoresSafeArea()
+
+            tintBackground
+                .frame(height: 420)
+                .frame(maxWidth: .infinity, alignment: .top)
+                .ignoresSafeArea(edges: [.top, .horizontal])
+                .animation(.easeInOut(duration: 0.35), value: activeColorFamily)
+
+            StickyBlurHeader(
+                maxBlurRadius: 8,
+                fadeExtension: 56,
+                tintOpacityTop: 0,
+                tintOpacityMiddle: 0
+            ) {
+                topBar
+                    .padding(.horizontal, 16)
+                    .padding(.top, 8)
+                    .padding(.bottom, 8)
+            } content: {
+                VStack(alignment: .leading, spacing: 0) {
+                    title
+                        .padding(.horizontal, 24)
+                        .padding(.top, 64)
+                        .padding(.bottom, 64)
+
+                    contentCard
+                }
+            }
         }
     }
 
@@ -182,7 +183,7 @@ struct MemoryDetailView: View {
             .init(title: "Sort…") {
                 sortPresenter.present(memoryId: memory.id)
             },
-            .init(title: "Edit") { showEdit = true },
+            .init(title: "Edit") { isEditing = true },
             .init(title: "Delete", kind: .destructive) { showDeleteConfirm = true },
         ]
     }
@@ -190,7 +191,7 @@ struct MemoryDetailView: View {
     // MARK: - Background
 
     private var activeColorFamily: String {
-        previewColorFamily ?? currentMemory.colorFamily
+        currentMemory.colorFamily
     }
 
     private var tintBackground: Color {
