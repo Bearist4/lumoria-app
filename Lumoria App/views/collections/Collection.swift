@@ -25,6 +25,11 @@ struct Memory: Identifiable, Hashable {
     /// date when nil.
     var startDate: Date?
     var endDate: Date?
+    /// Per-memory sort preference for `MemoryDetailView`. Defaults to
+    /// `.dateAdded` ascending (oldest added first) so the user's first-
+    /// added tickets sit at the top.
+    var sortField: MemorySortField
+    var sortAscending: Bool
     let createdAt: Date
     let updatedAt: Date
 
@@ -46,18 +51,22 @@ struct MemoryRow: Decodable {
     let emojiEnc: String?
     let startDateEnc: String?
     let endDateEnc: String?
+    let sortField: String?
+    let sortAscending: Bool?
     let createdAt: Date
     let updatedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case id, name
-        case userId       = "user_id"
-        case colorFamily  = "color_family"
-        case emojiEnc     = "emoji_enc"
-        case startDateEnc = "start_date_enc"
-        case endDateEnc   = "end_date_enc"
-        case createdAt    = "created_at"
-        case updatedAt    = "updated_at"
+        case userId        = "user_id"
+        case colorFamily   = "color_family"
+        case emojiEnc      = "emoji_enc"
+        case startDateEnc  = "start_date_enc"
+        case endDateEnc    = "end_date_enc"
+        case sortField     = "sort_field"
+        case sortAscending = "sort_ascending"
+        case createdAt     = "created_at"
+        case updatedAt     = "updated_at"
     }
 
     func toMemory() throws -> Memory {
@@ -65,6 +74,12 @@ struct MemoryRow: Decodable {
         let decryptedEmoji = try emojiEnc.map { try EncryptionService.decryptString($0) }
         let decryptedStart = try startDateEnc.map { try MemoryDateCodec.decrypt($0) }
         let decryptedEnd   = try endDateEnc.map   { try MemoryDateCodec.decrypt($0) }
+
+        // Treat unknown sort_field strings as the default. Optional from
+        // the row so older rows that predate the column still decode.
+        let resolvedField = sortField
+            .flatMap(MemorySortField.init(rawValue:))
+            ?? .dateAdded
 
         return Memory(
             id: id,
@@ -74,6 +89,8 @@ struct MemoryRow: Decodable {
             emoji: decryptedEmoji,
             startDate: decryptedStart,
             endDate: decryptedEnd,
+            sortField: resolvedField,
+            sortAscending: sortAscending ?? true,
             createdAt: createdAt,
             updatedAt: updatedAt
         )
@@ -193,6 +210,21 @@ struct UpdateMemoryPayload: Encodable {
             startDateEnc: encryptedStart,
             endDateEnc: encryptedEnd
         )
+    }
+}
+
+// MARK: - Sort prefs payload
+
+/// Payload for the dedicated sort-pref update path. Kept separate from
+/// `UpdateMemoryPayload` so the sort sheet doesn't need to round-trip the
+/// encrypted name / emoji / dates just to flip a flag.
+struct UpdateMemorySortPayload: Encodable {
+    let sortField: String
+    let sortAscending: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case sortField     = "sort_field"
+        case sortAscending = "sort_ascending"
     }
 }
 
