@@ -260,13 +260,24 @@ final class MemoriesStore: ObservableObject {
         in memoryId: UUID,
         ordered ticketIds: [UUID]
     ) async {
+        // Typed payload — `[String: Int]` would resolve through the
+        // generic Encodable overload but PostgREST occasionally drops
+        // single-key Int dicts depending on the supabase-swift release.
+        // An explicit struct removes that ambiguity.
+        struct Payload: Encodable {
+            let displayOrder: Int
+            enum CodingKeys: String, CodingKey {
+                case displayOrder = "display_order"
+            }
+        }
+
         do {
             // Postgres `update` doesn't support bulk position updates;
             // iterate. Sequential awaits keep the writes ordered.
             for (index, ticketId) in ticketIds.enumerated() {
                 try await supabase
                     .from("memory_tickets")
-                    .update(["display_order": index])
+                    .update(Payload(displayOrder: index))
                     .eq("memory_id", value: memoryId.uuidString)
                     .eq("ticket_id", value: ticketId.uuidString)
                     .execute()
