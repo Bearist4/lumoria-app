@@ -24,8 +24,16 @@ struct ReorderableTicketList: View {
     private let rowSpacing: CGFloat = 16
     private var slot: CGFloat { rowHeight + rowSpacing }
 
-    @State private var draggingId: UUID?
-    @State private var dragTranslation: CGFloat = 0
+    /// `@GestureState` auto-resets to nil when the gesture ends —
+    /// eliminates the class of "stale state" bugs that come from manual
+    /// cleanup, including the one where exactly one reorder per session
+    /// would succeed.
+    @GestureState private var dragSession: DragSession?
+
+    private struct DragSession: Equatable {
+        let ticketId: UUID
+        var translation: CGFloat
+    }
 
     private var orderedTickets: [Ticket] {
         let byId = Dictionary(uniqueKeysWithValues: tickets.map { ($0.id, $0) })
@@ -47,8 +55,8 @@ struct ReorderableTicketList: View {
 
     @ViewBuilder
     private func row(ticket: Ticket, index: Int) -> some View {
-        let isDragged = draggingId == ticket.id
-        let yOffset = visualOffset(for: index, ticketId: ticket.id, isDragged: isDragged)
+        let isDragged = dragSession?.ticketId == ticket.id
+        let yOffset = visualOffset(for: index, isDragged: isDragged)
 
         TicketEntryRow(ticket: ticket, showHandle: true)
             .offset(y: yOffset)
@@ -63,22 +71,31 @@ struct ReorderableTicketList: View {
             .gesture(
                 LongPressGesture(minimumDuration: 0.2)
                     .sequenced(before: DragGesture(minimumDistance: 0))
-                    .onChanged { value in
+                    .updating($dragSession) { value, state, _ in
                         switch value {
                         case .first(true):
-                            // Long-press recognized; arm but don't move yet.
-                            if draggingId != ticket.id {
-                                draggingId = ticket.id
-                            }
+                            // Long-press recognized; arm the row.
+                            state = DragSession(ticketId: ticket.id, translation: 0)
                         case .second(true, let drag):
-                            draggingId = ticket.id
-                            dragTranslation = drag?.translation.height ?? 0
+                            state = DragSession(
+                                ticketId: ticket.id,
+                                translation: drag?.translation.height ?? 0
+                            )
                         default:
                             break
                         }
                     }
-                    .onEnded { _ in
-                        commitDrop(of: ticket)
+                    .onEnded { value in
+                        // `dragSession` has already reset by the time
+                        // onEnded fires (that's how @GestureState works),
+                        // so pull the final translation from `value`.
+                        let finalTranslation: CGFloat
+                        if case .second(_, let drag?) = value {
+                            finalTranslation = drag.translation.height
+                        } else {
+                            finalTranslation = 0
+                        }
+                        commitDrop(of: ticket, translation: finalTranslation)
                     }
             )
     }
@@ -86,15 +103,16 @@ struct ReorderableTicketList: View {
     /// Y-offset to apply to a row at the given index. The dragged row
     /// follows the finger; other rows slide to make room based on which
     /// slot the dragged row currently occupies.
-    private func visualOffset(for index: Int, ticketId: UUID, isDragged: Bool) -> CGFloat {
-        if isDragged { return dragTranslation }
+    private func visualOffset(for index: Int, isDragged: Bool) -> CGFloat {
+        guard let session = dragSession else { return 0 }
 
-        guard let dragId = draggingId,
-              let dragIdx = orderedIds.firstIndex(of: dragId) else {
+        if isDragged { return session.translation }
+
+        guard let dragIdx = orderedIds.firstIndex(of: session.ticketId) else {
             return 0
         }
 
-        let slotsMoved = Int(round(dragTranslation / slot))
+        let slotsMoved = Int(round(session.translation / slot))
         let target = max(0, min(orderedIds.count - 1, dragIdx + slotsMoved))
 
         if target > dragIdx, index > dragIdx, index <= target {
@@ -106,26 +124,14 @@ struct ReorderableTicketList: View {
         return 0
     }
 
-    private func commitDrop(of ticket: Ticket) {
-        guard let currentIdx = orderedIds.firstIndex(of: ticket.id) else {
-            resetDrag()
-            return
-        }
-        let slotsMoved = Int(round(dragTranslation / slot))
+    private func commitDrop(of ticket: Ticket, translation: CGFloat) {
+        guard let currentIdx = orderedIds.firstIndex(of: ticket.id) else { return }
+        let slotsMoved = Int(round(translation / slot))
         let newIdx = max(0, min(orderedIds.count - 1, currentIdx + slotsMoved))
-        if newIdx != currentIdx {
-            withAnimation(.spring(response: 0.35)) {
-                let item = orderedIds.remove(at: currentIdx)
-                orderedIds.insert(item, at: newIdx)
-            }
-        }
-        resetDrag()
-    }
-
-    private func resetDrag() {
-        withAnimation(.spring(response: 0.3)) {
-            draggingId = nil
-            dragTranslation = 0
+        guard newIdx != currentIdx else { return }
+        withAnimation(.spring(response: 0.35)) {
+            let item = orderedIds.remove(at: currentIdx)
+            orderedIds.insert(item, at: newIdx)
         }
     }
 }
