@@ -56,9 +56,9 @@ struct MemorySortSheet: View {
                     .foregroundStyle(Color.Text.tertiary)
 
                 VStack(spacing: 0) {
-                    ForEach(Array(MemorySortField.allCases.enumerated()), id: \.element.id) { index, option in
+                    ForEach(Array(MemorySortField.pickerOptions.enumerated()), id: \.element.id) { index, option in
                         sortRow(option)
-                        if index < MemorySortField.allCases.count - 1 {
+                        if index < MemorySortField.pickerOptions.count - 1 {
                             Divider().opacity(0.4)
                         }
                     }
