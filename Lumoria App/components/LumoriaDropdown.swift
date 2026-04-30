@@ -18,6 +18,23 @@ import UIKit
 /// scrolling. ~5 rows at 56pt. Defined at module scope because Swift
 /// forbids static stored properties on generic types.
 private let lumoriaDropdownListMaxHeight: CGFloat = 280
+/// Approximate row height used to estimate the list's apparent height
+/// from `options.count` when the list is shorter than the cap.
+private let lumoriaDropdownRowHeight: CGFloat = 56
+
+/// Environment hook that lets a dropdown ask its enclosing
+/// `ScrollViewReader` to scroll the dropdown into view when it opens.
+/// The funnel form layer installs the proxy; non-scroll callers leave
+/// it nil and the dropdown skips the scroll.
+private struct LumoriaScrollProxyKey: EnvironmentKey {
+    static let defaultValue: ScrollViewProxy? = nil
+}
+extension EnvironmentValues {
+    var lumoriaScrollProxy: ScrollViewProxy? {
+        get { self[LumoriaScrollProxyKey.self] }
+        set { self[LumoriaScrollProxyKey.self] = newValue }
+    }
+}
 
 struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
 
@@ -37,6 +54,10 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
     @ViewBuilder let rowContent: (Item) -> Row
 
     @State private var isOpen = false
+    /// Stable per-instance id used as the scroll target so an enclosing
+    /// `ScrollViewReader` can scroll the dropdown into view on open.
+    @State private var scrollAnchorID = UUID()
+    @Environment(\.lumoriaScrollProxy) private var scrollProxy
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -61,6 +82,15 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                             .transition(.opacity)
                     }
                 }
+            // Phantom inline space matching the open list's apparent
+            // height. Pushes ScrollView content tall enough that the
+            // user (and `proxy.scrollTo` below) can scroll the field
+            // up to reveal the full menu — without this the menu's
+            // bottom is clipped by the funnel's bottom bar when the
+            // dropdown sits near the end of the form.
+            if isOpen {
+                Color.clear.frame(height: estimatedListHeight + 4)
+            }
             if let assistiveText {
                 // Kept in layout when the menu is open so siblings below
                 // (other form fields) don't jump up as the caption
@@ -70,6 +100,7 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                     .opacity(isOpen ? 0 : 1)
             }
         }
+        .id(scrollAnchorID)
         // Raise the whole dropdown above its parent VStack siblings
         // while open so the overlay list isn't drawn underneath the
         // next field (VStack draws children back-to-front by default,
@@ -80,6 +111,23 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
         // station field that's also sitting at zIndex 1 while its
         // suggestions are showing.
         .zIndex(isOpen ? 10 : 0)
+        .onChange(of: isOpen) { _, open in
+            guard open, let proxy = scrollProxy else { return }
+            // Defer slightly so the phantom-space layout pass settles
+            // before the scroll animation runs against the new height.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    proxy.scrollTo(scrollAnchorID, anchor: .top)
+                }
+            }
+        }
+    }
+
+    private var estimatedListHeight: CGFloat {
+        min(
+            lumoriaDropdownListMaxHeight,
+            CGFloat(options.count) * lumoriaDropdownRowHeight
+        )
     }
 
     // MARK: Label

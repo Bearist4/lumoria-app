@@ -23,6 +23,9 @@ struct MemoriesView: View {
     @State private var showNewTicketFunnel = false
     @State private var activeTemplateKind: TicketTemplateKind? = nil
     @State private var navigationPath = NavigationPath()
+    /// Once true, the first-load intro animation has played for this
+    /// view instance — subsequent appearances render steady.
+    @State private var hasIntroducedOnce = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 24),
@@ -42,7 +45,7 @@ struct MemoriesView: View {
                 } else {
                     ScrollView {
                         LazyVGrid(columns: columns, spacing: 24) {
-                            ForEach(store.memories) { m in
+                            ForEach(Array(store.memories.enumerated()), id: \.element.id) { idx, m in
                                 let tickets = ticketsStore.tickets(in: m.id)
                                 NavigationLink(value: m) {
                                     MemoryCard(
@@ -52,7 +55,8 @@ struct MemoriesView: View {
                                         emoji: m.emoji,
                                         filledCount: min(tickets.count, 5),
                                         colorFamily: m.colorFamily,
-                                        cardSeed: UInt64(bitPattern: Int64(m.id.hashValue))
+                                        cardSeed: UInt64(bitPattern: Int64(m.id.hashValue)),
+                                        introDelay: hasIntroducedOnce ? nil : Double(idx) * 0.08
                                     ) { idx in
                                         if idx < tickets.count {
                                             MemoryCardSlot.frameForSlot(
@@ -102,6 +106,19 @@ struct MemoriesView: View {
                 MemoryDetailView(memory: m)
             }
             .task { await store.load() }
+            .task(id: store.memories.isEmpty) {
+                guard !store.memories.isEmpty, !hasIntroducedOnce else { return }
+                // Cards have just rendered with their staggered
+                // `introDelay` baked into MemoryCard's @State. Lock
+                // the flag immediately — @State persists across
+                // re-renders, so the in-flight animation completes
+                // even when subsequent renders pass `introDelay: nil`.
+                // Sleeping here would let a quick nav-and-return
+                // (under the sleep duration) re-trigger the whole
+                // staggered intro on each card, which is what made
+                // the gallery feel laggy on returns.
+                hasIntroducedOnce = true
+            }
             .onChange(of: widgetRouter.pendingMemoryId, initial: true) { _, id in
                 tryConsumePendingWidgetMemory(id: id)
             }

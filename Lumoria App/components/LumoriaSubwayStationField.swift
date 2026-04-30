@@ -246,10 +246,15 @@ struct LumoriaSubwayStationField: View {
     @MainActor
     private var allStations: [StationEntry] {
         guard let cat = catalog else { return [] }
+        // Resolve the cluster table once; per-station lookups would
+        // recompute the table on each call when the cache is cold,
+        // freezing the picker on large catalogs (Tokyo ≈ 6k stations).
+        let keyByStationId = cat.clusters.keyByStationId
         var byKey: [String: StationEntry] = [:]
         for line in cat.lines {
             for station in line.stations {
-                let key = TransitCatalog.transferKey(station.name)
+                let key = keyByStationId[station.id]
+                    ?? TransitCatalog.transferKey(station.name)
                 if var existing = byKey[key] {
                     if !existing.lines.contains(where: { $0.id == line.id }) {
                         existing = StationEntry(

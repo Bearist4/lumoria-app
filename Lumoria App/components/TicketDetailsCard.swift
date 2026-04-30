@@ -26,8 +26,14 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
     let creationDate: String
     let lastEditDate: String
     let category: TicketCategoryStyle
-    /// Primary location of the ticket. Hidden when nil.
+    /// Primary location of the ticket. Hidden when nil. Ignored when
+    /// `transitRoute` is non-nil — that overrides the single-pin map
+    /// with a two-pin + polyline rendering.
     let location: TicketLocation?
+    /// Resolved transit polyline with both endpoints. When set, the
+    /// card draws origin + destination markers and a colored line
+    /// along the catalog's stations between them.
+    var transitRoute: TransitRoutePath? = nil
     var memoriesTitle: LocalizedStringKey = "Memories"
     let menuItems: [LumoriaMenuItem]
     @ViewBuilder var memoriesContent: () -> MemoriesContent
@@ -42,7 +48,11 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
 
             metadataRow
             categoryRow
-            if let location { locationCard(location) }
+            if let transitRoute {
+                transitRouteCard(transitRoute)
+            } else if let location {
+                locationCard(location)
+            }
             memoriesSection
         }
         .padding(24)
@@ -92,6 +102,111 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
         }
         .frame(height: 141)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    // MARK: Transit route card
+
+    private func transitRouteCard(_ route: TransitRoutePath) -> some View {
+        let tint = Color(hex: route.lineColorHex)
+        return ZStack(alignment: .bottom) {
+            Map(
+                initialPosition: .region(Self.region(for: route.coordinates)),
+                interactionModes: []
+            ) {
+                MapPolyline(coordinates: route.coordinates)
+                    .stroke(tint, style: StrokeStyle(
+                        lineWidth: 4,
+                        lineCap: .round,
+                        lineJoin: .round
+                    ))
+                Marker(route.origin.name, coordinate: route.origin.coordinate)
+                    .tint(tint)
+                Marker(route.destination.name, coordinate: route.destination.coordinate)
+                    .tint(tint)
+            }
+            .mapStyle(.standard(elevation: .flat, pointsOfInterest: .all))
+            .allowsHitTesting(false)
+
+            transitRoutePill(route, tint: tint)
+                .padding(8)
+        }
+        .frame(height: 141)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func transitRoutePill(
+        _ route: TransitRoutePath,
+        tint: Color
+    ) -> some View {
+        HStack(spacing: 8) {
+            Text(route.lineShortName)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(tint)
+                )
+            Text("\(route.origin.name)  →  \(route.destination.name)")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Color.Text.primary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.Background.elevated)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .shadow(color: Color.black.opacity(0.10), radius: 4, x: 0, y: 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// Bounding-box region with generous padding so both endpoint
+    /// markers sit comfortably inside the 141-pt card — the marker
+    /// bubbles and the bottom pill both occlude part of the map, so
+    /// the visible region needs to be larger than the polyline's
+    /// bounding box. Same delta on both axes so the smaller dimension
+    /// of the card (height) doesn't crop the line.
+    private static func region(
+        for coords: [CLLocationCoordinate2D]
+    ) -> MKCoordinateRegion {
+        guard
+            let firstLat = coords.first?.latitude,
+            let firstLng = coords.first?.longitude
+        else {
+            return MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+            )
+        }
+        var minLat = firstLat, maxLat = firstLat
+        var minLng = firstLng, maxLng = firstLng
+        for c in coords {
+            minLat = min(minLat, c.latitude); maxLat = max(maxLat, c.latitude)
+            minLng = min(minLng, c.longitude); maxLng = max(maxLng, c.longitude)
+        }
+        let center = CLLocationCoordinate2D(
+            latitude: (minLat + maxLat) / 2,
+            longitude: (minLng + maxLng) / 2
+        )
+        let latRange = maxLat - minLat
+        let lngRange = maxLng - minLng
+        // Scale the span to the actual endpoint gap so close-adjacent
+        // stations (Tokyo Marunouchi: Shinjuku → Shinjuku-sanchome,
+        // ~360 m) don't get crushed under a wide minimum zoom that
+        // visually merges the two markers. Factor 2.0 keeps the pins
+        // ~20-25 % of the visible horizontal width apart on the card's
+        // ~2.5 aspect ratio — wide enough that the marker bubbles
+        // never overlap. Floor at 0.005° (~555 m) protects against a
+        // degenerate near-zero range while staying tight enough that
+        // a short polyline still reads as a journey, not a city map.
+        let baseRange = max(latRange, lngRange, 0.0001)
+        let span = MKCoordinateSpan(
+            latitudeDelta: max(0.005, baseRange * 2.0),
+            longitudeDelta: max(0.005, baseRange * 2.0)
+        )
+        return MKCoordinateRegion(center: center, span: span)
     }
 
     private func locationNamePill(_ location: TicketLocation) -> some View {

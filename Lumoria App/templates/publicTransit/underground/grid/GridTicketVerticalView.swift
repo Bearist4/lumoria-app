@@ -45,25 +45,27 @@ struct GridTicketVerticalView: View {
                         alignment: .topLeading
                     )
 
-                Text(ticket.lineShortName)
-                    .font(.system(size: 40 * s, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black)
-                    .tracking(-0.43 * s)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .frame(width: 120 * s)
-                    .position(x: 130 * s, y: 149 * s)
+                // Short-code + line name as a single group inside
+                // the halo so a long `lineName` can wrap to a second
+                // line and shrink rather than truncate; the
+                // short-code shifts up slightly when the name grows.
+                VStack(spacing: 4 * s) {
+                    Text(ticket.lineShortName)
+                        .font(.system(size: 40 * s, weight: .bold, design: .rounded))
+                        .tracking(-0.43 * s)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
 
-                // Line full name directly below the short-code,
-                // centred inside the halo.
-                Text(ticket.lineName)
-                    .font(.system(size: 12 * s, weight: .semibold, design: .rounded))
-                    .tracking(-0.2 * s)
-                    .foregroundStyle(.black)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(maxWidth: 200 * s)
-                    .position(x: 130 * s, y: 187 * s)
+                    Text(ticket.lineName)
+                        .font(.system(size: 12 * s, weight: .semibold, design: .rounded))
+                        .tracking(-0.2 * s)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundStyle(.black)
+                .frame(width: 200 * s)
+                .position(x: 130 * s, y: 149 * s)
 
                 // Origin / arrow / destination stack across the
                 // lower middle. Stacks vertically because the

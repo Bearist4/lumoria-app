@@ -50,26 +50,28 @@ struct GridTicketView: View {
                         alignment: .topLeading
                     )
 
-                // Big short-code in the centre of the halo.
-                Text(ticket.lineShortName)
-                    .font(.system(size: 40 * s, weight: .bold, design: .rounded))
-                    .foregroundStyle(.black)
-                    .tracking(-0.43 * s)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                    .frame(width: 120 * s)
-                    .position(x: 228 * s, y: 66 * s)
+                // Big short-code over the line's full name. Wrapped
+                // in a VStack so a long `lineName` can wrap to a
+                // second line and shrink without exceeding the
+                // halo's text area; the short-code rides up with the
+                // group when the name grows.
+                VStack(spacing: 4 * s) {
+                    Text(ticket.lineShortName)
+                        .font(.system(size: 40 * s, weight: .bold, design: .rounded))
+                        .tracking(-0.43 * s)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
 
-                // Line full name directly below the short-code,
-                // centred inside the halo.
-                Text(ticket.lineName)
-                    .font(.system(size: 12 * s, weight: .semibold, design: .rounded))
-                    .tracking(-0.2 * s)
-                    .foregroundStyle(.black)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                    .frame(maxWidth: 200 * s)
-                    .position(x: 228 * s, y: 100 * s)
+                    Text(ticket.lineName)
+                        .font(.system(size: 12 * s, weight: .semibold, design: .rounded))
+                        .tracking(-0.2 * s)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundStyle(.black)
+                .frame(width: 200 * s)
+                .position(x: 228 * s, y: 66 * s)
 
                 // Origin → destination row across the lower middle,
                 // straight horizontal layout per the updated figma.

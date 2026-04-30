@@ -62,20 +62,21 @@ enum TransitRouter {
     ) -> [[TransitLeg]] {
         guard origin.id != destination.id else { return [] }
 
-        let linesByTransferKey = catalog.linesByTransferKey
+        let clusters = catalog.clusters
+        let linesByCluster = clusters.linesByCluster
         let stationsById = catalog.stationsById
-        let originKey = TransitCatalog.transferKey(origin.name)
-        let destKey   = TransitCatalog.transferKey(destination.name)
+        let originKey = catalog.clusterKey(for: origin)
+        let destKey   = catalog.clusterKey(for: destination)
 
-        let originLines = linesByTransferKey[originKey] ?? []
-        let destLineIds = Set((linesByTransferKey[destKey] ?? []).map(\.id))
+        let originLines = linesByCluster[originKey] ?? []
+        let destLineIds = Set((linesByCluster[destKey] ?? []).map(\.id))
 
         // 1. Direct routes — one per line that serves both endpoints.
         var directRoutes: [[TransitLeg]] = []
         for line in originLines where destLineIds.contains(line.id) {
             guard
-                let fromIdx = indexOfStation(withTransferKey: originKey, in: line),
-                let toIdx   = indexOfStation(withTransferKey: destKey, in: line)
+                let fromIdx = indexOfStation(withClusterKey: originKey, in: line, catalog: catalog),
+                let toIdx   = indexOfStation(withClusterKey: destKey, in: line, catalog: catalog)
             else { continue }
             let leg = TransitLeg(
                 line: line,
@@ -110,8 +111,7 @@ enum TransitRouter {
             if let route = bfsRoute(
                 from: origin,
                 to: destination,
-                linesByTransferKey: linesByTransferKey,
-                stationsById: stationsById,
+                catalog: catalog,
                 startingLines: [startLine]
             ),
                !results.contains(where: { signature($0) == signature(route) }) {
@@ -137,8 +137,7 @@ enum TransitRouter {
                     let alt = bfsRoute(
                         from: origin,
                         to: destination,
-                        linesByTransferKey: linesByTransferKey,
-                        stationsById: stationsById,
+                        catalog: catalog,
                         startingLines: nil,
                         excludedLineIds: excluded
                     ),
@@ -173,27 +172,26 @@ enum TransitRouter {
     // MARK: - Direct
 
     /// Picks a line serving both endpoints, preferring the one with
-    /// the fewest stops between them. Uses name-based transfer keys
-    /// because producers often ship a separate `stop_id` per line
-    /// (Wiener Linien U1-Stephansplatz vs U3-Stephansplatz), which
-    /// would otherwise hide the fact that a single line carries both
-    /// endpoints.
+    /// the fewest stops between them. Uses cluster keys so two
+    /// physically-separate stops sharing a name don't masquerade as
+    /// the same station (Nantes "Jean Jaurès" on bus 96 vs tram 3).
     private static func directLine(
         from origin: TransitStation,
         to destination: TransitStation,
-        linesByTransferKey: [String: [TransitLine]]
+        catalog: TransitCatalog
     ) -> (line: TransitLine, fromIndex: Int, toIndex: Int)? {
-        let originKey = TransitCatalog.transferKey(origin.name)
-        let destKey   = TransitCatalog.transferKey(destination.name)
+        let originKey = catalog.clusterKey(for: origin)
+        let destKey   = catalog.clusterKey(for: destination)
 
-        let originLines = linesByTransferKey[originKey] ?? []
-        let destLines   = Set((linesByTransferKey[destKey] ?? []).map(\.id))
+        let linesByCluster = catalog.linesByCluster
+        let originLines = linesByCluster[originKey] ?? []
+        let destLines   = Set((linesByCluster[destKey] ?? []).map(\.id))
 
         var best: (line: TransitLine, fromIndex: Int, toIndex: Int, distance: Int)? = nil
         for line in originLines where destLines.contains(line.id) {
             guard
-                let fromIdx = indexOfStation(withTransferKey: originKey, in: line),
-                let toIdx   = indexOfStation(withTransferKey: destKey,   in: line)
+                let fromIdx = indexOfStation(withClusterKey: originKey, in: line, catalog: catalog),
+                let toIdx   = indexOfStation(withClusterKey: destKey, in: line, catalog: catalog)
             else { continue }
             let distance = abs(toIdx - fromIdx)
             if best == nil || distance < best!.distance {
@@ -203,15 +201,15 @@ enum TransitRouter {
         return best.map { ($0.line, $0.fromIndex, $0.toIndex) }
     }
 
-    /// Index of the first station whose normalized name matches
-    /// `transferKey`. Returns nil when the line doesn't serve that
-    /// station.
+    /// Index of the first station on `line` whose cluster key matches.
+    /// Returns nil when the line doesn't serve that cluster.
     private static func indexOfStation(
-        withTransferKey key: String,
-        in line: TransitLine
+        withClusterKey key: String,
+        in line: TransitLine,
+        catalog: TransitCatalog
     ) -> Int? {
         line.stations.firstIndex {
-            TransitCatalog.transferKey($0.name) == key
+            catalog.clusterKey(for: $0) == key
         }
     }
 
@@ -236,19 +234,19 @@ enum TransitRouter {
     private static func bfsRoute(
         from origin: TransitStation,
         to destination: TransitStation,
-        linesByTransferKey: [String: [TransitLine]],
-        stationsById: [String: TransitStation],
+        catalog: TransitCatalog,
         startingLines: [TransitLine]? = nil,
         excludedLineIds: Set<String> = []
     ) -> [TransitLeg]? {
-        let originKey = TransitCatalog.transferKey(origin.name)
-        let destKey   = TransitCatalog.transferKey(destination.name)
+        let linesByCluster = catalog.linesByCluster
+        let originKey = catalog.clusterKey(for: origin)
+        let destKey   = catalog.clusterKey(for: destination)
         let keep: (TransitLine) -> Bool = { !excludedLineIds.contains($0.id) }
 
         guard
-            let allOriginLinesRaw = linesByTransferKey[originKey],
+            let allOriginLinesRaw = linesByCluster[originKey],
             !allOriginLinesRaw.isEmpty,
-            let destLinesListRaw = linesByTransferKey[destKey],
+            let destLinesListRaw = linesByCluster[destKey],
             !destLinesListRaw.isEmpty
         else { return nil }
         let allOriginLines = allOriginLinesRaw.filter(keep)
@@ -263,7 +261,7 @@ enum TransitRouter {
         var parents: [Node: Node] = [:]
         var queue: [Node] = []
 
-        // Seed: every (origin transfer-key, line) starting state.
+        // Seed: every (origin cluster, line) starting state.
         for line in seedLines {
             let node = Node(stationKey: originKey, lineId: line.id)
             visited.insert(node)
@@ -281,13 +279,13 @@ enum TransitRouter {
 
             // Same-line neighbours: adjacent stations on this line.
             if !excludedLineIds.contains(node.lineId),
-               let currentLine = linesByTransferKey[node.stationKey]?
+               let currentLine = linesByCluster[node.stationKey]?
                 .first(where: { $0.id == node.lineId }),
-               let idx = indexOfStation(withTransferKey: node.stationKey, in: currentLine) {
+               let idx = indexOfStation(withClusterKey: node.stationKey, in: currentLine, catalog: catalog) {
                 for neighborIdx in [idx - 1, idx + 1] where currentLine.stations.indices.contains(neighborIdx) {
                     let neighborStation = currentLine.stations[neighborIdx]
                     let next = Node(
-                        stationKey: TransitCatalog.transferKey(neighborStation.name),
+                        stationKey: catalog.clusterKey(for: neighborStation),
                         lineId: currentLine.id
                     )
                     if !visited.contains(next) {
@@ -298,8 +296,8 @@ enum TransitRouter {
                 }
             }
 
-            // Transfer neighbours: same station, different non-excluded line.
-            for otherLine in (linesByTransferKey[node.stationKey] ?? [])
+            // Transfer neighbours: same cluster, different non-excluded line.
+            for otherLine in (linesByCluster[node.stationKey] ?? [])
                 where otherLine.id != node.lineId
                    && !excludedLineIds.contains(otherLine.id) {
                 let next = Node(stationKey: node.stationKey, lineId: otherLine.id)
@@ -321,17 +319,18 @@ enum TransitRouter {
         }
         path.reverse()
 
-        return legs(from: path, linesByTransferKey: linesByTransferKey)
+        return legs(from: path, catalog: catalog)
     }
 
     /// Collapses a BFS node path into `[Leg]`, one per contiguous
     /// run of nodes that share a `lineId`.
     private static func legs(
         from path: [Node],
-        linesByTransferKey: [String: [TransitLine]]
+        catalog: TransitCatalog
     ) -> [TransitLeg]? {
         guard !path.isEmpty else { return nil }
 
+        let linesByCluster = catalog.linesByCluster
         var out: [TransitLeg] = []
         var runStart = 0
         for i in 1...path.count {
@@ -346,13 +345,13 @@ enum TransitRouter {
                     continue
                 }
                 guard
-                    let line = linesByTransferKey[startNode.stationKey]?
+                    let line = linesByCluster[startNode.stationKey]?
                         .first(where: { $0.id == startNode.lineId }),
                     let fromIdx = indexOfStation(
-                        withTransferKey: startNode.stationKey, in: line
+                        withClusterKey: startNode.stationKey, in: line, catalog: catalog
                     ),
                     let toIdx = indexOfStation(
-                        withTransferKey: endNode.stationKey, in: line
+                        withClusterKey: endNode.stationKey, in: line, catalog: catalog
                     )
                 else {
                     return nil

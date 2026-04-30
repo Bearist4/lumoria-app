@@ -300,7 +300,10 @@ extension TransitCatalog {
     /// like Wiener Linien ship a different `stop_id` per platform
     /// (Stephansplatz-on-U1 ≠ Stephansplatz-on-U3 by id), so transfer
     /// logic must group by name. A station's `transferKey` is its
-    /// normalized name.
+    /// normalized name. Use `linesByCluster` instead in journey
+    /// routing — `transferKey` produces phantom transfers when a city
+    /// has two unrelated stops sharing a name (Nantes "Jean Jaurès"
+    /// on bus 96 vs tram 3, 9 km apart).
     var linesByTransferKey: [String: [TransitLine]] {
         var out: [String: [TransitLine]] = [:]
         for line in lines {
@@ -310,6 +313,169 @@ extension TransitCatalog {
             }
         }
         return out
+    }
+
+    // MARK: - Physical-station clustering
+
+    /// Cluster table — same normalized name AND geographically close
+    /// (≤ 250 m). The right transfer graph for the router: name-only
+    /// matching collapses physically separate stops sharing a name,
+    /// inventing impossible transfers (Nantes' bus 96 "Jean Jaurès"
+    /// 9 km north of the tram-3 stop of the same name).
+    struct Clusters {
+        /// Cluster key per station id. Stable within one catalog load.
+        let keyByStationId: [String: String]
+        /// Lines serving each cluster.
+        let linesByCluster: [String: [TransitLine]]
+        /// Per base name (the normalized transfer key), the list of
+        /// cluster centroids — used to map a `(name, coord)` tuple
+        /// to its cluster.
+        let clustersByBaseKey: [String: [(key: String, lat: Double, lng: Double)]]
+    }
+
+    /// Cluster table for this catalog. Computed once on first access
+    /// and cached per city — clustering iterates every station in
+    /// every line, so recomputing on every call (Tokyo: ~6k stations)
+    /// freezes the picker dropdown's hot loop.
+    var clusters: Clusters {
+        if let cached = Self.clusterCache.get(city) { return cached }
+        let computed = computeClusters()
+        Self.clusterCache.set(city, computed)
+        return computed
+    }
+
+    private func computeClusters() -> Clusters {
+        var keyByStationId: [String: String] = [:]
+        var clustersByBaseKey: [String: [(key: String, stations: [TransitStation])]] = [:]
+
+        for line in lines {
+            for station in line.stations {
+                if keyByStationId[station.id] != nil { continue }
+                let baseKey = Self.transferKey(station.name)
+                var matched: String? = nil
+                if let candidates = clustersByBaseKey[baseKey] {
+                    for c in candidates {
+                        let centroid = Self.centroid(of: c.stations)
+                        let d = Self.haversineMeters(
+                            lat1: station.lat, lng1: station.lng,
+                            lat2: centroid.lat, lng2: centroid.lng
+                        )
+                        if d <= Self.clusterRadiusMeters {
+                            matched = c.key
+                            break
+                        }
+                    }
+                }
+                let key: String
+                if let m = matched {
+                    key = m
+                    if var list = clustersByBaseKey[baseKey],
+                       let idx = list.firstIndex(where: { $0.key == m }) {
+                        list[idx].stations.append(station)
+                        clustersByBaseKey[baseKey] = list
+                    }
+                } else {
+                    let n = clustersByBaseKey[baseKey]?.count ?? 0
+                    key = "\(baseKey)#\(n)"
+                    clustersByBaseKey[baseKey, default: []].append((key, [station]))
+                }
+                keyByStationId[station.id] = key
+            }
+        }
+
+        var linesByCluster: [String: [TransitLine]] = [:]
+        for line in lines {
+            var seen: Set<String> = []
+            for station in line.stations {
+                guard let key = keyByStationId[station.id] else { continue }
+                if seen.insert(key).inserted {
+                    linesByCluster[key, default: []].append(line)
+                }
+            }
+        }
+
+        var flat: [String: [(key: String, lat: Double, lng: Double)]] = [:]
+        for (baseKey, list) in clustersByBaseKey {
+            flat[baseKey] = list.map {
+                let c = Self.centroid(of: $0.stations)
+                return ($0.key, c.lat, c.lng)
+            }
+        }
+
+        return Clusters(
+            keyByStationId: keyByStationId,
+            linesByCluster: linesByCluster,
+            clustersByBaseKey: flat
+        )
+    }
+
+    /// Thread-safe per-city cache for cluster tables. Catalogs are
+    /// loaded on the main actor but the router reads from arbitrary
+    /// contexts, so a plain `@MainActor` static would force every
+    /// caller onto the main actor. NSLock is sufficient — accesses
+    /// are write-once-per-city, read-many.
+    private final class ClusterCache: @unchecked Sendable {
+        private var storage: [String: Clusters] = [:]
+        private let lock = NSLock()
+        func get(_ city: String) -> Clusters? {
+            lock.lock(); defer { lock.unlock() }
+            return storage[city]
+        }
+        func set(_ city: String, _ value: Clusters) {
+            lock.lock(); defer { lock.unlock() }
+            storage[city] = value
+        }
+    }
+    private static let clusterCache = ClusterCache()
+
+    /// Lines bucketed by cluster key. Use this in the router instead
+    /// of `linesByTransferKey`.
+    var linesByCluster: [String: [TransitLine]] { clusters.linesByCluster }
+
+    /// Resolves a `(name, coord)` tuple to its catalog cluster, or
+    /// nil when no cluster of that name sits within radius. Used by
+    /// the router to look up the cluster for an externally-supplied
+    /// origin / destination station.
+    func clusterKey(name: String, lat: Double, lng: Double) -> String? {
+        let baseKey = Self.transferKey(name)
+        guard let candidates = clusters.clustersByBaseKey[baseKey] else { return nil }
+        var best: (key: String, distance: Double)?
+        for c in candidates {
+            let d = Self.haversineMeters(
+                lat1: lat, lng1: lng, lat2: c.lat, lng2: c.lng
+            )
+            if d <= Self.clusterRadiusMeters, best == nil || d < best!.distance {
+                best = (c.key, d)
+            }
+        }
+        return best?.key
+    }
+
+    /// Cluster key for a station already in this catalog. Falls back
+    /// to the bare name-based transfer key if the station isn't in
+    /// the cached map (shouldn't happen for catalog-resident stations
+    /// but keeps the call site total).
+    func clusterKey(for station: TransitStation) -> String {
+        clusters.keyByStationId[station.id]
+            ?? Self.transferKey(station.name)
+    }
+
+    /// Two stations sharing a normalized name fall into the same
+    /// cluster when their centroid distance is within this radius.
+    /// Sized to fit legitimate large interchanges (Karlsplatz spans
+    /// ~280 m across U1/U2/U4 platforms; Praterstern ~395 m) while
+    /// still splitting unrelated stops that happen to share a name
+    /// (Nantes "Jean Jaurès" tram vs bus, ~9 km apart).
+    static var clusterRadiusMeters: Double { 500.0 }
+
+    private static func centroid(
+        of stations: [TransitStation]
+    ) -> (lat: Double, lng: Double) {
+        guard !stations.isEmpty else { return (0, 0) }
+        let n = Double(stations.count)
+        let lat = stations.reduce(0.0) { $0 + $1.lat } / n
+        let lng = stations.reduce(0.0) { $0 + $1.lng } / n
+        return (lat, lng)
     }
 
     /// Builds the canonical transfer key from a station name. Same

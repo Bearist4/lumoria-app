@@ -227,6 +227,7 @@ struct TicketDetailView: View {
             lastEditDate: Self.formatted(currentTicket.updatedAt),
             category: currentTicket.kind.categoryStyle,
             location: currentTicket.originLocation,
+            transitRoute: TransitRouteResolver.resolve(for: currentTicket),
             menuItems: memoriesMenuItems,
             memoriesContent: { memoriesBody }
         )

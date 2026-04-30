@@ -25,13 +25,26 @@ struct LineHandle: View {
     }
 
     var body: some View {
-        HStack(spacing: iconTextGap) {
+        let rgb = Self.rgb(forHex: line.color)
+        let luminance = Self.relativeLuminance(rgb)
+        // White text fails on yellow / pastel brand colours (Wiener Linien
+        // U6, Tokyo Ginza, Nantes' yellow bus 4) and black text fails on
+        // dark blues / reds — pick whichever foreground gives the better
+        // WCAG contrast against this specific brand colour.
+        let foreground: Color = luminance > 0.55 ? .black : .white
+        // When the brand colour is near-white (Nantes' "NC" #FFFFFF), the
+        // pill itself disappears against the dropdown's light card. Add a
+        // hairline outline so the shape stays visible without changing
+        // the operator's brand fill.
+        let needsOutline = luminance > 0.9
+
+        return HStack(spacing: iconTextGap) {
             Image(systemName: line.resolvedMode.symbol)
                 .font(iconFont)
-                .foregroundStyle(.white)
+                .foregroundStyle(foreground)
             Text(line.displayLabel)
                 .font(labelFont)
-                .foregroundStyle(.white)
+                .foregroundStyle(foreground)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -40,6 +53,54 @@ struct LineHandle: View {
         .background(
             Capsule().fill(Color(hex: line.color))
         )
+        .overlay {
+            if needsOutline {
+                Capsule().stroke(Color.Border.hairline, lineWidth: 1)
+            }
+        }
+    }
+
+    // MARK: - Contrast
+
+    /// Parses an `#RRGGBB` or `#RRGGBBAA` hex into an `(r, g, b)` triple
+    /// in 0…1 sRGB space. Returns mid-grey for malformed input so the
+    /// downstream luminance check still produces a sensible foreground.
+    private static func rgb(forHex hex: String) -> (r: Double, g: Double, b: Double) {
+        let cleaned = hex.trimmingCharacters(in: .alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: cleaned).scanHexInt64(&int)
+        switch cleaned.count {
+        case 6:
+            return (
+                Double((int >> 16) & 0xFF) / 255,
+                Double((int >> 8) & 0xFF) / 255,
+                Double(int & 0xFF) / 255
+            )
+        case 8:
+            return (
+                Double((int >> 24) & 0xFF) / 255,
+                Double((int >> 16) & 0xFF) / 255,
+                Double((int >> 8) & 0xFF) / 255
+            )
+        default:
+            return (0.5, 0.5, 0.5)
+        }
+    }
+
+    /// WCAG 2.1 relative luminance: weights linear-sRGB channels by
+    /// human eye sensitivity. The threshold for switching foreground
+    /// colour is empirical, not formulaic — 0.55 lands closer to where
+    /// brand pastels (yellow, mint) start failing white text in real
+    /// renders than the textbook 0.5.
+    private static func relativeLuminance(
+        _ rgb: (r: Double, g: Double, b: Double)
+    ) -> Double {
+        func linear(_ c: Double) -> Double {
+            c <= 0.03928 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * linear(rgb.r)
+             + 0.7152 * linear(rgb.g)
+             + 0.0722 * linear(rgb.b)
     }
 
     // MARK: - Metrics

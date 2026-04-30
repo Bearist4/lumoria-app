@@ -2,8 +2,10 @@
 //  SuccessStep.swift
 //  Lumoria App
 //
-//  Step 6 — the ticket has been created and saved. The user sees a hero
-//  congratulation, a preview of the final ticket, and 4 action tiles.
+//  Step 6 — the ticket has been created and saved. The body renders the
+//  print-reveal preview card filling the area between the funnel header
+//  and the bottom bar. Actions (Add to memory / Export, or Done in the
+//  edit flow) live in the funnel's shared bottom bar.
 //
 
 import SwiftUI
@@ -11,17 +13,9 @@ import SwiftUI
 struct NewTicketSuccessStep: View {
 
     @ObservedObject var funnel: NewTicketFunnel
-    /// Edit flow only — the Done button writes the edited ticket here
-    /// before dismissing so the presenter runs the save + loader.
-    var pendingEdit: Binding<Ticket?>? = nil
-    /// Dismisses the whole funnel. Supplied by the container.
-    var onBackHome: () -> Void
 
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
-
-    @State private var showAddToMemory: Bool = false
-    @State private var showExport: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -34,22 +28,6 @@ struct NewTicketSuccessStep: View {
 
             if let error = funnel.errorMessage {
                 errorBanner(error)
-            }
-
-            actionsGrid
-        }
-        .sheet(isPresented: $showAddToMemory) {
-            if !funnel.createdTickets.isEmpty {
-                AddToMemorySheet(tickets: funnel.createdTickets,
-                                 onCompleted: handleSuccessFinished)
-            } else if let ticket = funnel.createdTicket {
-                AddToMemorySheet(ticket: ticket,
-                                 onCompleted: handleSuccessFinished)
-            }
-        }
-        .sheet(isPresented: $showExport) {
-            if let ticket = funnel.createdTicket {
-                ExportSheet(ticket: ticket, onCompleted: handleSuccessFinished)
             }
         }
         .onChange(of: funnel.createdTicket) { _, created in
@@ -130,19 +108,6 @@ struct NewTicketSuccessStep: View {
         }
     }
 
-    /// Called once the user has finished a success-screen action
-    /// (export saved or ticket added to a memory). Advances the
-    /// onboarding past `.exportOrAddMemory` so the end-cover sheet
-    /// pops over the Memories tab, then dismisses the whole funnel so
-    /// the user lands back on Memories instead of staring at the
-    /// success screen.
-    private func handleSuccessFinished() {
-        if onboardingCoordinator.currentStep == .exportOrAddMemory {
-            Task { await onboardingCoordinator.advance(from: .exportOrAddMemory) }
-        }
-        onBackHome()
-    }
-
     // MARK: - Preview
 
     @ViewBuilder
@@ -215,44 +180,6 @@ struct NewTicketSuccessStep: View {
             payload: payload,
             styleId: funnel.selectedStyleId
         )
-    }
-
-    // MARK: - Actions
-
-    @ViewBuilder
-    private var actionsGrid: some View {
-        if funnel.isEditing {
-            // Edit flow — Done hands the prepared ticket to the
-            // presenter (via `pendingEdit`) and dismisses immediately.
-            // The presenter runs the save + loader so the user only
-            // sees one loading state, outside the funnel.
-            Button("Done") {
-                pendingEdit?.wrappedValue = funnel.buildUpdatedTicket()
-                onBackHome()
-            }
-            .lumoriaButtonStyle(.primary, size: .large)
-        } else {
-            VStack(spacing: 12) {
-                Button("Export Ticket") {
-                    showExport = true
-                    if onboardingCoordinator.currentStep == .allDone {
-                        Task { await onboardingCoordinator.chose(.export) }
-                    }
-                }
-                .lumoriaButtonStyle(.secondary, size: .large)
-                .disabled(funnel.createdTicket == nil)
-
-                Button("Add to Memory") {
-                    showAddToMemory = true
-                    if onboardingCoordinator.currentStep == .allDone {
-                        Task { await onboardingCoordinator.chose(.addToMemory) }
-                    }
-                }
-                .lumoriaButtonStyle(.primary, size: .large)
-                .disabled(funnel.createdTicket == nil)
-            }
-            .onboardingAnchor("success.actions")
-        }
     }
 
     // MARK: - Banners

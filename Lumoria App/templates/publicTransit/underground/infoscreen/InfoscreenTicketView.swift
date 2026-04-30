@@ -49,19 +49,6 @@ struct InfoscreenTicketView: View {
                         alignment: .topLeading
                     )
 
-                // Company at (81, 16).
-                Text(ticket.companyName)
-                    .font(.system(size: 9 * s, weight: .medium))
-                    .tracking(1.35 * s)
-                    .foregroundStyle(subdued.opacity(0.55))
-                    .lineLimit(1)
-                    .padding(.leading, 81 * s)
-                    .padding(.top, 16 * s)
-                    .frame(
-                        maxWidth: .infinity, maxHeight: .infinity,
-                        alignment: .topLeading
-                    )
-
                 // Made-with at (213, 10).
                 if showsLumoriaWatermark {
                     MadeWithLumoria(style: .white, version: .small, scale: s)
@@ -203,7 +190,7 @@ struct InfoscreenTicketView: View {
             .frame(height: 27 * s)
             .background(
                 RoundedRectangle(cornerRadius: 40 * s, style: .continuous)
-                    .fill(routeBlue)
+                    .fill(lineAccent)
             )
     }
 
@@ -326,7 +313,7 @@ struct InfoscreenTicketView: View {
     // MARK: - Colors
 
     private var amber: Color { Color(red: 1, green: 0.72, blue: 0.14) }
-    private var routeBlue: Color { Color(red: 0.16, green: 0.47, blue: 0.92) }
+    private var lineAccent: Color { Color(hex: ticket.lineColor) }
     private var bladeDark: Color { Color(red: 0.04, green: 0.04, blue: 0.05) }
     private var subdued: Color { Color(red: 0.86, green: 0.86, blue: 0.88) }
 }

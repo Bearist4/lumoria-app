@@ -9,6 +9,7 @@
 
 import Combine
 import SwiftUI
+import VariableBlur
 
 struct NewTicketFunnelView: View {
 
@@ -39,6 +40,11 @@ struct NewTicketFunnelView: View {
     @StateObject private var funnel = NewTicketFunnel()
 
     @State private var showAbandonAlert = false
+    /// Sheet bindings for success-step actions. Held at the funnel
+    /// level so the actions can live in the shared bottom bar instead
+    /// of inside the success step body.
+    @State private var showAddToMemory: Bool = false
+    @State private var showExport: Bool = false
     /// Combine subscription that mirrors funnel state to disk while
     /// onboarding is active. Held in @State so it lives for the
     /// duration of the funnel view.
@@ -53,42 +59,91 @@ struct NewTicketFunnelView: View {
     /// `createdTickets` one leg at a time, so a gate started at the
     /// initial count=1 reading would flip the overlay too early).
     @State private var allDoneGateTask: Task<Void, Never>? = nil
+    /// Live keyboard height (0 when hidden). Drives the scroll layer's
+    /// dynamic bottom safe-area inset so the focused TextField scrolls
+    /// above the keyboard while the bar itself stays anchored to the
+    /// physical screen bottom (root ignores `.keyboard` safe area).
+    @State private var keyboardHeight: CGFloat = 0
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        ZStack(alignment: .bottom) {
+            // Content layer — keyboard-aware. SwiftUI's default keyboard
+            // avoidance shrinks this layer's frame when the keyboard
+            // appears, which lets the ScrollView auto-scroll the focused
+            // TextField above the keyboard.
+            VStack(spacing: 0) {
+                header
 
-            if funnel.step != .success {
-                stepHeading
-            }
+                if funnel.step != .success {
+                    stepHeading
+                }
 
-            if funnel.step.prefersFullHeight {
-                stepContent
-                    .padding(.horizontal, 16)
-                    .padding(.top, funnel.step == .success ? 0 : 16)
-                    .padding(.bottom, 24)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                ScrollView {
+                if funnel.step.prefersFullHeight {
                     stepContent
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
-                        .padding(.bottom, 24)
+                        .padding(.bottom, funnel.step == .success ? 0 : 24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        // ScrollViewReader exposes a proxy that
+                        // LumoriaDropdown reads from the environment to
+                        // scroll itself into view on open, so the menu
+                        // isn't clipped by the bottom bar when the
+                        // field sits near the end of the form.
+                        ScrollViewReader { proxy in
+                            stepContent
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16)
+                                .padding(.bottom, 24)
+                                .environment(\.lumoriaScrollProxy, proxy)
+                        }
+                    }
+                    .scrollDismissesKeyboard(.interactively)
                 }
-                .scrollDismissesKeyboard(.interactively)
             }
-        }
-        .background(Color.Background.default)
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+            .background(Color.Background.default)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // Reserves bar height + live keyboard height inside the
+                // scroll layer. ScrollView reads this inset and shrinks
+                // its visible region accordingly, which is what triggers
+                // the system's auto-scroll to keep the focused TextField
+                // above the keyboard. The 96pt is the bar's intrinsic
+                // height; `keyboardHeight` is published by the keyboard
+                // observer below.
+                Color.clear.frame(height: 96 + keyboardHeight)
+            }
+
+            // Bar layer — pinned flush with the physical bottom edge.
+            // The outer ZStack ignores `.container` and `.keyboard` at
+            // the bottom so this child's bottom alignment is the
+            // physical screen edge regardless of keyboard state.
             bottomBar
         }
-        // Pin the whole funnel — including the safeAreaInset bottom bar —
-        // to the screen edges when the keyboard appears. Default SwiftUI
-        // keyboard avoidance shifts the entire layout up, which drags the
-        // bottom bar with it; this opts the funnel out so the bar stays
-        // fixed and the keyboard slides up over it. ScrollView still
-        // scrolls the focused field into view internally.
-        .ignoresSafeArea(.keyboard, edges: .bottom)
+        .ignoresSafeArea(edges: .bottom)
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillShowNotification
+            )
+        ) { notification in
+            guard
+                let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+            else { return }
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardHeight = frame.height
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: UIResponder.keyboardWillHideNotification
+            )
+        ) { notification in
+            let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            withAnimation(.easeOut(duration: duration)) {
+                keyboardHeight = 0
+            }
+        }
         .onboardingOverlay(
             step: .pickCategory,
             coordinator: onboardingCoordinator,
@@ -219,6 +274,37 @@ struct NewTicketFunnelView: View {
         } message: {
             Text("Leave now? Your ticket won't be saved.")
         }
+        .sheet(isPresented: $showAddToMemory) {
+            if !funnel.createdTickets.isEmpty {
+                AddToMemorySheet(
+                    tickets: funnel.createdTickets,
+                    onCompleted: handleSuccessFinished
+                )
+            } else if let ticket = funnel.createdTicket {
+                AddToMemorySheet(
+                    ticket: ticket,
+                    onCompleted: handleSuccessFinished
+                )
+            }
+        }
+        .sheet(isPresented: $showExport) {
+            if let ticket = funnel.createdTicket {
+                ExportSheet(ticket: ticket, onCompleted: handleSuccessFinished)
+            }
+        }
+    }
+
+    /// Called once the user has finished a success-screen action
+    /// (export saved or ticket added to a memory). Advances the
+    /// onboarding past `.exportOrAddMemory` so the end-cover sheet
+    /// pops over the Memories tab, then dismisses the whole funnel so
+    /// the user lands back on Memories instead of staring at the
+    /// success screen.
+    private func handleSuccessFinished() {
+        if onboardingCoordinator.currentStep == .exportOrAddMemory {
+            Task { await onboardingCoordinator.advance(from: .exportOrAddMemory) }
+        }
+        dismiss()
     }
 
     // MARK: - Header
@@ -285,9 +371,7 @@ struct NewTicketFunnelView: View {
             }
         case .style:       NewTicketStyleStep(funnel: funnel)
         case .success:
-            NewTicketSuccessStep(funnel: funnel, pendingEdit: pendingEdit) {
-                dismiss()
-            }
+            NewTicketSuccessStep(funnel: funnel)
         }
     }
 
@@ -383,17 +467,44 @@ struct NewTicketFunnelView: View {
 
     @ViewBuilder
     private var bottomBar: some View {
+        bottomBarButtons
+            .padding(.top, 16)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 32)
+            .frame(maxWidth: .infinity)
+            .background {
+                // Progressive blur 0→100 top→bottom, with a 65% white
+                // (light) / black (dark) tint on top so the buttons stay
+                // legible. Clipped to the bar's rounded bottom corners so
+                // both layers share the same silhouette.
+                ZStack {
+                    VariableBlurView(
+                        maxBlurRadius: 20,
+                        direction: .blurredBottomClearTop
+                    )
+                    Color("Colors/Opacity/White/inverse/65")
+                }
+                .clipShape(UnevenRoundedRectangle(
+                    cornerRadii: .init(bottomLeading: 56, bottomTrailing: 56),
+                    style: .continuous
+                ))
+            }
+            // Bar reaches the physical bottom of the screen, passing
+            // through the home-indicator safe area. The 32pt bottom
+            // padding keeps the buttons inside that safe zone.
+            .ignoresSafeArea(edges: .bottom)
+    }
+
+    @ViewBuilder
+    private var bottomBarButtons: some View {
         if funnel.step == .success {
-            // Success step has no bottom bar — its own actions
-            // (Export / Add to Memory) live inside the step content,
-            // and the X in the header handles dismiss.
-            EmptyView()
+            successBarButtons
         } else {
-            HStack(spacing: 16) {
+            HStack(spacing: 24) {
                 if funnel.step != .category {
-                    Button("Back") { funnel.goBack() }
-                        .lumoriaButtonStyle(.tertiary, size: .large)
-                        .frame(width: 100)
+                    LumoriaIconButton(systemImage: "chevron.left") {
+                        funnel.goBack()
+                    }
                 }
 
                 Button {
@@ -401,12 +512,45 @@ struct NewTicketFunnelView: View {
                 } label: {
                     Text("Next")
                 }
-                .lumoriaButtonStyle(.primary, size: .large)
+                .lumoriaButtonStyle(.primary, size: .medium)
                 .disabled(!funnel.canAdvance)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
-            .background(Color.Background.default.ignoresSafeArea(edges: .bottom))
+        }
+    }
+
+    @ViewBuilder
+    private var successBarButtons: some View {
+        if funnel.isEditing {
+            // Edit flow — Done hands the prepared ticket back to the
+            // presenter (via `pendingEdit`) and dismisses immediately.
+            // The presenter runs the save + loader so the user only
+            // sees one loading state, outside the funnel.
+            Button("Done") {
+                pendingEdit?.wrappedValue = funnel.buildUpdatedTicket()
+                dismiss()
+            }
+            .lumoriaButtonStyle(.primary, size: .medium)
+        } else {
+            HStack(spacing: 24) {
+                Button("Add to memory") {
+                    showAddToMemory = true
+                    if onboardingCoordinator.currentStep == .allDone {
+                        Task { await onboardingCoordinator.chose(.addToMemory) }
+                    }
+                }
+                .lumoriaButtonStyle(.secondary, size: .medium)
+                .disabled(funnel.createdTicket == nil)
+
+                Button("Export") {
+                    showExport = true
+                    if onboardingCoordinator.currentStep == .allDone {
+                        Task { await onboardingCoordinator.chose(.export) }
+                    }
+                }
+                .lumoriaButtonStyle(.primary, size: .medium)
+                .disabled(funnel.createdTicket == nil)
+            }
+            .onboardingAnchor("success.actions")
         }
     }
 }

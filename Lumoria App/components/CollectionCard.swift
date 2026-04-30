@@ -86,6 +86,11 @@ struct MemoryCard<SlotContent: View>: View {
     /// their slots. Same memory → same jitter across renders. 0 by
     /// default keeps existing call sites compatible.
     let cardSeed: UInt64
+    /// Delay (seconds) before the card plays its first-load intro:
+    /// fade + rise from below, then tickets pop into their slots.
+    /// `nil` skips the intro and renders steady (default — keeps
+    /// callers like TicketDetailsCard / previews unchanged).
+    let introDelay: Double?
     let slotPreview: (Int) -> SlotContent
 
     // MARK: Sizes (from Figma)
@@ -118,6 +123,7 @@ struct MemoryCard<SlotContent: View>: View {
         filledCount: Int = 0,
         colorFamily: String? = nil,
         cardSeed: UInt64 = 0,
+        introDelay: Double? = nil,
         @ViewBuilder slotPreview: @escaping (Int) -> SlotContent
     ) {
         self.title = title
@@ -127,8 +133,24 @@ struct MemoryCard<SlotContent: View>: View {
         self.filledCount = max(0, min(5, filledCount))
         self.colorFamily = colorFamily
         self.cardSeed = cardSeed
+        self.introDelay = introDelay
         self.slotPreview = slotPreview
+        // Single-state intro: false = pre-animation pose, true = final
+        // pose. Animations are layered on top via `.animation(...,
+        // value:)` modifiers below — that lets SwiftUI's animation
+        // engine schedule the springs (with their delays) at frame
+        // level instead of us spinning up Tasks with `Task.sleep`,
+        // which creates a swarm of concurrent animation drivers when
+        // many cards intro at once and chokes the navigation push.
+        _introDone = State(initialValue: introDelay == nil)
     }
+
+    // MARK: Intro state
+
+    /// Animates from pre-pose (hidden, lowered, tickets shrunk) to
+    /// final pose. `.animation(value: introDone)` modifiers downstream
+    /// pick up the change and apply per-element springs / delays.
+    @State private var introDone: Bool
 
     // MARK: Body
 
@@ -155,6 +177,15 @@ struct MemoryCard<SlotContent: View>: View {
             }
         }
         .aspectRatio(cardWidth / referenceHeight, contentMode: .fit)
+        .opacity(introDone ? 1 : 0)
+        .offset(y: introDone ? 0 : 24)
+        // Card-level spring with the caller's stagger delay baked in.
+        .animation(
+            .spring(response: 0.55, dampingFraction: 0.78)
+                .delay(introDelay ?? 0),
+            value: introDone
+        )
+        .task { introDone = true }
     }
 
     // MARK: - Card
@@ -200,7 +231,22 @@ struct MemoryCard<SlotContent: View>: View {
                     slotGradient
                     if idx < filledCount {
                         slotPreview(idx)
-                            .scaleEffect(previewScale, anchor: .top)
+                            .scaleEffect(
+                                previewScale * (introDone ? 1 : 0.6),
+                                anchor: .top
+                            )
+                            // Ticket pop runs slightly after the card
+                            // has begun rising — a 160 ms offset on
+                            // top of the card's stagger delay. Same
+                            // `introDone` toggle drives both, so
+                            // SwiftUI animates them on a single
+                            // CADisplayLink tick instead of via two
+                            // separate Tasks.
+                            .animation(
+                                .spring(response: 0.42, dampingFraction: 0.66)
+                                    .delay((introDelay ?? 0) + 0.16),
+                                value: introDone
+                            )
                             // Drop shadow behind each ticket so the
                             // slot above lifts off the slot below.
                             // Clipped to the slot bounds by the

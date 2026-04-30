@@ -28,6 +28,10 @@ struct MemoryDetailView: View {
     /// ID of the ticket closest to vertical centre of the screen. Drives
     /// the shimmer's `isActive` so only the focused card consumes motion.
     @State private var centredId: UUID?
+    /// Once true, the staggered ticket-grid intro has played for this
+    /// view instance — re-renders (e.g. after popping back from a
+    /// ticket detail) skip the animation and render the grid steady.
+    @State private var hasIntroducedTickets = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -306,21 +310,47 @@ struct MemoryDetailView: View {
 
     @ViewBuilder
     private func ticketsGrid(_ tickets: [Ticket]) -> some View {
+        let active = !hasIntroducedTickets
+        // Buffer so the staggered intro begins after the navigation
+        // push has settled — running both at once is the main source
+        // of frame drops during the page change.
+        let navBuffer: Double = 0.22
         VStack(spacing: 32) {
-            ForEach(Array(rows(for: tickets).enumerated()), id: \.offset) { _, row in
+            ForEach(Array(rows(for: tickets).enumerated()), id: \.offset) { rowIdx, row in
+                // Top-down delay per row + a small left-right offset
+                // within paired rows so the second ticket lands a
+                // beat after the first.
+                let rowDelay = navBuffer + Double(rowIdx) * 0.07
                 switch row {
                 case .horizontal(let t):
-                    link(t)
+                    StaggeredTicketCell(delay: rowDelay, active: active) {
+                        link(t)
+                    }
                 case .verticalPair(let a, let b):
                     HStack(alignment: .top, spacing: 16) {
-                        link(a); link(b)
+                        StaggeredTicketCell(delay: rowDelay, active: active) {
+                            link(a)
+                        }
+                        StaggeredTicketCell(delay: rowDelay + 0.05, active: active) {
+                            link(b)
+                        }
                     }
                 case .verticalSingle(let t):
                     HStack(alignment: .top, spacing: 16) {
-                        link(t); Color.clear
+                        StaggeredTicketCell(delay: rowDelay, active: active) {
+                            link(t)
+                        }
+                        Color.clear
                     }
                 }
             }
+        }
+        .task(id: tickets.isEmpty) {
+            guard !tickets.isEmpty, !hasIntroducedTickets else { return }
+            // Cells already initialised with their `visible: false`
+            // pose; lock the flag immediately so a quick nav back-
+            // and-forth doesn't replay the stagger.
+            hasIntroducedTickets = true
         }
     }
 
@@ -356,6 +386,52 @@ struct MemoryDetailView: View {
         }
         if let p = pending { out.append(.verticalSingle(p)) }
         return out
+    }
+}
+
+// MARK: - Staggered cell
+
+/// Wraps a ticket cell so it fades up from a small offset on first
+/// render. `delay` controls the per-cell stagger. `active: false`
+/// short-circuits to a static render so re-entries don't replay it.
+///
+/// Animation is declarative (`.animation(_:value:)` driven by a single
+/// Bool) rather than imperative `Task.sleep` + `withAnimation` —
+/// SwiftUI schedules the springs at frame level, which keeps frame
+/// budget free during the navigation push that's already underway
+/// when the detail view first appears.
+private struct StaggeredTicketCell<Content: View>: View {
+    let delay: Double
+    let active: Bool
+    @ViewBuilder var content: () -> Content
+
+    @State private var visible: Bool
+
+    init(
+        delay: Double,
+        active: Bool,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.delay = delay
+        self.active = active
+        self.content = content
+        // Seed pose for the first frame so the cell starts hidden.
+        // For inactive cells (re-entry, no animation) jump straight
+        // to the final pose.
+        _visible = State(initialValue: !active)
+    }
+
+    var body: some View {
+        content()
+            .opacity(visible ? 1 : 0)
+            .offset(y: visible ? 0 : 14)
+            .animation(
+                .spring(response: 0.5, dampingFraction: 0.8).delay(delay),
+                value: visible
+            )
+            .task {
+                if active && !visible { visible = true }
+            }
     }
 }
 

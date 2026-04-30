@@ -186,13 +186,18 @@ struct StudioTicketVerticalView: View {
     // MARK: - Footer details (Date / Gate / Seat / Departs)
 
     private func detailsSection(scale s: CGFloat) -> some View {
-        // Four cells distributed evenly across the footer row. Matches
-        // the Figma (node-id 1:1557) — no pill dividers, equal columns,
-        // each cell left-aligned within its share of the row.
+        // Cells sit at their intrinsic width with leftover space
+        // distributed evenly via flexible spacers. Equal-share columns
+        // would force the wider Date value to shrink against the much
+        // narrower Gate/Seat values; this keeps every value on the same
+        // font size, matching the Figma (node-id 1:1557).
         HStack(spacing: 0) {
             detailCell(label: "Date",    value: ticket.date,          scale: s)
+            Spacer(minLength: 0)
             detailCell(label: "Gate",    value: ticket.gate,          scale: s)
+            Spacer(minLength: 0)
             detailCell(label: "Seat",    value: ticket.seat,          scale: s)
+            Spacer(minLength: 0)
             detailCell(label: "Departs", value: ticket.departureTime, scale: s)
         }
     }
@@ -208,9 +213,7 @@ struct StudioTicketVerticalView: View {
                 .font(.system(size: 10.98 * s, weight: .bold))
                 .foregroundStyle(style.textPrimary)
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     // MARK: - Bottom "Made with Lumoria" strip

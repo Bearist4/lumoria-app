@@ -116,36 +116,52 @@ struct StudioTicketView: View {
     // MARK: - Route row
 
     private func routeRow(scale s: CGFloat) -> some View {
-        HStack(alignment: .center, spacing: 0) {
-            airportBlock(
-                code: ticket.origin,
-                name: ticket.originName,
-                location: ticket.originLocation,
-                alignment: .leading,
-                scale: s
-            )
+        // Two stacked rows: codes with the plane glyph centered between
+        // them, then full airport name + location underneath. Splitting
+        // the rows keeps the plane glyph aligned with the codes
+        // (regardless of how tall the names wrap) and lets long airport
+        // names wrap onto a second line instead of being truncated.
+        VStack(spacing: 4 * s) {
+            HStack(alignment: .center, spacing: 12 * s) {
+                Text(ticket.origin)
+                    .font(.system(size: 40.79 * s, weight: .bold))
+                    .foregroundStyle(style.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: 0)
+                Image(systemName: "airplane")
+                    .font(.system(size: 16 * s, weight: .regular))
+                    .foregroundStyle(style.accent)
 
-            Image(systemName: "airplane")
-                .font(.system(size: 16 * s, weight: .regular))
-                .foregroundStyle(style.accent)
+                Text(ticket.destination)
+                    .font(.system(size: 40.79 * s, weight: .bold))
+                    .foregroundStyle(style.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
 
-            Spacer(minLength: 0)
+            HStack(alignment: .top, spacing: 12 * s) {
+                airportLabels(
+                    name: ticket.originName,
+                    location: ticket.originLocation,
+                    alignment: .leading,
+                    scale: s
+                )
 
-            airportBlock(
-                code: ticket.destination,
-                name: ticket.destinationName,
-                location: ticket.destinationLocation,
-                alignment: .trailing,
-                scale: s
-            )
+                airportLabels(
+                    name: ticket.destinationName,
+                    location: ticket.destinationLocation,
+                    alignment: .trailing,
+                    scale: s
+                )
+            }
         }
         .padding(.horizontal, 24 * s)
     }
 
-    private func airportBlock(
-        code: String,
+    private func airportLabels(
         name: String,
         location: String,
         alignment: HorizontalAlignment,
@@ -153,27 +169,22 @@ struct StudioTicketView: View {
     ) -> some View {
         let textAlign: TextAlignment = (alignment == .leading) ? .leading : .trailing
         return VStack(alignment: alignment, spacing: 4 * s) {
-            Text(code)
-                .font(.system(size: 40.79 * s, weight: .bold))
-                .foregroundStyle(style.textPrimary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.5)
-
             Text(name)
                 .font(.system(size: 9.41 * s, weight: .bold))
                 .tracking(0.38 * s)
                 .foregroundStyle(style.textPrimary)
                 .multilineTextAlignment(textAlign)
-                .lineLimit(1)
 
             Text(location.uppercased())
                 .font(.system(size: 6.28 * s, weight: .regular))
                 .tracking(0.75 * s)
                 .foregroundStyle(style.textSecondary)
                 .multilineTextAlignment(textAlign)
-                .lineLimit(1)
         }
-        .frame(width: 100 * s, alignment: (alignment == .leading) ? .leading : .trailing)
+        .frame(
+            maxWidth: .infinity,
+            alignment: (alignment == .leading) ? .leading : .trailing
+        )
     }
 
     // MARK: - Footer
