@@ -47,7 +47,7 @@ final class TicketsStore: ObservableObject {
         do {
             let rows: [TicketRow] = try await supabase
                 .from("tickets")
-                .select("*, memory_tickets(memory_id)")
+                .select("*, memory_tickets(memory_id, added_at)")
                 .order("created_at", ascending: false)
                 .execute()
                 .value
@@ -81,7 +81,8 @@ final class TicketsStore: ObservableObject {
         memoryIds: [UUID] = [],
         originLocation: TicketLocation? = nil,
         destinationLocation: TicketLocation? = nil,
-        styleId: String? = nil
+        styleId: String? = nil,
+        eventDate: Date? = nil
     ) async -> Ticket? {
 
         let userId: UUID
@@ -97,6 +98,7 @@ final class TicketsStore: ObservableObject {
             let json = try TicketCodec.encode(payload)
             let primaryEnc   = try originLocation.map { try TicketLocation.encrypt($0) }
             let secondaryEnc = try destinationLocation.map { try TicketLocation.encrypt($0) }
+            let eventDateEnc = try eventDate.map { try MemoryDateCodec.encrypt($0) }
             let insert = NewTicketRow(
                 userId: userId,
                 templateKind: payload.kind.rawValue,
@@ -104,13 +106,14 @@ final class TicketsStore: ObservableObject {
                 payload: json,
                 locationPrimaryEnc: primaryEnc,
                 locationSecondaryEnc: secondaryEnc,
-                styleId: styleId
+                styleId: styleId,
+                eventDateEnc: eventDateEnc
             )
 
             let row: TicketRow = try await supabase
                 .from("tickets")
                 .insert(insert)
-                .select("*, memory_tickets(memory_id)")
+                .select("*, memory_tickets(memory_id, added_at)")
                 .single()
                 .execute()
                 .value
@@ -124,6 +127,13 @@ final class TicketsStore: ObservableObject {
                     memoryIds: memoryIds
                 )
                 ticket.memoryIds = memoryIds
+                // Best-effort local timestamp until next refetch — keeps
+                // the new ticket sorting in the right bucket immediately
+                // when "Date added" is selected.
+                let now = Date()
+                for id in memoryIds {
+                    ticket.addedAtByMemory[id] = now
+                }
             }
 
             tickets.insert(ticket, at: 0)
@@ -148,20 +158,22 @@ final class TicketsStore: ObservableObject {
             let json = try TicketCodec.encode(ticket.payload)
             let primaryEnc   = try ticket.originLocation.map { try TicketLocation.encrypt($0) }
             let secondaryEnc = try ticket.destinationLocation.map { try TicketLocation.encrypt($0) }
+            let eventDateEnc = try ticket.eventDate.map { try MemoryDateCodec.encrypt($0) }
             let patch = TicketUpdateRow(
                 templateKind: ticket.kind.rawValue,
                 orientation: ticket.orientation.rawValue,
                 payload: json,
                 locationPrimaryEnc: primaryEnc,
                 locationSecondaryEnc: secondaryEnc,
-                styleId: ticket.styleId
+                styleId: ticket.styleId,
+                eventDateEnc: eventDateEnc
             )
 
             let updated: TicketRow = try await supabase
                 .from("tickets")
                 .update(patch)
                 .eq("id", value: ticket.id.uuidString)
-                .select("*, memory_tickets(memory_id)")
+                .select("*, memory_tickets(memory_id, added_at)")
                 .single()
                 .execute()
                 .value
