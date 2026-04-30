@@ -206,6 +206,50 @@ final class MemoriesStore: ObservableObject {
         }
     }
 
+    // MARK: - Sort prefs
+
+    /// Persists a per-memory sort preference. Optimistic local update so
+    /// the sheet feels instant; rolls back on Supabase failure.
+    func updateSort(
+        memoryId: UUID,
+        field: MemorySortField,
+        ascending: Bool
+    ) async {
+        guard let idx = memories.firstIndex(where: { $0.id == memoryId }) else { return }
+        let prevField = memories[idx].sortField
+        let prevAsc   = memories[idx].sortAscending
+
+        memories[idx].sortField     = field
+        memories[idx].sortAscending = ascending
+
+        let payload = UpdateMemorySortPayload(
+            sortField: field.rawValue,
+            sortAscending: ascending
+        )
+
+        do {
+            try await supabase
+                .from("memories")
+                .update(payload)
+                .eq("id", value: memoryId.uuidString)
+                .execute()
+            errorMessage = nil
+        } catch {
+            // Roll back if the network failed.
+            if let idx = memories.firstIndex(where: { $0.id == memoryId }) {
+                memories[idx].sortField     = prevField
+                memories[idx].sortAscending = prevAsc
+            }
+            errorMessage = String(localized: "Couldn’t save sort. \(error.localizedDescription)")
+            print("[MemoriesStore] updateSort failed:", error)
+            Analytics.track(.appError(
+                domain: .memory,
+                code: (error as NSError).code.description,
+                viewContext: "MemoriesStore.updateSort"
+            ))
+        }
+    }
+
     // MARK: - Delete
 
     func delete(_ memory: Memory) async {

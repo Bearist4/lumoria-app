@@ -28,8 +28,8 @@ struct Memory: Identifiable, Hashable {
     /// Per-memory sort preference for `MemoryDetailView`. Defaults to
     /// `.dateAdded` ascending (oldest added first) so the user's first-
     /// added tickets sit at the top.
-    var sortField: MemorySortField
-    var sortAscending: Bool
+    var sortField: MemorySortField = .dateAdded
+    var sortAscending: Bool = true
     let createdAt: Date
     let updatedAt: Date
 
