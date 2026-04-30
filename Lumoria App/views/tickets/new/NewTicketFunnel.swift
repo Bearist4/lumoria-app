@@ -1253,7 +1253,8 @@ final class NewTicketFunnel: ObservableObject {
             orientation: orientation,
             originLocation: origin,
             destinationLocation: destination,
-            styleId: selectedStyleId ?? template?.defaultStyle.id
+            styleId: selectedStyleId ?? template?.defaultStyle.id,
+            eventDate: currentEventDate
         )
         if let ticket {
             createdTicket = ticket
@@ -1308,7 +1309,8 @@ final class NewTicketFunnel: ObservableObject {
                 orientation: orientation,
                 originLocation: pair?.origin,
                 destinationLocation: pair?.destination,
-                styleId: styleId
+                styleId: styleId,
+                eventDate: undergroundForm.date
             )
             guard let ticket else {
                 errorMessage = store.errorMessage
@@ -1362,8 +1364,29 @@ final class NewTicketFunnel: ObservableObject {
             memoryIds: original.memoryIds,
             originLocation: origin,
             destinationLocation: destination,
-            styleId: selectedStyleId ?? template?.defaultStyle.id
+            styleId: selectedStyleId ?? template?.defaultStyle.id,
+            eventDate: currentEventDate,
+            addedAtByMemory: original.addedAtByMemory
         )
+    }
+
+    /// Canonical event date for the active template. Plane templates use
+    /// `form.departureDate`; train templates use `trainForm.date`; concert
+    /// uses `eventForm.date`; transit uses `undergroundForm.date`. Returns
+    /// nil only if the funnel is in a bad state (no template).
+    private var currentEventDate: Date? {
+        switch template {
+        case .express, .orient, .night, .post, .glow:
+            return trainForm.date
+        case .concert:
+            return eventForm.date
+        case .underground, .sign, .infoscreen, .grid:
+            return undergroundForm.date
+        case .afterglow, .studio, .heritage, .terminal, .prism:
+            return form.departureDate
+        case .none:
+            return nil
+        }
     }
 
     /// Picks the right form's location slots for the current template.
