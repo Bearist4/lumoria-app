@@ -305,6 +305,10 @@ struct Ticket: Identifiable, Hashable {
     /// Sourced per row from the embedded junction; missing keys mean the
     /// embedded query did not return the row (e.g. ticket not in memory).
     var addedAtByMemory: [UUID: Date]
+    /// Manual sort position per memory (memory_tickets.display_order).
+    /// Nil-by-key when the membership predates a reorder; sort applier
+    /// buckets those last when sort_field == .manual.
+    var displayOrderByMemory: [UUID: Int]
 
     var kind: TicketTemplateKind { payload.kind }
 
@@ -324,7 +328,8 @@ struct Ticket: Identifiable, Hashable {
         destinationLocation: TicketLocation? = nil,
         styleId: String? = nil,
         eventDate: Date? = nil,
-        addedAtByMemory: [UUID: Date] = [:]
+        addedAtByMemory: [UUID: Date] = [:],
+        displayOrderByMemory: [UUID: Int] = [:]
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -337,6 +342,7 @@ struct Ticket: Identifiable, Hashable {
         self.styleId = styleId
         self.eventDate = eventDate
         self.addedAtByMemory = addedAtByMemory
+        self.displayOrderByMemory = displayOrderByMemory
     }
 
     /// Equality includes `updatedAt` so SwiftUI's view diff re-renders

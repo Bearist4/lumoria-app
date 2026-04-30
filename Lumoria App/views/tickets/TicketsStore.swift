@@ -47,7 +47,7 @@ final class TicketsStore: ObservableObject {
         do {
             let rows: [TicketRow] = try await supabase
                 .from("tickets")
-                .select("*, memory_tickets(memory_id, added_at)")
+                .select("*, memory_tickets(memory_id, added_at, display_order)")
                 .order("created_at", ascending: false)
                 .execute()
                 .value
@@ -113,7 +113,7 @@ final class TicketsStore: ObservableObject {
             let row: TicketRow = try await supabase
                 .from("tickets")
                 .insert(insert)
-                .select("*, memory_tickets(memory_id, added_at)")
+                .select("*, memory_tickets(memory_id, added_at, display_order)")
                 .single()
                 .execute()
                 .value
@@ -173,7 +173,7 @@ final class TicketsStore: ObservableObject {
                 .from("tickets")
                 .update(patch)
                 .eq("id", value: ticket.id.uuidString)
-                .select("*, memory_tickets(memory_id, added_at)")
+                .select("*, memory_tickets(memory_id, added_at, display_order)")
                 .single()
                 .execute()
                 .value

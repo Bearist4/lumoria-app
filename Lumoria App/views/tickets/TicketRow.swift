@@ -54,10 +54,12 @@ struct TicketRow: Decodable {
 struct MemoryTicketLink: Decodable {
     let memoryId: UUID
     let addedAt: Date
+    let displayOrder: Int?
 
     enum CodingKeys: String, CodingKey {
-        case memoryId = "memory_id"
-        case addedAt  = "added_at"
+        case memoryId     = "memory_id"
+        case addedAt      = "added_at"
+        case displayOrder = "display_order"
     }
 }
 
@@ -237,6 +239,12 @@ extension TicketRow {
         let addedAtByMemory = Dictionary(
             uniqueKeysWithValues: links.map { ($0.memoryId, $0.addedAt) }
         )
+        let displayOrderByMemory = Dictionary(
+            uniqueKeysWithValues: links.compactMap { link -> (UUID, Int)? in
+                guard let order = link.displayOrder else { return nil }
+                return (link.memoryId, order)
+            }
+        )
         let origin      = try TicketLocation.decrypt(locationPrimaryEnc)
         let destination = try TicketLocation.decrypt(locationSecondaryEnc)
         let eventDate   = try eventDateEnc.map { try MemoryDateCodec.decrypt($0) }
@@ -251,7 +259,8 @@ extension TicketRow {
             destinationLocation: destination,
             styleId: styleId,
             eventDate: eventDate,
-            addedAtByMemory: addedAtByMemory
+            addedAtByMemory: addedAtByMemory,
+            displayOrderByMemory: displayOrderByMemory
         )
     }
 }
