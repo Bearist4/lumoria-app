@@ -16,6 +16,7 @@ struct MemoryDetailView: View {
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var memoriesStore: MemoriesStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @EnvironmentObject private var sortPresenter: MemorySortPresenter
     @Environment(EntitlementStore.self) private var entitlement
     @Environment(Paywall.PresentationState.self) private var paywallState
 
@@ -24,7 +25,6 @@ struct MemoryDetailView: View {
     @State private var showMap = false
     @State private var showNewTicket = false
     @State private var showAddExistingTicket = false
-    @State private var showSortSheet = false
     @State private var previewColorFamily: String?
     /// ID of the ticket closest to vertical centre of the screen. Drives
     /// the shimmer's `isActive` so only the focused card consumes motion.
@@ -77,7 +77,7 @@ struct MemoryDetailView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(
-            (onboardingCoordinator.shouldHideTabBar || showSortSheet) ? .hidden : .visible,
+            onboardingCoordinator.shouldHideTabBar ? .hidden : .visible,
             for: .tabBar
         )
         .onAppear {
@@ -121,27 +121,6 @@ struct MemoryDetailView: View {
         .sheet(isPresented: $showAddExistingTicket) {
             AddExistingTicketSheet(memoryId: memory.id)
                 .environmentObject(ticketsStore)
-        }
-        .floatingBottomSheet(isPresented: $showSortSheet) {
-            MemorySortSheet(
-                initialField: currentMemory.sortField,
-                initialAscending: currentMemory.sortAscending,
-                onCommit: { field, ascending in
-                    Task {
-                        await memoriesStore.updateSort(
-                            memoryId: memory.id,
-                            field: field,
-                            ascending: ascending
-                        )
-                        Analytics.track(.memorySortChanged(
-                            field: field.rawValue,
-                            ascending: ascending,
-                            memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
-                        ))
-                    }
-                },
-                onDismiss: { showSortSheet = false }
-            )
         }
         .alert(
             "Delete this memory?",
@@ -200,7 +179,9 @@ struct MemoryDetailView: View {
             .init(title: "Add existing ticket…") {
                 showAddExistingTicket = true
             },
-            .init(title: "Sort…") { showSortSheet = true },
+            .init(title: "Sort…") {
+                sortPresenter.present(memoryId: memory.id)
+            },
             .init(title: "Edit") { showEdit = true },
             .init(title: "Delete", kind: .destructive) { showDeleteConfirm = true },
         ]
@@ -484,6 +465,7 @@ private let previewMemory = Memory(
         MemoryDetailView(memory: previewMemory)
             .environmentObject(TicketsStore())
             .environmentObject(MemoriesStore())
+            .environmentObject(MemorySortPresenter())
     }
 }
 
@@ -497,5 +479,6 @@ private let previewMemory = Memory(
         MemoryDetailView(memory: previewMemory)
             .environmentObject(store)
             .environmentObject(MemoriesStore())
+            .environmentObject(MemorySortPresenter())
     }
 }

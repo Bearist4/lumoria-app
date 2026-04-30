@@ -15,6 +15,7 @@ struct ContentView: View {
     @StateObject private var memoriesStore = MemoriesStore()
     @StateObject private var profileStore = ProfileStore()
     @StateObject private var notificationsStore = NotificationsStore()
+    @StateObject private var sortPresenter = MemorySortPresenter()
     @EnvironmentObject private var walletImport: WalletImportCoordinator
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @EnvironmentObject private var widgetRouter: WidgetDeepLinkRouter
@@ -50,6 +51,31 @@ struct ContentView: View {
         .environmentObject(memoriesStore)
         .environmentObject(profileStore)
         .environmentObject(notificationsStore)
+        .environmentObject(sortPresenter)
+        .floatingBottomSheet(isPresented: sortSheetBinding) {
+            if let id = sortPresenter.memoryId,
+               let memory = memoriesStore.memories.first(where: { $0.id == id }) {
+                MemorySortSheet(
+                    initialField: memory.sortField,
+                    initialAscending: memory.sortAscending,
+                    onCommit: { field, ascending in
+                        Task {
+                            await memoriesStore.updateSort(
+                                memoryId: memory.id,
+                                field: field,
+                                ascending: ascending
+                            )
+                            Analytics.track(.memorySortChanged(
+                                field: field.rawValue,
+                                ascending: ascending,
+                                memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
+                            ))
+                        }
+                    },
+                    onDismiss: { sortPresenter.dismiss() }
+                )
+            }
+        }
         .task {
             memoriesStore.onboardingCoordinator = onboardingCoordinator
             WidgetSnapshotWriter.shared.observe(
@@ -127,6 +153,17 @@ struct ContentView: View {
             .environmentObject(notificationsStore)
             .environmentObject(onboardingCoordinator)
         }
+    }
+
+    /// Binding that maps the sort presenter's memoryId to a Bool the
+    /// `.floatingBottomSheet` modifier can drive. Setting `false` clears
+    /// the presenter so the sheet truly hides on swipe-/backdrop-dismiss
+    /// flows in the future.
+    private var sortSheetBinding: Binding<Bool> {
+        Binding(
+            get: { sortPresenter.memoryId != nil },
+            set: { if !$0 { sortPresenter.dismiss() } }
+        )
     }
 }
 
