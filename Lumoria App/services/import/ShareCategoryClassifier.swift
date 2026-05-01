@@ -84,18 +84,36 @@ enum ShareCategoryClassifier {
 
     private static let concertScorecard: Scorecard = Scorecard(
         keywords: [
+            // English structure / event signals
             "doors open", "doors:", "general admission", "section",
             "showtime", "show time", "tour", "live at", "concert",
-            "porte ", "section ", "rangée", "siège",
+            "venue", "promoter", "promotion", "seats category",
+            // French
+            "porte ", "rangée", "siège",
+            // German structure / venue signals
+            "konzert", "stehplatz", "sitzplatz", "halle", "stadthalle",
+            "einlass", "bestellung", "bestellbestätigung", "deine bestellung",
+            "song contest",
+            // Vendor names without `@` prefix — emails OCR'd from
+            // screenshots rarely contain the from-address line, so a
+            // bare vendor name in the body or subject is often the
+            // strongest signal we get.
+            "ticketmaster", "axs", "dice.fm", "oeticket", "eventim",
+            "songkick", "livenation", "see tickets", "seetickets",
+            "fnac spectacles",
         ],
         domains: [
             "@ticketmaster.", "@ticketmaster.fr", "@ticketmaster.de",
             "@axs.", "@dice.fm", "@seetickets.", "@songkick.",
             "@livenation.", "@eventim.", "@fnacspectacles.",
+            "@oeticket.",
         ],
         regexes: [
+            // Allow Section / Sektion / Bereich / Area to anchor the
+            // section-row-seat pattern. Austrian/German venues tend to
+            // use "Area" or "Bereich" instead of "Section".
             (try! NSRegularExpression(
-                pattern: #"(?i)Sec(?:tion)?\s?\w+.*Row\s?\w+.*Seat\s?\w+"#
+                pattern: #"(?i)(?:Sec(?:tion)?|Sektion|Bereich|Area)\s?\w+.*Row\s?\w+.*Seat\s?\w+"#
             ), "section-row-seat"),
             (try! NSRegularExpression(
                 pattern: #"(?i)Doors?\s*(?:open\s*at\s*)?\d{1,2}[:.]?\d{0,2}\s*(?:AM|PM)?"#

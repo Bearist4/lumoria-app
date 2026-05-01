@@ -69,6 +69,43 @@ final class ShareCategoryClassifierTests: XCTestCase {
         XCTAssertEqual(result.category, "concert")
     }
 
+    func testClassifiesGermanTicketmasterAsConcert() {
+        let text = """
+        Deine Bestellung bei Ticketmaster
+        Du Bist Dabei
+        Hallo Benjamin,
+        danke für deine Bestellung!
+        Deine Bestellbestätigung
+        Madison Beer: the locket tour
+        Mittwoch, 13. Mai 2026, 20:00 Uhr
+        Marx Halle
+        Stehplatz
+        PK1 Stehplatz - Endpreis 79,90€
+        """
+        let result = ShareCategoryClassifier.classify(text: text)
+        XCTAssertEqual(result.category, "concert", "confidence=\(result.confidence) signals=\(result.signals)")
+    }
+
+    func testClassifiesAustrianOeticketAsConcert() {
+        let text = """
+        Your oeticket Order - Grand Final Afternoon Preview
+        Payment:
+        PayPal
+        ORDER DETAILS
+        Grand Final Afternoon Preview
+        Date: Sat, 16.05.2026, 12:00
+        Venue: Wiener Stadthalle Halle D, Roland-Rainer-Platz 1 / Eingang Märzpark, 1150 WIEN
+        Promoter: 80:Österreichischer Rundfunk (ORF) - ESC, Hugo-Portisch-Gasse 1, 1136 Wien, Austria
+        Promotion: Eurovisions Song Contest 2026
+        Seats Category A, standard price
+        Surname: Caillet
+        First name: Benjamin
+        Entrance 1. Rang Süd, Area 64 - Tor Orange, Row 3, Seat 104
+        """
+        let result = ShareCategoryClassifier.classify(text: text)
+        XCTAssertEqual(result.category, "concert", "confidence=\(result.confidence) signals=\(result.signals)")
+    }
+
     // MARK: - Negative
 
     func testReturnsNilCategoryForUnrelatedText() {
