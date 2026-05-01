@@ -55,7 +55,11 @@ struct ReorderableTicketList: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
-            .padding(.bottom, 32)
+            // Clearance for the iOS 26 floating glass tab bar so the
+            // last entry rests ~16pt above its top edge instead of
+            // being obscured. Tab bar is ~80pt with safe-area inset;
+            // 16 buffer + 80 ≈ 96.
+            .padding(.bottom, 96)
         }
     }
 
@@ -64,54 +68,60 @@ struct ReorderableTicketList: View {
         let isDragged = dragSession?.ticketId == ticket.id
         let yOffset = visualOffset(for: index, isDragged: isDragged)
 
-        TicketEntryRow(ticket: ticket, showHandle: true)
-            .offset(y: yOffset)
-            .scaleEffect(isDragged ? 1.04 : 1, anchor: .center)
-            .shadow(
-                color: .black.opacity(isDragged ? 0.18 : 0),
-                radius: 8, x: 0, y: 4
-            )
-            .opacity(isDragged ? 0.97 : 1)
-            .zIndex(isDragged ? 1 : 0)
-            // Only animate non-dragged rows. The dragged row must
-            // follow the finger 1:1 — any spring response makes the
-            // visual position lag behind the actual translation, and
-            // the user drops "where they see the row" while the math
-            // commits "where the translation says it is."
-            .animation(
-                isDragged ? nil : .interactiveSpring(response: 0.3),
-                value: yOffset
-            )
-            .gesture(
-                LongPressGesture(minimumDuration: 0.2)
-                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
-                    .updating($dragSession) { value, state, _ in
-                        switch value {
-                        case .first(true):
-                            // Long-press recognized; arm the row.
-                            state = DragSession(ticketId: ticket.id, translation: 0)
-                        case .second(true, let drag):
-                            state = DragSession(
-                                ticketId: ticket.id,
-                                translation: drag?.translation.height ?? 0
-                            )
-                        default:
-                            break
+        ZStack(alignment: .trailing) {
+            TicketEntryRow(ticket: ticket, showHandle: true)
+
+            // Invisible drag activator pinned to the right edge over
+            // the handle. Only this region claims touches, so the
+            // rest of the row falls through to the parent ScrollView
+            // and the list can scroll normally. Width = 40pt handle
+            // + 16pt trailing padding.
+            Color.clear
+                .frame(width: 56)
+                .frame(maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .gesture(
+                    LongPressGesture(minimumDuration: 0.2)
+                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+                        .updating($dragSession) { value, state, _ in
+                            switch value {
+                            case .first(true):
+                                state = DragSession(ticketId: ticket.id, translation: 0)
+                            case .second(true, let drag):
+                                state = DragSession(
+                                    ticketId: ticket.id,
+                                    translation: drag?.translation.height ?? 0
+                                )
+                            default:
+                                break
+                            }
                         }
-                    }
-                    .onChanged { value in
-                        // Mirror the live translation to @State so
-                        // .onEnded can use it even after @GestureState
-                        // has already reset.
-                        if case .second(_, let drag) = value, let drag {
-                            lastTranslation = drag.translation.height
+                        .onChanged { value in
+                            if case .second(_, let drag) = value, let drag {
+                                lastTranslation = drag.translation.height
+                            }
                         }
-                    }
-                    .onEnded { _ in
-                        commitDrop(of: ticket, translation: lastTranslation)
-                        lastTranslation = 0
-                    }
-            )
+                        .onEnded { _ in
+                            commitDrop(of: ticket, translation: lastTranslation)
+                            lastTranslation = 0
+                        }
+                )
+        }
+        .offset(y: yOffset)
+        .scaleEffect(isDragged ? 1.04 : 1, anchor: .center)
+        .shadow(
+            color: .black.opacity(isDragged ? 0.18 : 0),
+            radius: 8, x: 0, y: 4
+        )
+        .opacity(isDragged ? 0.97 : 1)
+        .zIndex(isDragged ? 1 : 0)
+        // Only animate non-dragged rows. The dragged row must follow
+        // the finger 1:1 — any spring response makes the visual lag
+        // behind the actual translation.
+        .animation(
+            isDragged ? nil : .interactiveSpring(response: 0.3),
+            value: yOffset
+        )
     }
 
     /// Y-offset to apply to a row at the given index. The dragged row

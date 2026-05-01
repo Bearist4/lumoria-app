@@ -16,23 +16,16 @@
 
 import SwiftUI
 
-// MARK: - Sort option
-
-enum TicketSortOption {
-    case date
-    case category
-}
-
 struct AllTicketsView: View {
 
     @EnvironmentObject private var store: TicketsStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @EnvironmentObject private var sortPresenter: AllTicketsSortPresenter
     @State private var showFunnel = false
     /// Primes `NewTicketFunnelView.initialImportSource` before presenting
     /// the fullScreenCover. Reset to `nil` inside the cover's onDismiss
     /// so a subsequent "Create from scratch" tap opens the manual flow.
     @State private var pendingImportSource: ImportSource? = nil
-    @State private var sort: TicketSortOption? = nil
     /// ID of the ticket closest to vertical centre of the screen. Drives
     /// the shimmer's `isActive` so only the focused card consumes motion.
     @State private var centredId: UUID?
@@ -63,12 +56,15 @@ struct AllTicketsView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .onChange(of: sort) { _, newValue in
+            .onChange(of: sortPresenter.field) { _, newValue in
                 let prop: GallerySortProp = {
                     switch newValue {
-                    case .date:     return .date
-                    case .category: return .category
-                    case nil:       return GallerySortProp.none
+                    case .dateCreated, .dateAdded, .eventDate:
+                        return .date
+                    case .categoryAZ, .categoryZA:
+                        return .category
+                    case .none:
+                        return GallerySortProp.none
                     }
                 }()
                 Analytics.track(.gallerySortApplied(sortType: prop))
@@ -101,9 +97,10 @@ struct AllTicketsView: View {
                 if !store.tickets.isEmpty {
                     LumoriaIconButton(
                         systemImage: "arrow.up.arrow.down",
-                        showBadge: sort != nil,
-                        menuItems: sortMenuItems
-                    )
+                        showBadge: sortPresenter.field != nil
+                    ) {
+                        sortPresenter.present()
+                    }
                 }
                 LumoriaIconButton(
                     systemImage: "plus",
@@ -124,31 +121,6 @@ struct AllTicketsView: View {
         // this header).
         .background(Color.Background.default.ignoresSafeArea(edges: .top))
         .zIndex(1)
-    }
-
-    private var sortMenuItems: [LumoriaMenuItem] {
-        var items: [LumoriaMenuItem] = [
-            .init(
-                title: "Sort by date",
-                isActive: sort == .date,
-                action: { sort = .date }
-            ),
-            .init(
-                title: "Sort by category",
-                isActive: sort == .category,
-                action: { sort = .category }
-            ),
-        ]
-        if sort != nil {
-            items.append(
-                .init(
-                    title: "Remove sorting",
-                    kind: .destructive,
-                    action: { sort = nil }
-                )
-            )
-        }
-        return items
     }
 
     // MARK: - Empty state
@@ -183,17 +155,28 @@ struct AllTicketsView: View {
 
     @ViewBuilder
     private var content: some View {
-        switch sort {
-        case nil:
+        switch sortPresenter.field {
+        case .none:
             grid(for: store.tickets)
-        case .date?:
+        case .dateCreated, .dateAdded, .eventDate:
+            // TODO: differentiate by which date column is picked.
+            // For now all three date options reuse the existing
+            // grouped-by-date layout; ascending flips section order.
+            let groups = TicketGrouping.byDate(store.tickets, now: Date())
             groupedSections(
-                groups: TicketGrouping.byDate(store.tickets, now: Date())
+                groups: sortPresenter.ascending ? groups.reversed() : groups
             )
-        case .category?:
-            groupedSections(
-                groups: TicketGrouping.byCategory(store.tickets)
-            )
+        case .categoryAZ:
+            // `byCategory` returns groups in first-occurrence order;
+            // sort by the group id (= category label string) for true
+            // alphabetical ordering.
+            let groups = TicketGrouping.byCategory(store.tickets)
+                .sorted { $0.id.localizedCaseInsensitiveCompare($1.id) == .orderedAscending }
+            groupedSections(groups: groups)
+        case .categoryZA:
+            let groups = TicketGrouping.byCategory(store.tickets)
+                .sorted { $0.id.localizedCaseInsensitiveCompare($1.id) == .orderedDescending }
+            groupedSections(groups: groups)
         }
     }
 

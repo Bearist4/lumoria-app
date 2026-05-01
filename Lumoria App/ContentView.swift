@@ -17,6 +17,8 @@ struct ContentView: View {
     @StateObject private var notificationsStore = NotificationsStore()
     @StateObject private var sortPresenter = MemorySortPresenter()
     @StateObject private var colorPresenter = MemoryColorPresenter()
+    @StateObject private var emojiPresenter = MemoryEmojiPresenter()
+    @StateObject private var allTicketsSortPresenter = AllTicketsSortPresenter()
     @EnvironmentObject private var walletImport: WalletImportCoordinator
     @EnvironmentObject private var shareImport: ShareImportCoordinator
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
@@ -58,6 +60,18 @@ struct ContentView: View {
         .environmentObject(notificationsStore)
         .environmentObject(sortPresenter)
         .environmentObject(colorPresenter)
+        .environmentObject(emojiPresenter)
+        .environmentObject(allTicketsSortPresenter)
+        .floatingBottomSheet(isPresented: $allTicketsSortPresenter.isPresented) {
+            AllTicketsSortSheet(
+                initialField: allTicketsSortPresenter.field,
+                initialAscending: allTicketsSortPresenter.ascending,
+                onCommit: { field, ascending in
+                    allTicketsSortPresenter.commit(field: field, ascending: ascending)
+                },
+                onDismiss: { allTicketsSortPresenter.dismiss() }
+            )
+        }
         .floatingBottomSheet(isPresented: colorSheetBinding) {
             if let initial = colorPresenter.initialColor {
                 MemoryColorPickerSheet(
@@ -68,6 +82,15 @@ struct ContentView: View {
                     onDismiss: { colorPresenter.dismiss() }
                 )
             }
+        }
+        .floatingBottomSheet(isPresented: emojiSheetBinding) {
+            EmojiPickerSheet(
+                initialEmoji: emojiPresenter.initialEmoji,
+                onCommit: { picked in
+                    emojiPresenter.onCommit?(picked)
+                },
+                onDismiss: { emojiPresenter.dismiss() }
+            )
         }
         .floatingBottomSheet(isPresented: sortSheetBinding) {
             if let id = sortPresenter.memoryId,
@@ -211,6 +234,13 @@ struct ContentView: View {
         Binding(
             get: { colorPresenter.isPresented },
             set: { if !$0 { colorPresenter.dismiss() } }
+        )
+    }
+
+    private var emojiSheetBinding: Binding<Bool> {
+        Binding(
+            get: { emojiPresenter.isPresented },
+            set: { if !$0 { emojiPresenter.dismiss() } }
         )
     }
 }

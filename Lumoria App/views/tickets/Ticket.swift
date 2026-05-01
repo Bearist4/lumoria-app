@@ -22,6 +22,10 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
     case post
     case glow
     case concert
+    /// Eurovision Song Contest stub — fixed date / venue (Vienna 2026,
+    /// Wiener Stadthalle Halle D) and a country picker that drives the
+    /// per-country background + logo artwork.
+    case eurovision
     /// Public-transport "Signal" template (dark card, line-colour
     /// spine). Enum raw value stays `"underground"` so tickets
     /// created before the public-transport template family split
@@ -47,6 +51,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .post:        return "Post"
         case .glow:        return "Glow"
         case .concert:     return "Concert"
+        case .eurovision:  return "Eurovision"
         case .underground: return "Signal"
         case .sign:        return "Sign"
         case .infoscreen:  return "Infoscreen"
@@ -60,6 +65,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .express, .orient, .night, .post, .glow:            return String(localized: "Train ticket")
         case .afterglow, .studio, .heritage, .terminal, .prism:  return String(localized: "Plane ticket")
         case .concert:                                              return String(localized: "Concert ticket")
+        case .eurovision:                                           return String(localized: "Event ticket")
         case .underground, .sign, .infoscreen, .grid:           return String(localized: "Public transport ticket")
         }
     }
@@ -102,6 +108,13 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
                 .init(systemImage: "building.2.fill",      label: "Venue"),
                 .init(systemImage: "calendar.badge.clock", label: "Date, doors & showtime"),
                 .init(systemImage: "ticket.fill",          label: "Ticket number"),
+            ]
+        case .eurovision:
+            return [
+                .init(systemImage: "flag.fill",            label: "Country you’re supporting"),
+                .init(systemImage: "calendar",             label: "Date is fixed (16 May 2026)"),
+                .init(systemImage: "building.2.fill",      label: "Venue is fixed (Wiener Stadthalle Halle D)"),
+                .init(systemImage: "ticket.fill",          label: "Section, row & seat"),
             ]
         case .underground, .sign, .infoscreen, .grid:
             return [
@@ -230,6 +243,7 @@ enum TicketPayload: Encodable {
     case post(PostTicket)
     case glow(GlowTicket)
     case concert(ConcertTicket)
+    case eurovision(EurovisionTicket)
     // All three public-transport templates share the same
     // `UndergroundTicket` payload shape; only the rendered view
     // differs. Splitting into separate cases lets the template
@@ -253,6 +267,7 @@ enum TicketPayload: Encodable {
         case .post(let v):        try v.encode(to: encoder)
         case .glow(let v):        try v.encode(to: encoder)
         case .concert(let v):     try v.encode(to: encoder)
+        case .eurovision(let v):  try v.encode(to: encoder)
         case .underground(let v): try v.encode(to: encoder)
         case .sign(let v):        try v.encode(to: encoder)
         case .infoscreen(let v):  try v.encode(to: encoder)
@@ -273,6 +288,7 @@ enum TicketPayload: Encodable {
         case .post:        return .post
         case .glow:        return .glow
         case .concert:     return .concert
+        case .eurovision:  return .eurovision
         case .underground: return .underground
         case .sign:        return .sign
         case .infoscreen:  return .infoscreen

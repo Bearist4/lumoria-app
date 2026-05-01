@@ -250,6 +250,37 @@ final class MemoriesStore: ObservableObject {
         }
     }
 
+    // MARK: - Optimistic local helpers
+
+    /// Sync local update to the memory's display fields. Lets callers
+    /// (e.g. `MemoryEditMode.commit`) reflect the user's edits in the
+    /// reading view instantly while the network write happens in
+    /// background. Pair with `update(_:name:...)` to persist.
+    func applyLocalEdit(
+        memoryId: UUID,
+        name: String,
+        colorFamily: String,
+        emoji: String?
+    ) {
+        guard let idx = memories.firstIndex(where: { $0.id == memoryId }) else { return }
+        memories[idx].name = name
+        memories[idx].colorFamily = colorFamily
+        memories[idx].emoji = emoji
+    }
+
+    /// Sync local sort prefs (no network). `updateSort` does the
+    /// network write + its own optimistic update; this exists for
+    /// callers that already triggered the network elsewhere.
+    func applyLocalSort(
+        memoryId: UUID,
+        field: MemorySortField,
+        ascending: Bool
+    ) {
+        guard let idx = memories.firstIndex(where: { $0.id == memoryId }) else { return }
+        memories[idx].sortField = field
+        memories[idx].sortAscending = ascending
+    }
+
     // MARK: - Reorder
 
     /// Persists a manual order for tickets in a memory. Each ticket

@@ -19,6 +19,10 @@ struct OnboardingFunnelDraft: Codable {
     var form: FlightFormInput
     var trainForm: TrainFormInput
     var eventForm: EventFormInput
+    /// Optional so old drafts that pre-date the Eurovision template
+    /// keep decoding cleanly — missing key resolves to nil and the
+    /// funnel falls back to a default `EurovisionFormInput`.
+    var eurovisionForm: EurovisionFormInput?
     var undergroundForm: UndergroundFormInput
     var selectedStyleId: String?
     /// Set once the ticket has been persisted (success / allDone /

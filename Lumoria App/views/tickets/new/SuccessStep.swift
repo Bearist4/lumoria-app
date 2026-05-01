@@ -48,6 +48,8 @@ struct NewTicketSuccessStep: View {
                 case .concert:
                     let e = funnel.eventForm
                     return (0, e.venueLocation != nil, false)
+                case .eurovision:
+                    return (0, true, false)
                 case .underground, .sign, .infoscreen, .grid:
                     let u = funnel.undergroundForm
                     return (0, u.originStation != nil, u.destinationStation != nil)

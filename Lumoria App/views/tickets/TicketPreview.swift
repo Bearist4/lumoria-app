@@ -71,6 +71,9 @@ struct TicketPreview: View {
         case (.concert(let t), .horizontal):      ConcertTicketView(ticket: t, style: style)
         case (.concert(let t), .vertical):        ConcertTicketVerticalView(ticket: t, style: style)
 
+        case (.eurovision(let t), .horizontal):   EurovisionTicketView(ticket: t, style: style)
+        case (.eurovision(let t), .vertical):     EurovisionTicketVerticalView(ticket: t, style: style)
+
         case (.underground(let t), .horizontal):  SignalTicketView(ticket: t)
         case (.underground(let t), .vertical):    SignalTicketVerticalView(ticket: t)
 

@@ -42,6 +42,7 @@ extension TicketTemplateKind {
         case .post:      return .post
         case .glow:        return .glow
         case .concert:     return .concert
+        case .eurovision:  return .eurovision
         case .underground: return .underground
         case .sign:        return .sign
         case .infoscreen:  return .infoscreen
@@ -58,6 +59,8 @@ extension TicketTemplateKind {
             return .train
         case .concert:
             return .concert
+        case .eurovision:
+            return .event
         case .underground, .sign, .infoscreen, .grid:
             return .public_transit
         }

@@ -28,11 +28,17 @@ struct LumoriaRadio: View {
                 .stroke(Color.Text.primary, lineWidth: 2)
                 .frame(width: diameter, height: diameter)
 
-            if isSelected {
-                Circle()
-                    .fill(Color.Text.primary)
-                    .frame(width: innerDiameter, height: innerDiameter)
-            }
+            // Always render the inner dot — opacity controls
+            // selected/unselected. A conditional `if` would let
+            // SwiftUI insert the dot via its default transition,
+            // which (when the surrounding row is mid-animation)
+            // would render the dot at its final position while the
+            // ring is still moving — visible as a "pop" out of
+            // place.
+            Circle()
+                .fill(Color.Text.primary)
+                .frame(width: innerDiameter, height: innerDiameter)
+                .opacity(isSelected ? 1 : 0)
         }
         .frame(width: hitArea, height: hitArea)
         .contentShape(Rectangle())

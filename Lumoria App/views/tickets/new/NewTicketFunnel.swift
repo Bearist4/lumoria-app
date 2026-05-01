@@ -71,6 +71,7 @@ enum TicketCategory: String, CaseIterable, Identifiable, Codable {
         case .plane:         return [.afterglow, .studio, .terminal, .heritage, .prism]
         case .train:         return [.express, .orient, .night, .post, .glow]
         case .concert:       return [.concert]
+        case .event:         return [.eurovision]
         case .publicTransit: return [.underground, .sign, .infoscreen, .grid]
         default:             return []
         }
@@ -322,6 +323,33 @@ struct EventFormInput: Codable {
     }
 }
 
+// MARK: - Eurovision form input
+
+/// Form input for the Eurovision template. Date and venue are pinned
+/// to the real-world event (16 May 2026 · Wiener Stadthalle Halle D)
+/// so the form only collects the supported country plus the user's
+/// section / row / seat. The picked country drives the per-country
+/// `eurovision-bg-<cc>` + `eurovision-logo-<cc>` artwork at render time.
+struct EurovisionFormInput: Codable {
+    var country: EurovisionCountry? = nil
+    var attendance: EurovisionAttendance = .inPerson
+    /// Used when `attendance == .inPerson`.
+    var section: String = ""
+    var row: String = ""
+    var seat: String = ""
+    /// Used when `attendance == .atHome`. Defaults to "At home" so
+    /// users who don't customise it still get a recognisable label
+    /// painted on the rendered ticket.
+    var watchLocation: String = String(localized: "At home")
+    var ticketNumber: String = ""
+
+    /// Eurovision minimum: a country pick. Everything else is optional —
+    /// the form's "auto-fill" pass at advance() will fill blank seat /
+    /// section / row / ticket-number with sensible placeholders so the
+    /// rendered ticket never has empty cells.
+    var isValid: Bool { country != nil }
+}
+
 // MARK: - Underground form
 
 /// Form input for the Underground (subway / metro) template. Two
@@ -561,6 +589,7 @@ final class NewTicketFunnel: ObservableObject {
     @Published var form: FlightFormInput = FlightFormInput()
     @Published var trainForm: TrainFormInput = TrainFormInput()
     @Published var eventForm: EventFormInput = EventFormInput()
+    @Published var eurovisionForm: EurovisionFormInput = EurovisionFormInput()
     @Published var undergroundForm: UndergroundFormInput = UndergroundFormInput()
     /// Identifier of the selected style variant for the chosen template.
     /// Resolved against `template.styles`; nil before a template is picked.
@@ -644,6 +673,7 @@ final class NewTicketFunnel: ObservableObject {
             case .night:        return trainForm.isNightValid
             case .post, .glow:  return trainForm.isPostGlowValid
             case .concert:      return eventForm.isConcertValid
+            case .eurovision:   return eurovisionForm.isValid
             case .underground, .sign, .infoscreen, .grid:
                 return undergroundForm.isValid
             default:            return form.isMinimallyValid
@@ -700,6 +730,36 @@ final class NewTicketFunnel: ObservableObject {
             }
             if trim(eventForm.ticketNumber).isEmpty {
                 eventForm.ticketNumber = Self.randomRef(prefix: "CON")
+                autoFilledFields.append(String(localized: "Ticket number"))
+            }
+
+        case .eurovision:
+            // Only fill the slot the chosen attendance mode actually
+            // renders — leaving the other field blank keeps the
+            // payload honest and the success-step "we filled X / Y / Z"
+            // banner from listing fields the rendered ticket ignores.
+            switch eurovisionForm.attendance {
+            case .inPerson:
+                if trim(eurovisionForm.section).isEmpty {
+                    eurovisionForm.section = String(localized: "Floor")
+                    autoFilledFields.append(String(localized: "Area"))
+                }
+                if trim(eurovisionForm.row).isEmpty {
+                    eurovisionForm.row = "GA"
+                    autoFilledFields.append(String(localized: "Row"))
+                }
+                if trim(eurovisionForm.seat).isEmpty {
+                    eurovisionForm.seat = String(localized: "OPEN")
+                    autoFilledFields.append(String(localized: "Seat"))
+                }
+            case .atHome:
+                if trim(eurovisionForm.watchLocation).isEmpty {
+                    eurovisionForm.watchLocation = String(localized: "At home")
+                    autoFilledFields.append(String(localized: "Location"))
+                }
+            }
+            if trim(eurovisionForm.ticketNumber).isEmpty {
+                eurovisionForm.ticketNumber = Self.randomRef(prefix: "ESC")
                 autoFilledFields.append(String(localized: "Ticket number"))
             }
 
@@ -880,6 +940,7 @@ final class NewTicketFunnel: ObservableObject {
             form: form,
             trainForm: trainForm,
             eventForm: eventForm,
+            eurovisionForm: eurovisionForm,
             undergroundForm: undergroundForm,
             selectedStyleId: selectedStyleId,
             createdTicketId: createdTicketId
@@ -896,6 +957,7 @@ final class NewTicketFunnel: ObservableObject {
         form = draft.form
         trainForm = draft.trainForm
         eventForm = draft.eventForm
+        eurovisionForm = draft.eurovisionForm ?? EurovisionFormInput()
         undergroundForm = draft.undergroundForm
         // Underground routes aren't Codable — recompute them from the
         // restored station/city inputs so the form's route picker has
@@ -1262,6 +1324,26 @@ final class NewTicketFunnel: ObservableObject {
                 showTime: Self.time(e.showTime),
                 ticketNumber: e.ticketNumber
             ))
+        case .eurovision:
+            // Date and venue are pinned to the real-world Eurovision
+            // 2026 final — see `EurovisionFixtures` below. The country
+            // string persists as the ISO alpha-2 code so the rendered
+            // ticket can resolve `eurovision-bg-<code>` and
+            // `eurovision-logo-<code>` without a separate lookup table.
+            let e = eurovisionForm
+            let country = e.country
+            return .eurovision(EurovisionTicket(
+                countryCode: country?.isoCode ?? "",
+                countryName: country?.displayName ?? "",
+                date: Self.eurovisionDateString,
+                venue: EurovisionFixtures.venue,
+                attendance: e.attendance.rawValue,
+                section: e.section,
+                row: e.row,
+                seat: e.seat,
+                watchLocation: e.watchLocation,
+                ticketNumber: e.ticketNumber
+            ))
         case .underground:
             // The funnel emits one `UndergroundTicket` per planned leg
             // (see `undergroundForm.legPayloads`). `buildPayload` only
@@ -1461,6 +1543,8 @@ final class NewTicketFunnel: ObservableObject {
             return trainForm.date
         case .concert:
             return eventForm.date
+        case .eurovision:
+            return EurovisionFixtures.date
         case .underground, .sign, .infoscreen, .grid:
             return undergroundForm.date
         case .afterglow, .studio, .heritage, .terminal, .prism:
@@ -1469,6 +1553,15 @@ final class NewTicketFunnel: ObservableObject {
             return nil
         }
     }
+
+    /// Pre-formatted "16 May. 2026" string used by both the Eurovision
+    /// payload and the form's read-only date field.
+    fileprivate static let eurovisionDateString: String = {
+        let f = DateFormatter()
+        f.dateFormat = "d MMM. yyyy"
+        f.locale = Locale(identifier: "en_US_POSIX")
+        return f.string(from: EurovisionFixtures.date)
+    }()
 
     /// Picks the right form's location slots for the current template.
     /// Plane templates use `form.{origin,destination}Airport`; train
@@ -1481,6 +1574,8 @@ final class NewTicketFunnel: ObservableObject {
             return (trainForm.originStationLocation, trainForm.destinationStationLocation)
         case .concert:
             return (eventForm.venueLocation, nil)
+        case .eurovision:
+            return (EurovisionFixtures.venueLocation, nil)
         case .underground, .sign, .infoscreen, .grid:
             // For multi-leg journeys, subsequent legs' stations sit
             // inside `legPayloads`. The "primary" leg (first) is what
@@ -1508,6 +1603,7 @@ final class NewTicketFunnel: ObservableObject {
         form = FlightFormInput()
         trainForm = TrainFormInput()
         eventForm = EventFormInput()
+        eurovisionForm = EurovisionFormInput()
 
         switch ticket.payload {
         case .afterglow(let t):
@@ -1688,6 +1784,15 @@ final class NewTicketFunnel: ObservableObject {
             eventForm.showTime = Self.timeFormatter.date(from: t.showTime) ?? Date()
             eventForm.ticketNumber = t.ticketNumber
             eventForm.venueLocation = ticket.originLocation
+
+        case .eurovision(let t):
+            eurovisionForm.country = EurovisionCountry.fromIsoCode(t.countryCode)
+            eurovisionForm.attendance = t.attendanceMode
+            eurovisionForm.section = t.section
+            eurovisionForm.row = t.row
+            eurovisionForm.seat = t.seat
+            eurovisionForm.watchLocation = t.watchLocation
+            eurovisionForm.ticketNumber = t.ticketNumber
 
         case .underground(let t), .sign(let t), .infoscreen(let t), .grid(let t):
             undergroundForm.originStation = ticket.originLocation
@@ -1910,6 +2015,19 @@ final class NewTicketFunnel: ObservableObject {
                 doorsTime: "19:00",
                 showTime: "20:30",
                 ticketNumber: "CON-2026-000142"
+            ))
+        case .eurovision:
+            return .eurovision(EurovisionTicket(
+                countryCode: EurovisionCountry.france.isoCode,
+                countryName: EurovisionCountry.france.displayName,
+                date: "16 May. 2026",
+                venue: EurovisionFixtures.venue,
+                attendance: EurovisionAttendance.inPerson.rawValue,
+                section: "Floor",
+                row: "GA",
+                seat: "OPEN",
+                watchLocation: "",
+                ticketNumber: "ESC-2026-000142"
             ))
         case .underground, .sign, .infoscreen, .grid:
             // Each public-transit template gets its own city so the

@@ -83,12 +83,14 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
                     }
                 }
             // Phantom inline space matching the open list's apparent
-            // height. Pushes ScrollView content tall enough that the
-            // user (and `proxy.scrollTo` below) can scroll the field
-            // up to reveal the full menu — without this the menu's
-            // bottom is clipped by the funnel's bottom bar when the
-            // dropdown sits near the end of the form.
-            if isOpen {
+            // height. Only emitted when a `lumoriaScrollProxy` is wired
+            // up (i.e. inside the ticket funnel form), where it pushes
+            // ScrollView content tall enough to scroll the field up and
+            // reveal the full menu past the funnel's bottom bar.
+            // Skipped elsewhere (e.g. NewMemoryView) so opening the
+            // dropdown doesn't shove sibling fields downward — the
+            // overlay already draws on top of them.
+            if isOpen, scrollProxy != nil {
                 Color.clear.frame(height: estimatedListHeight + 4)
             }
             if let assistiveText {
@@ -193,8 +195,10 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
     // MARK: - Derived style
 
     private var backgroundColor: Color {
+        // Solid Gray/50 instead of the 3% translucent `fieldFill` so
+        // the field doesn't bleed underlying scroll content through it.
         switch state {
-        case .default, .disabled: return Color.Background.fieldFill
+        case .default, .disabled: return Color.Background.elevated
         case .error:              return Color.Feedback.Danger.subtle
         case .warning:            return Color.Feedback.Warning.subtle
         }

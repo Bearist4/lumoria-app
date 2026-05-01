@@ -246,11 +246,16 @@ struct MemoryDetailView: View {
             }
             .onboardingAnchor("memoryDetail.plus")
 
-            LumoriaIconButton(
-                systemImage: "ellipsis",
-                position: .onSurface,
-                menuItems: menuItems
-            )
+            // Mirrors TicketDetailView's pattern: the wrapper handles
+            // anchored presentation + tap-outside dismiss; the label
+            // is a visual-only `LumoriaIconButton` so the styling
+            // stays in one place.
+            LumoriaContextualMenuButton(items: menuItems) {
+                LumoriaIconButton(
+                    systemImage: "ellipsis",
+                    position: .onSurface
+                )
+            }
         }
     }
 

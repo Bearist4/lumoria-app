@@ -274,6 +274,21 @@ final class TicketsStore: ObservableObject {
         tickets.filter { $0.memoryIds.contains(memoryId) }
     }
 
+    // MARK: - Optimistic helpers
+
+    /// Sync local display-order update for tickets in a memory. Each
+    /// ticket gets a 0-based index matching its position in
+    /// `orderedIds`. Pair with `MemoriesStore.reorderTickets` to
+    /// persist; this lets the reading view reflect the new order
+    /// instantly while the network writes run in background.
+    func applyLocalDisplayOrder(memoryId: UUID, orderedIds: [UUID]) {
+        for (index, ticketId) in orderedIds.enumerated() {
+            if let idx = tickets.firstIndex(where: { $0.id == ticketId }) {
+                tickets[idx].displayOrderByMemory[memoryId] = index
+            }
+        }
+    }
+
     // MARK: - Junction helper
 
     private func insertMemberships(

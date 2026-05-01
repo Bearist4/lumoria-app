@@ -175,35 +175,39 @@ struct MenuPresenter: View {
         GeometryReader { rootProxy in
             let topInset = rootProxy.safeAreaInsets.top
             ZStack(alignment: .topLeading) {
-                // Dismiss layer. `Color.black.opacity(0.001)` looks
-                // identical visually but iOS occasionally skips hit-
-                // testing on near-transparent `Color` views — using an
-                // explicit Rectangle with .contentShape guarantees the
-                // tap reaches us.
+                // Dismiss layer. Explicit Rectangle + .contentShape so
+                // iOS doesn't skip hit-testing on a near-transparent
+                // Color view.
                 Rectangle()
                     .fill(Color.black.opacity(0.001))
                     .contentShape(Rectangle())
                     .ignoresSafeArea()
                     .onTapGesture { close(then: onDismiss) }
 
-                LumoriaContextualMenu(items: wrapped)
-                    .fixedSize()
-                    .opacity(didAppear ? 1 : 0)
-                    // Slide in from ~12pt above its resting offset and
-                    // dissolve. Tap-outside reverses the same motion
-                    // because `didAppear` flips back to false in
-                    // `close(then:)` and the same animation runs in
-                    // reverse.
-                    .offset(
-                        x: anchor.maxX - menuWidth,
-                        y: (anchor.maxY + gap - topInset) + (didAppear ? 0 : -12)
-                    )
-                    .animation(
-                        .spring(response: 0.32, dampingFraction: 0.86),
-                        value: didAppear
-                    )
+                // The menu is conditionally rendered so SwiftUI runs
+                // its insertion/removal transition. Both offset + opacity
+                // ride the same spring driven by `value: didAppear`, so
+                // the menu starts at -16pt above its resting position
+                // (8pt below the trigger) at opacity 0 and animates
+                // to its final offset and opacity 1 atomically. The
+                // close transition runs the same animation in reverse.
+                if didAppear {
+                    LumoriaContextualMenu(items: wrapped)
+                        .fixedSize()
+                        .offset(
+                            x: anchor.maxX - menuWidth,
+                            y: anchor.maxY + gap - topInset
+                        )
+                        .transition(
+                            .offset(y: -16).combined(with: .opacity)
+                        )
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .animation(
+                .spring(response: 0.32, dampingFraction: 0.86),
+                value: didAppear
+            )
         }
         .ignoresSafeArea()
         .onAppear { didAppear = true }

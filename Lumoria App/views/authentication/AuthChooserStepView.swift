@@ -100,7 +100,7 @@ struct AuthChooserStepView: View {
                         .frame(width: 17, height: 18)
                     Text("Continue with Google")
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(Color.Text.primary)
+                        .foregroundStyle(.black)
                 }
             }
             .frame(maxWidth: .infinity)

@@ -102,6 +102,8 @@ extension TicketTemplateKind {
             return .train
         case .concert:
             return .concert
+        case .eurovision:
+            return .event
         case .underground, .sign, .infoscreen, .grid:
             return .publicTransit
         }

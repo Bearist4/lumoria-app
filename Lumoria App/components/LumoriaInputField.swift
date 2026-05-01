@@ -45,7 +45,6 @@ struct LumoriaInputField: View {
     private var kind: LumoriaInputFieldKind = .text
 
     @State private var isRevealed = false
-    @State private var showEmojiPicker = false
     @FocusState private var isFocused: Bool
 
     // Nulls contentType under Maestro so iOS autofill / strong-password
@@ -227,25 +226,12 @@ struct LumoriaInputField: View {
     // MARK: - Emoji square
 
     private func emojiSquare(binding: Binding<String?>) -> some View {
-        Button {
-            showEmojiPicker = true
-        } label: {
-            Text(binding.wrappedValue?.isEmpty == false ? binding.wrappedValue! : "😃")
-                .font(.title2)
-                .opacity(binding.wrappedValue?.isEmpty == false ? 1 : 0.35)
-                .frame(width: 50, height: 50)
-                .background(backgroundColor)
-                .overlay(
-                    RoundedRectangle(cornerRadius: cornerRadius)
-                        .stroke(borderColor, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
-        }
-        .buttonStyle(.plain)
-        .sheet(isPresented: $showEmojiPicker) {
-            EmojiPickerSheet(emoji: binding) { showEmojiPicker = false }
-                .presentationDetents([.medium])
-        }
+        EmojiSquareField(
+            binding: binding,
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
+            cornerRadius: cornerRadius
+        )
     }
 
     // MARK: - Derived style
@@ -284,85 +270,179 @@ struct LumoriaInputField: View {
     }
 }
 
+// MARK: - Emoji square (private)
+
+/// Routes presentation through the root `MemoryEmojiPresenter` env-object
+/// so the `.floatingBottomSheet` overlay attaches to the TabView frame,
+/// not this 50×50 button. Scoped to its own struct so non-emoji
+/// `LumoriaInputField` callers (auth screens, ticket forms) don't need
+/// the presenter in their environment.
+private struct EmojiSquareField: View {
+    let binding: Binding<String?>
+    let backgroundColor: Color
+    let borderColor: Color
+    let cornerRadius: CGFloat
+
+    @EnvironmentObject private var emojiPresenter: MemoryEmojiPresenter
+
+    var body: some View {
+        Button {
+            emojiPresenter.present(
+                initialEmoji: binding.wrappedValue,
+                onCommit: { binding.wrappedValue = $0 }
+            )
+        } label: {
+            Text(binding.wrappedValue?.isEmpty == false ? binding.wrappedValue! : "😃")
+                .font(.title2)
+                .opacity(binding.wrappedValue?.isEmpty == false ? 1 : 0.35)
+                .frame(width: 50, height: 50)
+                .background(backgroundColor)
+                .overlay(
+                    RoundedRectangle(cornerRadius: cornerRadius)
+                        .stroke(borderColor, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Emoji picker sheet
 
 struct EmojiPickerSheet: View {
-    @Binding var emoji: String?
-    let onDone: () -> Void
+    let initialEmoji: String?
+    let onCommit: (String?) -> Void
+    let onDismiss: () -> Void
 
+    @State private var selection: String?
     @State private var customInput: String = ""
     @FocusState private var customFocused: Bool
 
+    init(
+        initialEmoji: String?,
+        onCommit: @escaping (String?) -> Void,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.initialEmoji = initialEmoji
+        self.onCommit = onCommit
+        self.onDismiss = onDismiss
+        _selection = State(initialValue: initialEmoji)
+    }
+
     private static let popular: [String] = [
-        "✈️", "🌴", "🏖️", "🏔️", "🌅", "🎢",
-        "🎵", "🎤", "🎸", "🎟️", "🎭", "🎨",
-        "❤️", "⭐️", "✨", "🎉", "🥂", "🎂",
-        "🏛️", "🌆", "🗺️", "📍", "📸", "🎁",
+        "✈️", "🌴", "🏖️", "🏔️", "🌅",
+        "🎢", "🎵", "🎤", "🎸", "🎟️",
+        "🎭", "🎨", "❤️", "⭐️", "✨",
     ]
 
-    private let columns = Array(
-        repeating: GridItem(.flexible(), spacing: 8),
-        count: 6
-    )
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Pick an emoji")
-                .font(.title2.bold())
-                .foregroundStyle(Color.Text.primary)
-
-            LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(Self.popular, id: \.self) { e in
-                    Button {
-                        emoji = e
-                        onDone()
-                    } label: {
-                        Text(e)
-                            .font(.title)
-                            .frame(width: 48, height: 48)
-                            .background(
-                                emoji == e
-                                    ? Color.black.opacity(0.08)
-                                    : Color.clear
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                    .buttonStyle(.plain)
+        VStack(alignment: .leading, spacing: 24) {
+            HStack(alignment: .top) {
+                Text("Emoji")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.Text.primary)
+                Spacer(minLength: 0)
+                LumoriaIconButton(systemImage: "xmark", size: .medium) {
+                    onDismiss()
                 }
             }
 
-            HStack(spacing: 8) {
-                TextField("Or type your own", text: $customInput)
-                    .font(.body)
-                    .padding(.horizontal, 12)
-                    .frame(height: 44)
-                    .background(Color.Background.fieldFill)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .focused($customFocused)
-                    .onChange(of: customInput) { _, new in
-                        if let first = new.first, String(first).isSingleEmoji {
-                            emoji = String(first)
-                            customInput = ""
-                            onDone()
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Pick an emoji")
+                    .font(.headline)
+                    .foregroundStyle(Color.Text.secondary)
+
+                emojiGrid
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Custom emoji")
+                    .font(.headline)
+                    .foregroundStyle(Color.Text.secondary)
+
+                TextField(
+                    "",
+                    text: $customInput,
+                    prompt: Text("Type your emoji here")
+                        .foregroundColor(Color.Text.tertiary)
+                )
+                .font(.footnote)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .frame(height: 64)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(Color.black.opacity(0.05))
+                )
+                .focused($customFocused)
+                .onChange(of: customInput) { _, new in
+                    if let first = new.first, String(first).isSingleEmoji {
+                        selection = String(first)
+                        customInput = ""
+                    }
+                }
+            }
+
+            Button("Done") {
+                onCommit(selection)
+                onDismiss()
+            }
+            .buttonStyle(LumoriaButtonStyle(hierarchy: .primary, size: .large))
+        }
+        .padding(24)
+    }
+
+    /// Eager `Grid` (not LazyVGrid) so every emoji cell is laid out
+    /// before the floating bottom sheet starts its slide-in transition.
+    /// Mirrors `MemoryColorPickerSheet.colorGrid`.
+    @ViewBuilder
+    private var emojiGrid: some View {
+        let rows = Self.popular.emojiChunked(into: 5)
+        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                GridRow {
+                    ForEach(row, id: \.self) { e in
+                        emojiCell(e)
+                    }
+                    if row.count < 5 {
+                        ForEach(0..<(5 - row.count), id: \.self) { _ in
+                            Color.clear.frame(height: 64)
                         }
                     }
-
-                if emoji != nil {
-                    Button("Clear") {
-                        emoji = nil
-                        onDone()
-                    }
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Text.primary)
                 }
             }
-
-            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 24)
-        .padding(.bottom, 16)
-        .presentationDragIndicator(.visible)
+    }
+
+    private func emojiCell(_ e: String) -> some View {
+        Button {
+            selection = e
+        } label: {
+            Text(e)
+                .font(.system(size: 24))
+                .frame(maxWidth: .infinity)
+                .frame(height: 64)
+                .background(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(Color.black.opacity(0.05))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .stroke(
+                            selection == e ? Color.Text.primary : Color.clear,
+                            lineWidth: 2
+                        )
+                )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private extension Array where Element == String {
+    func emojiChunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0 ..< Swift.min($0 + size, count)])
+        }
     }
 }
 
@@ -404,4 +484,5 @@ private extension String {
         }
         .padding(24)
     }
+    .environmentObject(MemoryEmojiPresenter())
 }

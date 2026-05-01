@@ -84,6 +84,7 @@ enum TicketStyleCatalog {
         case .post:      return post
         case .glow:        return glow
         case .concert:     return concert
+        case .eurovision:  return eurovision
         case .underground: return underground
         case .sign:        return sign
         case .infoscreen:  return infoscreen
@@ -514,6 +515,36 @@ enum TicketStyleCatalog {
                 background: Color(hex: "FFD1E8"),
                 textOnSurface: Color(hex: "FFF2F7"),
                 textOnBackground: Color(hex: "52002F"),
+                layout: .twoZone
+            )
+        ),
+    ]
+
+    private static let eurovision: [TicketStyleVariant] = [
+        // Vienna 2026 grand-finale stub. Per-country backgrounds live
+        // in `eurovision-bg-<cc>` slots, so the variant itself only
+        // describes the chrome (white text on a deep-blue fallback for
+        // the swatch + the missing-asset path). Future variants — e.g.
+        // a "semi-final" or "monochrome" colourway — can append here
+        // and toggle via the style picker without touching the view.
+        TicketStyleVariant(
+            id: "eurovision.default",
+            label: "Default",
+            backgroundAsset: nil,
+            textPrimary: .white,
+            textSecondary: .white.opacity(0.7),
+            accent: Color(hex: "F72BBD"),
+            onAccent: .white,
+            divider: Color.white.opacity(0.15),
+            footerFill: .white,
+            footerText: .black,
+            footerScheme: .light,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: "0305DF"),
+                accent: Color(hex: "F72BBD"),
+                background: Color(hex: "0C14E1"),
+                textOnSurface: .white,
+                textOnBackground: .white,
                 layout: .twoZone
             )
         ),

@@ -132,6 +132,10 @@ enum PKPassImporter {
         // avoid invoking the importer for concert templates. In
         // practice the wallet entry point never routes here.
         case .concert:                                              return .other
+        // Eurovision tickets are created via the in-app form (no
+        // PKPass), so the same `.other` bypass applies — the wallet
+        // entry point never routes here.
+        case .eurovision:                                           return .other
         // Public-transport passes (signal / sign / infoscreen) aren't
         // in the PKPass wallet ecosystem either; same `.other` bypass
         // applies.

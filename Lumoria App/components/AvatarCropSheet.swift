@@ -36,41 +36,62 @@ struct AvatarCropSheet: View {
     // MARK: - Body
 
     var body: some View {
-        GeometryReader { proxy in
-            ZStack {
-                Color.black.ignoresSafeArea()
+        ZStack {
+            Color.black.ignoresSafeArea()
 
-                imageLayer(proxy: proxy)
-
-                cropMask
-
-                cropBorder
-
-                controls
-            }
-            .gesture(
-                SimultaneousGesture(
-                    DragGesture()
-                        .onChanged { value in
-                            offset = CGSize(
-                                width: lastOffset.width + value.translation.width,
-                                height: lastOffset.height + value.translation.height
-                            )
-                        }
-                        .onEnded { _ in
-                            lastOffset = offset
-                        },
-                    MagnificationGesture()
-                        .onChanged { value in
-                            scale = clampedScale(lastScale * value)
-                        }
-                        .onEnded { _ in
-                            lastScale = scale
-                        }
+            GeometryReader { proxy in
+                ZStack {
+                    imageLayer(proxy: proxy)
+                    cropMask
+                    cropBorder
+                }
+                // imageLayer / cropMask / cropBorder all disable hit
+                // testing, so without an explicit content shape the
+                // ZStack has no hit-testable area and gestures fire
+                // only on whatever happens to be opaque underneath
+                // (e.g. the image bounds). Forcing a full-bleed
+                // rectangle hit area lets drag/pinch register
+                // everywhere — including outside the image frame.
+                .contentShape(Rectangle())
+                .gesture(
+                    SimultaneousGesture(
+                        DragGesture()
+                            .onChanged { value in
+                                offset = clampedOffset(CGSize(
+                                    width: lastOffset.width + value.translation.width,
+                                    height: lastOffset.height + value.translation.height
+                                ))
+                            }
+                            .onEnded { _ in
+                                lastOffset = offset
+                            },
+                        MagnificationGesture()
+                            .onChanged { value in
+                                scale = clampedScale(lastScale * value)
+                                // Re-clamp the existing offset against
+                                // the new scaled image size — zooming
+                                // out past the current pan can leave a
+                                // gap inside the crop window otherwise.
+                                offset = clampedOffset(offset)
+                            }
+                            .onEnded { _ in
+                                lastScale = scale
+                                lastOffset = offset
+                            }
+                    )
                 )
-            )
+            }
+            .ignoresSafeArea()
         }
-        .background(Color.black.ignoresSafeArea())
+        // Overlays attach to the outer ZStack, which respects the
+        // safe area — keeps the X / checkmark inside the Dynamic
+        // Island / home-indicator inset on every device.
+        .overlay(alignment: .top) {
+            topControls
+        }
+        .overlay(alignment: .bottom) {
+            bottomHint
+        }
     }
 
     // MARK: - Image
@@ -102,6 +123,20 @@ struct AvatarCropSheet: View {
         min(maxScale, max(minScale, raw))
     }
 
+    /// Clamps the pan offset so the (scaled) image always covers the
+    /// crop window — no black gap can appear on any edge.
+    private func clampedOffset(_ raw: CGSize) -> CGSize {
+        let total = baseScale() * scale
+        let scaledW = image.size.width * total
+        let scaledH = image.size.height * total
+        let maxX = max(0, (scaledW - cropSize) / 2)
+        let maxY = max(0, (scaledH - cropSize) / 2)
+        return CGSize(
+            width: min(maxX, max(-maxX, raw.width)),
+            height: min(maxY, max(-maxY, raw.height))
+        )
+    }
+
     // MARK: - Crop window overlays
 
     /// Darkens everything outside the square crop window.
@@ -126,36 +161,35 @@ struct AvatarCropSheet: View {
 
     // MARK: - Controls
 
-    private var controls: some View {
-        VStack {
-            HStack {
-                LumoriaIconButton(
-                    systemImage: "xmark",
-                    size: .large,
-                    position: .onDark,
-                    action: onCancel
-                )
-
-                Spacer()
-
-                LumoriaIconButton(
-                    systemImage: "checkmark",
-                    size: .large,
-                    position: .success
-                ) {
-                    onCommit(render())
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
+    private var topControls: some View {
+        HStack {
+            LumoriaIconButton(
+                systemImage: "xmark",
+                size: .large,
+                position: .onDark,
+                action: onCancel
+            )
 
             Spacer()
 
-            Text("Drag to reposition · pinch to zoom")
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.6))
-                .padding(.bottom, 32)
+            LumoriaIconButton(
+                systemImage: "checkmark",
+                size: .large,
+                position: .success
+            ) {
+                onCommit(render())
+            }
         }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private var bottomHint: some View {
+        Text("Drag to reposition · pinch to zoom")
+            .font(.footnote)
+            .foregroundStyle(.white.opacity(0.6))
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 16)
     }
 
     // MARK: - Render

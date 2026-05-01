@@ -17,6 +17,11 @@ struct NewMemoryView: View {
     @State private var startDate: Date? = nil
     @State private var endDate: Date? = nil
 
+    /// Locally scoped presenter so the floating bottom sheet attaches to
+    /// this `.sheet`'s view tree instead of the root TabView (where it
+    /// would render behind the create-memory sheet).
+    @StateObject private var emojiPresenter = MemoryEmojiPresenter()
+
     /// Invoked when the user taps Create.
     var onCreate: ((String, ColorOption?, String?, Date?, Date?) -> Void)? = nil
 
@@ -51,6 +56,21 @@ struct NewMemoryView: View {
             .padding(.horizontal, Spacing.s6)
             .padding(.top, Spacing.s4)
         }
+        .environmentObject(emojiPresenter)
+        .floatingBottomSheet(isPresented: emojiSheetBinding) {
+            EmojiPickerSheet(
+                initialEmoji: emojiPresenter.initialEmoji,
+                onCommit: { picked in emojiPresenter.onCommit?(picked) },
+                onDismiss: { emojiPresenter.dismiss() }
+            )
+        }
+    }
+
+    private var emojiSheetBinding: Binding<Bool> {
+        Binding(
+            get: { emojiPresenter.isPresented },
+            set: { if !$0 { emojiPresenter.dismiss() } }
+        )
     }
 
     // MARK: - Intro

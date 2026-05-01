@@ -21,10 +21,14 @@ import UIKit
 final class ProfileStore: ObservableObject {
 
     @Published private(set) var name: String = ""
+    @Published private(set) var username: String = ""
     @Published private(set) var avatarImage: UIImage? = nil
     /// Random-UUID path of the encrypted avatar in Storage. Surfaced so
     /// `ProfileView` can delete the previous file when a new one uploads.
     @Published private(set) var avatarPath: String? = nil
+    /// `auth.users.created_at` — surfaced so the profile header can show
+    /// "Joined <month year>". Nil for unauthenticated previews.
+    @Published private(set) var joinedDate: Date? = nil
 
     // MARK: - Load
 
@@ -46,6 +50,16 @@ final class ProfileStore: ObservableObject {
             resolvedName = "Your profile"
         }
         name = resolvedName
+
+        // Username (handle)
+        var resolvedUsername = ""
+        if case .string(let value) = metadata["username"] {
+            resolvedUsername = value
+        }
+        username = resolvedUsername
+
+        // Joined date — comes from auth.users.created_at, not metadata.
+        joinedDate = user?.createdAt
 
         // Avatar
         var resolvedPath: String? = nil

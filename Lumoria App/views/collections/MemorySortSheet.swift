@@ -46,13 +46,19 @@ struct MemorySortSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Sort by")
-                .font(.title3.bold())
-                .foregroundStyle(Color.Text.primary)
+            HStack(alignment: .top) {
+                Text("Sort by")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.Text.primary)
+                Spacer(minLength: 0)
+                LumoriaIconButton(systemImage: "xmark", size: .medium) {
+                    onDismiss()
+                }
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Text("Date")
-                    .font(.footnote)
+                    .font(.headline)
                     .foregroundStyle(Color.Text.tertiary)
 
                 VStack(spacing: 0) {

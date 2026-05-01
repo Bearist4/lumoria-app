@@ -21,6 +21,7 @@ struct MemoryEditMode: View {
     @EnvironmentObject private var memoriesStore: MemoriesStore
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var colorPresenter: MemoryColorPresenter
+    @EnvironmentObject private var emojiPresenter: MemoryEmojiPresenter
 
     // Buffered draft state — committed only when Done is tapped.
     @State private var emoji: String?
@@ -28,7 +29,6 @@ struct MemoryEditMode: View {
     @State private var colorFamily: String
     @State private var orderedTicketIds: [UUID]
 
-    @State private var showEmojiPicker = false
     @FocusState private var nameFocused: Bool
 
     init(memory: Memory, tickets: [Ticket], onExit: @escaping () -> Void) {
@@ -81,10 +81,6 @@ struct MemoryEditMode: View {
         // Lock layout so the keyboard appearing for the name field
         // doesn't push the ticket area up.
         .ignoresSafeArea(.keyboard)
-        .sheet(isPresented: $showEmojiPicker) {
-            EmojiPickerSheet(emoji: $emoji) { showEmojiPicker = false }
-                .presentationDetents([.medium])
-        }
     }
 
     // MARK: - Background
@@ -117,7 +113,7 @@ struct MemoryEditMode: View {
             Spacer(minLength: 0)
 
             Button {
-                Task { await commit() }
+                commit()
             } label: {
                 Image(systemName: "checkmark")
                     .font(.body.weight(.bold))
@@ -134,32 +130,26 @@ struct MemoryEditMode: View {
 
     private var emojiCard: some View {
         Button {
-            showEmojiPicker = true
+            emojiPresenter.present(
+                initialEmoji: emoji,
+                onCommit: { picked in emoji = picked }
+            )
         } label: {
-            ZStack(alignment: .topTrailing) {
-                ZStack {
-                    if let emoji, !emoji.isEmpty {
-                        Text(emoji)
-                            .font(.system(size: 36))
-                    } else {
-                        Text("🙂")
-                            .font(.system(size: 36))
-                            .opacity(0.3)
-                    }
+            ZStack {
+                if let emoji, !emoji.isEmpty {
+                    Text(emoji)
+                        .font(.system(size: 36))
+                } else {
+                    Text("🙂")
+                        .font(.system(size: 36))
+                        .opacity(0.3)
                 }
-                .frame(width: 96, height: 96)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color.Text.primary.opacity(0.05))
-                )
-
-                Image(systemName: "pencil")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.Text.primary)
-                    .frame(width: 32, height: 32)
-                    .background(Circle().fill(Color.Background.default))
-                    .offset(x: 12, y: -12)
             }
+            .frame(width: 96, height: 96)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.Text.primary.opacity(0.05))
+            )
         }
         .buttonStyle(.plain)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -201,31 +191,74 @@ struct MemoryEditMode: View {
 
     // MARK: - Commit
 
-    private func commit() async {
-        // Persist text changes if anything moved.
-        if name != memory.name
+    /// Apply edits optimistically to local state, dismiss the editor
+    /// immediately, then persist via Supabase in the background. The
+    /// reading view sees the new state right away; if a network write
+    /// fails, `MemoriesStore` / `TicketsStore` surface the error and
+    /// the next refresh will resolve any drift.
+    private func commit() {
+        let originalOrder = tickets.map(\.id)
+        let textChanged =
+            name != memory.name
             || emoji != memory.emoji
-            || colorFamily != memory.colorFamily {
-            await memoriesStore.update(
-                memory,
+            || colorFamily != memory.colorFamily
+        let orderChanged = originalOrder != orderedTicketIds
+
+        // 1. Optimistic local updates.
+        if textChanged {
+            memoriesStore.applyLocalEdit(
+                memoryId: memory.id,
                 name: name,
                 colorFamily: colorFamily,
-                emoji: emoji,
-                startDate: memory.startDate,
-                endDate: memory.endDate
+                emoji: emoji
+            )
+        }
+        if orderChanged {
+            ticketsStore.applyLocalDisplayOrder(
+                memoryId: memory.id,
+                orderedIds: orderedTicketIds
+            )
+            memoriesStore.applyLocalSort(
+                memoryId: memory.id,
+                field: .manual,
+                ascending: true
             )
         }
 
-        // Persist new order if it changed.
-        let originalOrder = tickets.map(\.id)
-        if originalOrder != orderedTicketIds {
-            await memoriesStore.reorderTickets(
-                in: memory.id,
-                ordered: orderedTicketIds
-            )
-            await ticketsStore.load()
-        }
-
+        // 2. Dismiss right away — feels instant.
         onExit()
+
+        // 3. Persist in background. Capture references so the task
+        //    survives the view's removal.
+        guard textChanged || orderChanged else { return }
+
+        let memoryId = memory.id
+        let originalMemory = memory
+        let pendingName = name
+        let pendingEmoji = emoji
+        let pendingColor = colorFamily
+        let pendingOrder = orderedTicketIds
+        let memories = memoriesStore
+
+        Task {
+            if textChanged {
+                await memories.update(
+                    originalMemory,
+                    name: pendingName,
+                    colorFamily: pendingColor,
+                    emoji: pendingEmoji,
+                    startDate: originalMemory.startDate,
+                    endDate: originalMemory.endDate
+                )
+            }
+            if orderChanged {
+                // Local display order is already in sync, so we can
+                // skip the heavy `ticketsStore.load()` refresh.
+                await memories.reorderTickets(
+                    in: memoryId,
+                    ordered: pendingOrder
+                )
+            }
+        }
     }
 }

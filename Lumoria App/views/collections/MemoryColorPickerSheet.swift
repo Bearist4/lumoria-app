@@ -32,9 +32,15 @@ struct MemoryColorPickerSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Color")
-                .font(.title2.bold())
-                .foregroundStyle(Color.Text.primary)
+            HStack(alignment: .top) {
+                Text("Color")
+                    .font(.title2.bold())
+                    .foregroundStyle(Color.Text.primary)
+                Spacer(minLength: 0)
+                LumoriaIconButton(systemImage: "xmark", size: .medium) {
+                    onDismiss()
+                }
+            }
 
             // Eager `Grid` (not LazyVGrid) so every swatch is laid out
             // before the sheet starts its slide-in transition.
