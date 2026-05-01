@@ -60,6 +60,7 @@ struct NewTicketSuccessStep: View {
             let source: TicketSourceProp = {
                 switch funnel.importSource {
                 case .wallet: return .wallet
+                case .share:  return .share
                 case .none:   return .gallery
                 }
             }()

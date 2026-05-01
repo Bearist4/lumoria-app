@@ -82,7 +82,7 @@ enum FunnelStepProp: String, CaseIterable {
 }
 
 enum TicketSourceProp: String, CaseIterable {
-    case gallery, memory, notification, deep_link, wallet
+    case gallery, memory, notification, deep_link, wallet, share
 }
 
 enum TicketEntryPointProp: String, CaseIterable {

@@ -135,6 +135,7 @@ enum NewTicketStep: Int, CaseIterable, Comparable, Codable {
 /// and which `TicketSourceProp` fires on save.
 enum ImportSource: String, CaseIterable, Hashable {
     case wallet
+    case share
 }
 
 // MARK: - Form input
@@ -580,6 +581,10 @@ final class NewTicketFunnel: ObservableObject {
     /// Consumed once — cleared once the parser runs.
     @Published var pendingPassData: Data? = nil
 
+    /// Parsed share-extension payload pre-loaded into the funnel.
+    /// Consumed once by ImportStep, then cleared.
+    @Published var pendingShareImport: ShareImportResult? = nil
+
     // MARK: Persistence
 
     @Published var isSaving: Bool = false
@@ -917,6 +922,20 @@ final class NewTicketFunnel: ObservableObject {
             // Resolve them via MapKit so the picker shows the station
             // and the ticket lands on the memory map.
             Task { await resolveTrainStations() }
+        }
+        importFailureBanner = false
+        step = .form
+    }
+
+    /// Apply a parsed share-extension payload to the appropriate form
+    /// input and advance to `.form`. Translates primitive fields into
+    /// `FlightFormInput` / `EventFormInput` via `ShareImportTranslator`.
+    func applyShareImport(_ result: ShareImportResult) {
+        if let flightFields = result.flight {
+            form = ShareImportTranslator.flightInput(from: flightFields)
+        }
+        if let eventFields = result.event {
+            eventForm = ShareImportTranslator.eventInput(from: eventFields)
         }
         importFailureBanner = false
         step = .form
