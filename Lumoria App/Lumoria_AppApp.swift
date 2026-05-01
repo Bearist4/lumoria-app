@@ -26,6 +26,7 @@ struct Lumoria_AppApp: App {
     @StateObject private var pushService = PushNotificationService.shared
     @StateObject private var notificationPrefs = NotificationPrefsStore()
     @StateObject private var walletImport = WalletImportCoordinator()
+    @StateObject private var shareImport = ShareImportCoordinator()
     @StateObject private var onboardingCoordinator = OnboardingCoordinator()
     @StateObject private var widgetRouter = WidgetDeepLinkRouter()
     @State private var entitlement = EntitlementStore(
@@ -93,6 +94,7 @@ struct Lumoria_AppApp: App {
                         .environmentObject(pushService)
                         .environmentObject(notificationPrefs)
                         .environmentObject(walletImport)
+                        .environmentObject(shareImport)
                         .environmentObject(onboardingCoordinator)
                         .environmentObject(widgetRouter)
                         .environment(entitlement)
@@ -145,12 +147,25 @@ struct Lumoria_AppApp: App {
                 case .active:
                     TiltMotionManager.shared.start()
                     drainPendingWalletImport()
+                    drainPendingShareImport()
                 case .background: TiltMotionManager.shared.stop()
                 default:          break
                 }
             }
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Mirror of `drainPendingWalletImport` for the share extension's
+    /// pending-share.json sentinel. Reads + deletes in one shot.
+    private func drainPendingShareImport() {
+        guard let result = SharePayloadHandoff.drainPending() else {
+            return
+        }
+        NSLog("[Lumoria] drain: enqueued share import (category=%@, conf=%.2f)",
+              result.classification.category ?? "nil",
+              result.classification.confidence)
+        shareImport.enqueue(result)
     }
 
     /// Safety net for the Share Extension → main app hand-off. If the
@@ -251,6 +266,21 @@ struct Lumoria_AppApp: App {
                 }
                 try? FileManager.default.removeItem(at: file)
             }
+            return
+        }
+
+        // Share extension handoff. iOS 18+ blocks share extensions
+        // from opening URLs, so the scene-active drain is the
+        // primary path; this URL handler is a backup if extension
+        // URL opening returns in a future iOS revision.
+        let isShareUniversal = url.scheme?.lowercased() == "https"
+            && normalizedHost == "getlumoria.app"
+            && url.path.lowercased() == "/import/share"
+        let isShareCustom = url.scheme == "lumoria"
+            && url.host == "import"
+            && url.path == "/share"
+        if isShareUniversal || isShareCustom {
+            drainPendingShareImport()
             return
         }
 
