@@ -94,6 +94,14 @@ final class ShareViewController: UIViewController {
             return
         }
 
+        // Full text dump for debugging classification + extraction
+        // mismatches between fixture tests and real OCR output.
+        // Filter Console.app by subsystem `bearista.Lumoria-App.LumoriaShareImport`
+        // (or process LumoriaShareImport) to read these.
+        os_log("=== payload.text (length=%d) ===\n%{public}@",
+               log: extensionLog, type: .default,
+               payload.text.count, payload.text)
+
         var classification = ShareCategoryClassifier.classify(text: payload.text)
         os_log(
             "classified: category=%{public}@ confidence=%.2f signals=%{public}@",
@@ -108,14 +116,38 @@ final class ShareViewController: UIViewController {
         switch classification.category {
         case "plane":
             flight = SharePlaneExtractor.extract(text: payload.text)
+            if let f = flight {
+                os_log(
+                    "plane fields: flightNumber=%{public}@ origin=%{public}@ dest=%{public}@ gate=%{public}@ seat=%{public}@ terminal=%{public}@",
+                    log: extensionLog, type: .default,
+                    f.flightNumber, f.originCode, f.destinationCode,
+                    f.gate, f.seat, f.terminal
+                )
+            }
         case "concert":
             event = ShareConcertExtractor.extract(text: payload.text)
+            if let e = event {
+                os_log(
+                    "concert fields: artist=%{public}@ tour=%{public}@ venue=%{public}@ ticketNumber=%{public}@",
+                    log: extensionLog, type: .default,
+                    e.artist, e.tourName, e.venue, e.ticketNumber
+                )
+            }
         default:
             // Regex/keyword classifier didn't clear the threshold —
             // fall back to on-device Foundation Models when the
             // device supports it. iOS 26+ + Apple Intelligence only.
             if #available(iOS 26.0, *) {
                 if let guess = await ShareFoundationModelsExtractor.guess(text: payload.text) {
+                    os_log(
+                        "FM guess: category=%{public}@ artist=%{public}@ tour=%{public}@ venue=%{public}@ flight=%{public}@",
+                        log: extensionLog, type: .default,
+                        guess.category,
+                        guess.artist ?? "nil",
+                        guess.tourName ?? "nil",
+                        guess.venue ?? "nil",
+                        guess.flightNumber ?? "nil"
+                    )
                     switch guess.category.lowercased() {
                     case "plane":
                         flight = guess.toPlaneFields()

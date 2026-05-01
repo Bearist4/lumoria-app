@@ -18,8 +18,8 @@ enum ShareConcertExtractor {
         let header = headerLine(in: text)
         if let header {
             let parts = splitHeader(header)
-            fields.artist = parts.artist
-            fields.tourName = parts.tour
+            fields.artist = applyTitleCaseIfNeeded(parts.artist)
+            fields.tourName = applyTitleCaseIfNeeded(parts.tour)
         }
 
         if let venue = matchCapture(text, pattern: venuePrefixPattern) {
@@ -109,6 +109,21 @@ enum ShareConcertExtractor {
         if lower.contains("axs") && lower.contains("confirm") { return false }
         if lower.contains("oeticket") && lower.contains("order") { return false }
         return true
+    }
+
+    /// Restores readable casing for OCR'd text that came in as
+    /// all-lowercase ("the locket tour") or all-uppercase ("MADISON
+    /// BEER"). Mixed-case strings are left alone so brand names like
+    /// "iPhone" or "deadmau5" survive unchanged.
+    private static func applyTitleCaseIfNeeded(_ s: String) -> String {
+        let trimmed = s.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return s }
+        let isAllLower = trimmed.lowercased() == trimmed
+        let isAllUpper = trimmed.uppercased() == trimmed && trimmed.lowercased() != trimmed
+        if isAllLower || isAllUpper {
+            return trimmed.capitalized
+        }
+        return trimmed
     }
 
     private static func splitHeader(_ header: String) -> (artist: String, tour: String) {

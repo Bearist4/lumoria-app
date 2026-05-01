@@ -53,7 +53,9 @@ final class ShareConcertExtractorTests: XCTestCase {
         """
         let result = ShareConcertExtractor.extract(text: text)
         XCTAssertEqual(result.artist, "Madison Beer", "got=\(result.artist)")
-        XCTAssertEqual(result.tourName, "the locket tour", "got=\(result.tourName)")
+        // Title-cased: source text is "the locket tour" (all-lowercase),
+        // extractor restores readable casing.
+        XCTAssertEqual(result.tourName, "The Locket Tour", "got=\(result.tourName)")
         XCTAssertTrue(result.venue.contains("Marx Halle"), "venue=\(result.venue)")
     }
 
