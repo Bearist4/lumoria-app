@@ -51,7 +51,13 @@ enum ShareFoundationModelsExtractor {
               labels: "Doors", "Einlass", "Show", "Beginn", "Showtime".
             - "flightNumber" must include the carrier code (e.g. "UA 1471").
             - Airport codes must be IATA 3-letter codes (e.g. "SFO", "JFK").
-            - Leave fields empty if not in the text. DO NOT invent.
+            - "ticketNumber" must look like an order/reference code \
+              (alphanumeric with dashes/slashes). DO NOT use truncated \
+              email subject lines, time strings like "12:00", or random \
+              fragments. If no clear ticket number exists, leave it blank.
+            - When a field is not present in the text, leave it BLANK \
+              (empty string). DO NOT write "Unknown", "N/A", "TBD", \
+              "None", or any placeholder — leave it empty. DO NOT invent.
             """
         }
         do {
@@ -140,12 +146,12 @@ struct ShareExtractionGuess: Sendable {
 
     func toPlaneFields() -> SharePlaneFields {
         var fields = SharePlaneFields()
-        fields.flightNumber = flightNumber ?? ""
-        fields.originCode = originAirport ?? ""
-        fields.destinationCode = destinationAirport ?? ""
-        fields.gate = gate ?? ""
-        fields.seat = seat ?? ""
-        fields.terminal = terminal ?? ""
+        fields.flightNumber = sanitize(flightNumber) ?? ""
+        fields.originCode = sanitize(originAirport) ?? ""
+        fields.destinationCode = sanitize(destinationAirport) ?? ""
+        fields.gate = sanitize(gate) ?? ""
+        fields.seat = sanitize(seat) ?? ""
+        fields.terminal = sanitize(terminal) ?? ""
         if let departure = combine(date: departureDate, time: departureTime) {
             fields.departureDate = departure
         } else if let departure = parseISODate(departureDate) {
@@ -156,15 +162,75 @@ struct ShareExtractionGuess: Sendable {
 
     func toConcertFields() -> ShareConcertFields {
         var fields = ShareConcertFields()
-        fields.artist = artist ?? ""
-        fields.tourName = tourName ?? ""
-        fields.venue = venue ?? ""
-        fields.ticketNumber = ticketNumber ?? ""
+        fields.artist = restoreCase(sanitize(artist) ?? "")
+        fields.tourName = restoreCase(sanitize(tourName) ?? "")
+        fields.venue = sanitize(venue) ?? ""
+        fields.ticketNumber = sanitizeTicketNumber(ticketNumber) ?? ""
         let day = parseISODate(date)
         fields.date = day
         fields.doorsTime = combine(date: date, time: doorsTime) ?? day
         fields.showTime = combine(date: date, time: showTime) ?? day
         return fields
+    }
+
+    // MARK: - Sanitization
+
+    /// Drops placeholder values the model produces when a field is
+    /// missing from the text. Despite explicit instructions to leave
+    /// fields blank, smaller on-device LMs occasionally write
+    /// "Unknown" / "N/A" / "TBD" — those should never reach the form.
+    private func sanitize(_ s: String?) -> String? {
+        guard let s else { return nil }
+        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return nil }
+        let lower = trimmed.lowercased()
+        let blanks: Set<String> = [
+            "unknown", "n/a", "na", "nil", "none", "null",
+            "tba", "tbd", "not available", "not specified",
+        ]
+        if blanks.contains(lower) { return nil }
+        return trimmed
+    }
+
+    /// Stricter filter for ticket numbers. Real reference codes are
+    /// alphanumeric with optional separators; truncated subject lines
+    /// ("G...") and time-of-day fragments ("11:484") slip through
+    /// the basic sanitizer and need explicit rejection.
+    private func sanitizeTicketNumber(_ s: String?) -> String? {
+        guard let trimmed = sanitize(s) else { return nil }
+        if trimmed.hasSuffix("...") || trimmed.hasSuffix("…") { return nil }
+        // HH:MM-shaped strings ("12:00", "11:484").
+        if trimmed.range(of: #"^\d{1,2}:\d+$"#, options: .regularExpression) != nil {
+            return nil
+        }
+        // Need at least 4 characters and at least one digit OR
+        // dash/slash separator — pure short strings like "G..." are
+        // already filtered above, but this catches "ABC".
+        if trimmed.count < 4 { return nil }
+        let hasDigit = trimmed.range(of: #"\d"#, options: .regularExpression) != nil
+        let hasSeparator = trimmed.contains("-") || trimmed.contains("/")
+        guard hasDigit || hasSeparator else { return nil }
+        return trimmed
+    }
+
+    /// Title-cases obviously badly-cased strings ("the locket tour",
+    /// "MADISON BEER") so the form shows readable values. Mirrors
+    /// the regex extractor's logic so FM and regex outputs end up
+    /// formatted the same way.
+    private func restoreCase(_ s: String) -> String {
+        let trimmed = s.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return trimmed }
+        let letters = trimmed.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        guard letters.count >= 4,
+              Double(letters.count) / Double(trimmed.count) >= 0.5 else {
+            return trimmed
+        }
+        let isAllLower = trimmed.lowercased() == trimmed
+        let isAllUpper = trimmed.uppercased() == trimmed && trimmed.lowercased() != trimmed
+        if isAllLower || isAllUpper {
+            return trimmed.capitalized
+        }
+        return trimmed
     }
 
     // MARK: - Helpers
