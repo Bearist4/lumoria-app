@@ -930,15 +930,77 @@ final class NewTicketFunnel: ObservableObject {
     /// Apply a parsed share-extension payload to the appropriate form
     /// input and advance to `.form`. Translates primitive fields into
     /// `FlightFormInput` / `EventFormInput` via `ShareImportTranslator`.
+    /// Kicks off a MapKit lookup for the venue when one is present so
+    /// the form opens with a validated `TicketLocation` (city + map
+    /// pin) instead of just a search-field hint.
     func applyShareImport(_ result: ShareImportResult) {
         if let flightFields = result.flight {
             form = ShareImportTranslator.flightInput(from: flightFields)
         }
         if let eventFields = result.event {
             eventForm = ShareImportTranslator.eventInput(from: eventFields)
+            Task { await resolveImportedVenue() }
         }
         importFailureBanner = false
         step = .form
+    }
+
+    /// Resolves the OCR'd venue name against MapKit so the share
+    /// extension's import auto-populates the venue picker (city,
+    /// country, lat/lng) when the model returned a real venue. Only
+    /// commits the result when the resolved POI's name matches the
+    /// query — ambiguous searches leave the seeded query in place
+    /// for the user to confirm manually.
+    private func resolveImportedVenue() async {
+        guard eventForm.venueLocation == nil else { return }
+        let query = eventForm.venue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        if let loc = await Self.lookupVenue(named: query) {
+            eventForm.venueLocation = loc
+            eventForm.venue = loc.name
+        }
+    }
+
+    private static func lookupVenue(named name: String) async -> TicketLocation? {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let request = MKLocalSearch.Request()
+        request.naturalLanguageQuery = trimmed
+        request.resultTypes = [.pointOfInterest]
+        // No POI filter — venues span stadiums, theatres, clubs,
+        // parks, conference halls. Letting MapKit return any POI
+        // mirrors what `LumoriaVenueField` does interactively.
+        do {
+            let response = try await MKLocalSearch(request: request).start()
+            guard let item = response.mapItems.first else { return nil }
+            let coord = item.placemark.coordinate
+            let resolvedName = (item.name ?? trimmed)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            // Confidence gate: only auto-commit when the resolved
+            // name and the query overlap. This avoids stamping the
+            // user's form with a totally unrelated POI when MapKit
+            // falls back to fuzzy/regional matches.
+            let queryLower = trimmed.lowercased()
+            let nameLower = resolvedName.lowercased()
+            let overlaps = nameLower.contains(queryLower)
+                || queryLower.contains(nameLower)
+                || queryLower.split(separator: " ").contains {
+                    !$0.isEmpty && nameLower.contains($0.lowercased())
+                }
+            guard overlaps else { return nil }
+            return TicketLocation(
+                name: resolvedName,
+                subtitle: nil,
+                city: item.placemark.locality,
+                country: item.placemark.country,
+                countryCode: item.placemark.isoCountryCode,
+                lat: coord.latitude,
+                lng: coord.longitude,
+                kind: .venue
+            )
+        } catch {
+            return nil
+        }
     }
 
     private func resolveTrainStations() async {
