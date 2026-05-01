@@ -37,6 +37,33 @@ final class ShareImportTranslatorTests: XCTestCase {
         XCTAssertEqual(input.departureTime, date)
     }
 
+    func testDoorsDefaultsTo45MinutesBeforeShowWhenMissing() {
+        var fields = ShareConcertFields()
+        fields.artist = "Madison Beer"
+        fields.venue = "Marx Halle"
+        let date = Date(timeIntervalSince1970: 1_778_731_200) // 2026-05-13
+        fields.date = date
+        fields.showTime = date.addingTimeInterval(20 * 3600) // 20:00
+        // Intentionally omit doorsTime.
+
+        let input = ShareImportTranslator.eventInput(from: fields)
+        let expectedDoors = fields.showTime!.addingTimeInterval(-45 * 60)
+        XCTAssertEqual(input.doorsTime, expectedDoors)
+        XCTAssertEqual(input.showTime, fields.showTime)
+    }
+
+    func testDoorsRespectsExtractedValueWhenPresent() {
+        var fields = ShareConcertFields()
+        let date = Date(timeIntervalSince1970: 1_778_731_200)
+        fields.date = date
+        fields.doorsTime = date.addingTimeInterval(18 * 3600) // 18:00 (2h gap)
+        fields.showTime = date.addingTimeInterval(20 * 3600) // 20:00
+
+        let input = ShareImportTranslator.eventInput(from: fields)
+        XCTAssertEqual(input.doorsTime, fields.doorsTime,
+                       "Explicit doors time should not be overridden by the 45-min fallback")
+    }
+
     func testTranslatesConcertFields() {
         var fields = ShareConcertFields()
         fields.artist = "Taylor Swift"

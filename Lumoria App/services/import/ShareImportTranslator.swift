@@ -42,11 +42,17 @@ enum ShareImportTranslator {
         if let date = fields.date {
             input.date = date
         }
-        if let doors = fields.doorsTime {
-            input.doorsTime = doors
-        }
         if let show = fields.showTime {
             input.showTime = show
+        }
+        // Doors-time fallback: most concert confirmations only print
+        // the show start time. When that's the only time we have, set
+        // doors = show − 45min as a sensible default. Users can still
+        // edit it in the form.
+        if let doors = fields.doorsTime {
+            input.doorsTime = doors
+        } else if let show = fields.showTime {
+            input.doorsTime = show.addingTimeInterval(-45 * 60)
         }
         return input
     }
