@@ -94,7 +94,7 @@ final class ShareViewController: UIViewController {
             return
         }
 
-        let classification = ShareCategoryClassifier.classify(text: payload.text)
+        var classification = ShareCategoryClassifier.classify(text: payload.text)
         os_log(
             "classified: category=%{public}@ confidence=%.2f signals=%{public}@",
             log: extensionLog, type: .default,
@@ -111,7 +111,31 @@ final class ShareViewController: UIViewController {
         case "concert":
             event = ShareConcertExtractor.extract(text: payload.text)
         default:
-            break
+            // Regex/keyword classifier didn't clear the threshold —
+            // fall back to on-device Foundation Models when the
+            // device supports it. iOS 26+ + Apple Intelligence only.
+            if #available(iOS 26.0, *) {
+                if let guess = await ShareFoundationModelsExtractor.guess(text: payload.text) {
+                    switch guess.category.lowercased() {
+                    case "plane":
+                        flight = guess.toPlaneFields()
+                        classification = ShareClassification(
+                            category: "plane",
+                            confidence: 0.6,
+                            signals: classification.signals + ["fm:fallback"]
+                        )
+                    case "concert":
+                        event = guess.toConcertFields()
+                        classification = ShareClassification(
+                            category: "concert",
+                            confidence: 0.6,
+                            signals: classification.signals + ["fm:fallback"]
+                        )
+                    default:
+                        break
+                    }
+                }
+            }
         }
 
         let result = ShareImportResult(
