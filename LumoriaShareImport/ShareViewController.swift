@@ -102,74 +102,92 @@ final class ShareViewController: UIViewController {
                log: extensionLog, type: .default,
                payload.text.count, payload.text)
 
-        var classification = ShareCategoryClassifier.classify(text: payload.text)
+        let regexClassification = ShareCategoryClassifier.classify(text: payload.text)
         os_log(
-            "classified: category=%{public}@ confidence=%.2f signals=%{public}@",
+            "classified (regex): category=%{public}@ confidence=%.2f signals=%{public}@",
             log: extensionLog, type: .default,
-            classification.category ?? "nil",
-            classification.confidence,
-            classification.signals.joined(separator: ",")
+            regexClassification.category ?? "nil",
+            regexClassification.confidence,
+            regexClassification.signals.joined(separator: ",")
         )
 
+        var classification = regexClassification
         var flight: SharePlaneFields?
         var event: ShareConcertFields?
-        switch classification.category {
-        case "plane":
-            flight = SharePlaneExtractor.extract(text: payload.text)
-            if let f = flight {
+
+        // Foundation Models primary path — the on-device language
+        // model is far more robust than regex for real Vision-OCR'd
+        // text (handles locale-specific date formats, ignores logos
+        // and seat-type words, identifies actual venue names). Falls
+        // back to the regex extractors when FM is unavailable
+        // (older iOS, ineligible device, Apple Intelligence off).
+        var fmDidExtract = false
+        if #available(iOS 26.0, *) {
+            if let guess = await ShareFoundationModelsExtractor.guess(text: payload.text) {
                 os_log(
-                    "plane fields: flightNumber=%{public}@ origin=%{public}@ dest=%{public}@ gate=%{public}@ seat=%{public}@ terminal=%{public}@",
+                    "FM guess: category=%{public}@ artist=%{public}@ tour=%{public}@ venue=%{public}@ date=%{public}@ doors=%{public}@ show=%{public}@ flight=%{public}@",
                     log: extensionLog, type: .default,
-                    f.flightNumber, f.originCode, f.destinationCode,
-                    f.gate, f.seat, f.terminal
+                    guess.category,
+                    guess.artist ?? "nil",
+                    guess.tourName ?? "nil",
+                    guess.venue ?? "nil",
+                    guess.date ?? "nil",
+                    guess.doorsTime ?? "nil",
+                    guess.showTime ?? "nil",
+                    guess.flightNumber ?? "nil"
                 )
-            }
-        case "concert":
-            event = ShareConcertExtractor.extract(text: payload.text)
-            if let e = event {
-                os_log(
-                    "concert fields: artist=%{public}@ tour=%{public}@ venue=%{public}@ ticketNumber=%{public}@ date=%{public}@ doors=%{public}@ show=%{public}@",
-                    log: extensionLog, type: .default,
-                    e.artist, e.tourName, e.venue, e.ticketNumber,
-                    e.date.map { "\($0)" } ?? "nil",
-                    e.doorsTime.map { "\($0)" } ?? "nil",
-                    e.showTime.map { "\($0)" } ?? "nil"
-                )
-            }
-        default:
-            // Regex/keyword classifier didn't clear the threshold —
-            // fall back to on-device Foundation Models when the
-            // device supports it. iOS 26+ + Apple Intelligence only.
-            if #available(iOS 26.0, *) {
-                if let guess = await ShareFoundationModelsExtractor.guess(text: payload.text) {
-                    os_log(
-                        "FM guess: category=%{public}@ artist=%{public}@ tour=%{public}@ venue=%{public}@ flight=%{public}@",
-                        log: extensionLog, type: .default,
-                        guess.category,
-                        guess.artist ?? "nil",
-                        guess.tourName ?? "nil",
-                        guess.venue ?? "nil",
-                        guess.flightNumber ?? "nil"
+                switch guess.category.lowercased() {
+                case "plane":
+                    flight = guess.toPlaneFields()
+                    classification = ShareClassification(
+                        category: "plane",
+                        confidence: 0.85,
+                        signals: regexClassification.signals + ["fm:primary"]
                     )
-                    switch guess.category.lowercased() {
-                    case "plane":
-                        flight = guess.toPlaneFields()
-                        classification = ShareClassification(
-                            category: "plane",
-                            confidence: 0.6,
-                            signals: classification.signals + ["fm:fallback"]
-                        )
-                    case "concert":
-                        event = guess.toConcertFields()
-                        classification = ShareClassification(
-                            category: "concert",
-                            confidence: 0.6,
-                            signals: classification.signals + ["fm:fallback"]
-                        )
-                    default:
-                        break
-                    }
+                    fmDidExtract = true
+                case "concert":
+                    event = guess.toConcertFields()
+                    classification = ShareClassification(
+                        category: "concert",
+                        confidence: 0.85,
+                        signals: regexClassification.signals + ["fm:primary"]
+                    )
+                    fmDidExtract = true
+                default:
+                    break
                 }
+            }
+        }
+
+        // Regex fallback when FM didn't run or returned 'unknown'.
+        // Uses the regex classifier's category (which already handles
+        // common vendors) and the corresponding regex extractor.
+        if !fmDidExtract {
+            switch regexClassification.category {
+            case "plane":
+                flight = SharePlaneExtractor.extract(text: payload.text)
+                if let f = flight {
+                    os_log(
+                        "plane fields (regex): flightNumber=%{public}@ origin=%{public}@ dest=%{public}@ gate=%{public}@ seat=%{public}@ terminal=%{public}@",
+                        log: extensionLog, type: .default,
+                        f.flightNumber, f.originCode, f.destinationCode,
+                        f.gate, f.seat, f.terminal
+                    )
+                }
+            case "concert":
+                event = ShareConcertExtractor.extract(text: payload.text)
+                if let e = event {
+                    os_log(
+                        "concert fields (regex): artist=%{public}@ tour=%{public}@ venue=%{public}@ ticketNumber=%{public}@ date=%{public}@ doors=%{public}@ show=%{public}@",
+                        log: extensionLog, type: .default,
+                        e.artist, e.tourName, e.venue, e.ticketNumber,
+                        e.date.map { "\($0)" } ?? "nil",
+                        e.doorsTime.map { "\($0)" } ?? "nil",
+                        e.showTime.map { "\($0)" } ?? "nil"
+                    )
+                }
+            default:
+                break
             }
         }
 

@@ -30,20 +30,36 @@ enum ShareFoundationModelsExtractor {
             return nil
         }
         let session = LanguageModelSession {
-            "You extract ticket details from confirmation emails or " +
-            "screenshots of confirmation emails. Identify whether the " +
-            "text describes a plane ticket or a concert ticket, then " +
-            "fill only the fields you can confidently extract from the " +
-            "given text. Leave any field you are unsure about empty. " +
-            "DO NOT invent values that are not present in the text. " +
-            "Airport codes must be IATA 3-letter codes when present."
+            """
+            You extract ticket details from confirmation emails or \
+            screenshots of confirmation emails. The text may contain \
+            visual noise from OCR — logos, navigation chrome, ad banners. \
+            Identify whether the ticket is for a plane or concert event, \
+            then fill only the fields you can confidently extract.
+
+            STRICT RULES:
+            - "venue" must be the venue name (e.g. "Marx Halle", \
+              "Madison Square Garden", "O2 Arena"). DO NOT use seat \
+              category words like "Stehplatz", "Sitzplatz", "Standing", \
+              "General Admission". DO NOT use ticket types or pricing tiers.
+            - "date" must be ISO 8601 format YYYY-MM-DD. European date \
+              formats like "13.05.2026" are day.month.year — convert to \
+              "2026-05-13". German month names: Januar, Februar, März, \
+              April, Mai, Juni, Juli, August, September, Oktober, \
+              November, Dezember.
+            - "doorsTime" and "showTime" must be 24-hour HH:MM. Common \
+              labels: "Doors", "Einlass", "Show", "Beginn", "Showtime".
+            - "flightNumber" must include the carrier code (e.g. "UA 1471").
+            - Airport codes must be IATA 3-letter codes (e.g. "SFO", "JFK").
+            - Leave fields empty if not in the text. DO NOT invent.
+            """
         }
         do {
             let response = try await session.respond(
                 to: "Extract ticket details from this text:\n\n\(text)",
                 generating: ShareExtractionGuess.self
             )
-            NSLog("[Lumoria] FM extracted category=%@", response.content.category)
+            NSLog("[Lumoria] FM extracted: %@", String(describing: response.content))
             return response.content
         } catch {
             NSLog("[Lumoria] FM call failed: %@", String(describing: error))
@@ -57,9 +73,16 @@ enum ShareFoundationModelsExtractor {
 
 #if canImport(FoundationModels)
 
-/// Structured output the model fills in. Fields beyond `category`
-/// are optional — the model leaves them empty when the input
-/// doesn't include them, per the system instructions.
+/// Structured output the model fills in. Properties are declared in
+/// "logical generation order" per Apple's Foundation Models guidance —
+/// `category` first so subsequent fields can be conditional on it,
+/// then concert-shaped fields, then plane-shaped fields.
+///
+/// Date/time fields use ISO-style strings (YYYY-MM-DD / HH:MM)
+/// because the model is more reliable at producing well-formed
+/// strings than parsing locale-specific date formats. Conversion to
+/// `Date` happens in `toConcertFields()` / `toPlaneFields()` with a
+/// fixed `en_US_POSIX` formatter so the result is locale-independent.
 @available(iOS 26.0, *)
 @Generable
 struct ShareExtractionGuess: Sendable {
@@ -74,11 +97,20 @@ struct ShareExtractionGuess: Sendable {
     @Guide(description: "Tour name for concert tickets")
     var tourName: String?
 
-    @Guide(description: "Venue name (e.g. 'Madison Square Garden', 'Marx Halle')")
+    @Guide(description: "Actual venue name (e.g. 'Madison Square Garden', 'Marx Halle', 'Wiener Stadthalle Halle D'). NOT seat-type words like 'Stehplatz'.")
     var venue: String?
 
     @Guide(description: "Order or ticket reference number")
     var ticketNumber: String?
+
+    @Guide(description: "Event date in ISO 8601 format YYYY-MM-DD (e.g. '2026-05-13' for 13 May 2026)")
+    var date: String?
+
+    @Guide(description: "Doors-open time in 24-hour HH:MM format (e.g. '19:00')")
+    var doorsTime: String?
+
+    @Guide(description: "Show start time in 24-hour HH:MM format (e.g. '20:00')")
+    var showTime: String?
 
     // Plane fields
 
@@ -90,6 +122,12 @@ struct ShareExtractionGuess: Sendable {
 
     @Guide(description: "Destination airport IATA 3-letter code (e.g. 'JFK')")
     var destinationAirport: String?
+
+    @Guide(description: "Departure date in ISO 8601 format YYYY-MM-DD")
+    var departureDate: String?
+
+    @Guide(description: "Departure time in 24-hour HH:MM format")
+    var departureTime: String?
 
     @Guide(description: "Gate identifier for plane tickets")
     var gate: String?
@@ -108,6 +146,11 @@ struct ShareExtractionGuess: Sendable {
         fields.gate = gate ?? ""
         fields.seat = seat ?? ""
         fields.terminal = terminal ?? ""
+        if let departure = combine(date: departureDate, time: departureTime) {
+            fields.departureDate = departure
+        } else if let departure = parseISODate(departureDate) {
+            fields.departureDate = departure
+        }
         return fields
     }
 
@@ -117,7 +160,43 @@ struct ShareExtractionGuess: Sendable {
         fields.tourName = tourName ?? ""
         fields.venue = venue ?? ""
         fields.ticketNumber = ticketNumber ?? ""
+        let day = parseISODate(date)
+        fields.date = day
+        fields.doorsTime = combine(date: date, time: doorsTime) ?? day
+        fields.showTime = combine(date: date, time: showTime) ?? day
         return fields
+    }
+
+    // MARK: - Helpers
+
+    /// Parses an ISO `YYYY-MM-DD` date string. Returns nil for any
+    /// other format — the model is instructed to use this format,
+    /// and silently coercing other shapes would mask prompt issues.
+    private func parseISODate(_ s: String?) -> Date? {
+        guard let s, !s.isEmpty else { return nil }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.date(from: s)
+    }
+
+    /// Combines an ISO date and an HH:MM time string into a single
+    /// `Date`. Used for `doorsTime`, `showTime`, and `departureTime`.
+    private func combine(date: String?, time: String?) -> Date? {
+        guard let day = parseISODate(date),
+              let time, !time.isEmpty else { return nil }
+        let parts = time.split(separator: ":")
+        guard parts.count >= 2,
+              let hour = Int(parts[0]),
+              let minute = Int(parts[1]),
+              (0..<24).contains(hour),
+              (0..<60).contains(minute) else { return nil }
+        let cal = Calendar.current
+        var comps = cal.dateComponents([.year, .month, .day], from: day)
+        comps.hour = hour
+        comps.minute = minute
+        return cal.date(from: comps)
     }
 }
 
