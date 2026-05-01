@@ -25,6 +25,9 @@
 		69C0596D2F9D5A88006E0561 /* Shared.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69C0596B2F9D5A88006E0561 /* Shared.xcassets */; };
 		69C05C0B2F9FFCA1006E0561 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 69C05C0A2F9FFCA1006E0561 /* GoogleSignIn */; };
 		69C05C0D2F9FFCA1006E0561 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 69C05C0C2F9FFCA1006E0561 /* GoogleSignInSwift */; };
+		69C069402FA4AB48006E0561 /* LumoriaShareImport.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 69C069362FA4AB48006E0561 /* LumoriaShareImport.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		69C069472FA4ABA5006E0561 /* Vision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69C069462FA4ABA5006E0561 /* Vision.framework */; };
+		69C069492FA4ABAE006E0561 /* NaturalLanguage.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 69C069482FA4ABAE006E0561 /* NaturalLanguage.framework */; };
 		69E4ACE92F9560AD0084A148 /* LumoriaPKPassImport.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 69E4ACDF2F9560AD0084A148 /* LumoriaPKPassImport.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -57,6 +60,13 @@
 			remoteGlobalIDString = 69C058982F9B937B006E0561;
 			remoteInfo = LumoriaExtension;
 		};
+		69C0693E2FA4AB48006E0561 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 694D47532F8D0EDE007340A4 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 69C069352FA4AB48006E0561;
+			remoteInfo = LumoriaShareImport;
+		};
 		69E4ACE72F9560AD0084A148 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 694D47532F8D0EDE007340A4 /* Project object */;
@@ -76,6 +86,7 @@
 				69B770932F929ACA003B520F /* LumoriaStickers.appex in Embed Foundation Extensions */,
 				69E4ACE92F9560AD0084A148 /* LumoriaPKPassImport.appex in Embed Foundation Extensions */,
 				69C058AE2F9B937D006E0561 /* LumoriaExtension.appex in Embed Foundation Extensions */,
+				69C069402FA4AB48006E0561 /* LumoriaShareImport.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -94,6 +105,9 @@
 		69C0589C2F9B937B006E0561 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		69C058B32F9B939D006E0561 /* LumoriaExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LumoriaExtension.entitlements; sourceTree = "<group>"; };
 		69C0596B2F9D5A88006E0561 /* Shared.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Shared.xcassets; sourceTree = "<group>"; };
+		69C069362FA4AB48006E0561 /* LumoriaShareImport.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LumoriaShareImport.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		69C069462FA4ABA5006E0561 /* Vision.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Vision.framework; path = System/Library/Frameworks/Vision.framework; sourceTree = SDKROOT; };
+		69C069482FA4ABAE006E0561 /* NaturalLanguage.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NaturalLanguage.framework; path = System/Library/Frameworks/NaturalLanguage.framework; sourceTree = SDKROOT; };
 		69E4ACDF2F9560AD0084A148 /* LumoriaPKPassImport.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LumoriaPKPassImport.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -121,6 +135,24 @@
 			);
 			target = 69C058982F9B937B006E0561 /* LumoriaExtension */;
 		};
+		69C069432FA4AB48006E0561 /* Exceptions for "LumoriaShareImport" folder in "LumoriaShareImport" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 69C069352FA4AB48006E0561 /* LumoriaShareImport */;
+		};
+		69C0694B2FA4ABCB006E0561 /* Exceptions for "Lumoria App" folder in "LumoriaShareImport" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				services/import/ShareCategoryClassifier.swift,
+				services/import/ShareConcertExtractor.swift,
+				services/import/SharePayload.swift,
+				services/import/SharePayloadHandoff.swift,
+				services/import/SharePlaneExtractor.swift,
+			);
+			target = 69C069352FA4AB48006E0561 /* LumoriaShareImport */;
+		};
 		69E4ACEA2F9560AD0084A148 /* Exceptions for "LumoriaPKPassImport" folder in "LumoriaPKPassImport" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -135,6 +167,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				69C058CD2F9B97A1006E0561 /* Exceptions for "Lumoria App" folder in "LumoriaExtension" target */,
+				69C0694B2FA4ABCB006E0561 /* Exceptions for "Lumoria App" folder in "LumoriaShareImport" target */,
 			);
 			path = "Lumoria App";
 			sourceTree = "<group>";
@@ -163,6 +196,14 @@
 				69C058B12F9B937D006E0561 /* Exceptions for "Lumoria" folder in "LumoriaExtension" target */,
 			);
 			path = Lumoria;
+			sourceTree = "<group>";
+		};
+		69C069372FA4AB48006E0561 /* LumoriaShareImport */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				69C069432FA4AB48006E0561 /* Exceptions for "LumoriaShareImport" folder in "LumoriaShareImport" target */,
+			);
+			path = LumoriaShareImport;
 			sourceTree = "<group>";
 		};
 		69E4ACE02F9560AD0084A148 /* LumoriaPKPassImport */ = {
@@ -224,6 +265,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		69C069332FA4AB48006E0561 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				69C069492FA4ABAE006E0561 /* NaturalLanguage.framework in Frameworks */,
+				69C069472FA4ABA5006E0561 /* Vision.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		69E4ACDC2F9560AD0084A148 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -245,6 +295,7 @@
 				69B770882F929AC8003B520F /* LumoriaStickers */,
 				69E4ACE02F9560AD0084A148 /* LumoriaPKPassImport */,
 				69C0589E2F9B937B006E0561 /* Lumoria */,
+				69C069372FA4AB48006E0561 /* LumoriaShareImport */,
 				69B770852F929AC8003B520F /* Frameworks */,
 				694D475C2F8D0EDE007340A4 /* Products */,
 				69B770AB2F93BCCE003B520F /* Amplitude.xcconfig */,
@@ -260,6 +311,7 @@
 				69B770842F929AC8003B520F /* LumoriaStickers.appex */,
 				69E4ACDF2F9560AD0084A148 /* LumoriaPKPassImport.appex */,
 				69C058992F9B937B006E0561 /* LumoriaExtension.appex */,
+				69C069362FA4AB48006E0561 /* LumoriaShareImport.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -267,6 +319,8 @@
 		69B770852F929AC8003B520F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				69C069482FA4ABAE006E0561 /* NaturalLanguage.framework */,
+				69C069462FA4ABA5006E0561 /* Vision.framework */,
 				69B770862F929AC8003B520F /* Messages.framework */,
 				69C0589A2F9B937B006E0561 /* WidgetKit.framework */,
 				69C0589C2F9B937B006E0561 /* SwiftUI.framework */,
@@ -292,6 +346,7 @@
 				69B770922F929ACA003B520F /* PBXTargetDependency */,
 				69E4ACE82F9560AD0084A148 /* PBXTargetDependency */,
 				69C058AD2F9B937D006E0561 /* PBXTargetDependency */,
+				69C0693F2FA4AB48006E0561 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				694D475D2F8D0EDE007340A4 /* Lumoria App */,
@@ -403,6 +458,28 @@
 			productReference = 69C058992F9B937B006E0561 /* LumoriaExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		69C069352FA4AB48006E0561 /* LumoriaShareImport */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 69C069442FA4AB48006E0561 /* Build configuration list for PBXNativeTarget "LumoriaShareImport" */;
+			buildPhases = (
+				69C069322FA4AB48006E0561 /* Sources */,
+				69C069332FA4AB48006E0561 /* Frameworks */,
+				69C069342FA4AB48006E0561 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				69C069372FA4AB48006E0561 /* LumoriaShareImport */,
+			);
+			name = LumoriaShareImport;
+			packageProductDependencies = (
+			);
+			productName = LumoriaShareImport;
+			productReference = 69C069362FA4AB48006E0561 /* LumoriaShareImport.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		69E4ACDE2F9560AD0084A148 /* LumoriaPKPassImport */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 69E4ACEB2F9560AD0084A148 /* Build configuration list for PBXNativeTarget "LumoriaPKPassImport" */;
@@ -452,6 +529,9 @@
 					69C058982F9B937B006E0561 = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
+					69C069352FA4AB48006E0561 = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
 					69E4ACDE2F9560AD0084A148 = {
 						CreatedOnToolsVersion = 26.4;
 					};
@@ -490,6 +570,7 @@
 				69B770832F929AC8003B520F /* LumoriaStickers */,
 				69E4ACDE2F9560AD0084A148 /* LumoriaPKPassImport */,
 				69C058982F9B937B006E0561 /* LumoriaExtension */,
+				69C069352FA4AB48006E0561 /* LumoriaShareImport */,
 			);
 		};
 /* End PBXProject section */
@@ -530,6 +611,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				69C0596C2F9D5A88006E0561 /* Shared.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		69C069342FA4AB48006E0561 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -578,6 +666,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		69C069322FA4AB48006E0561 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		69E4ACDB2F9560AD0084A148 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -607,6 +702,11 @@
 			isa = PBXTargetDependency;
 			target = 69C058982F9B937B006E0561 /* LumoriaExtension */;
 			targetProxy = 69C058AC2F9B937D006E0561 /* PBXContainerItemProxy */;
+		};
+		69C0693F2FA4AB48006E0561 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 69C069352FA4AB48006E0561 /* LumoriaShareImport */;
+			targetProxy = 69C0693E2FA4AB48006E0561 /* PBXContainerItemProxy */;
 		};
 		69E4ACE82F9560AD0084A148 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1053,6 +1153,64 @@
 			};
 			name = Release;
 		};
+		69C069412FA4AB48006E0561 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LumoriaShareImport/LumoriaShareImport.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UV5KDNCKWS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LumoriaShareImport/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LumoriaShareImport;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "bearista.Lumoria-App.LumoriaShareImport";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		69C069422FA4AB48006E0561 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = LumoriaShareImport/LumoriaShareImport.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = UV5KDNCKWS;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = LumoriaShareImport/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = LumoriaShareImport;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "bearista.Lumoria-App.LumoriaShareImport";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		69E4ACEC2F9560AD0084A148 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1172,6 +1330,15 @@
 			buildConfigurations = (
 				69C058AF2F9B937D006E0561 /* Debug */,
 				69C058B02F9B937D006E0561 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		69C069442FA4AB48006E0561 /* Build configuration list for PBXNativeTarget "LumoriaShareImport" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				69C069412FA4AB48006E0561 /* Debug */,
+				69C069422FA4AB48006E0561 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
