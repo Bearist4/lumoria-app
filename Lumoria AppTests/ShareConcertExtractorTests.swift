@@ -38,6 +38,46 @@ final class ShareConcertExtractorTests: XCTestCase {
         XCTAssertEqual(result.ticketNumber, "ABC987")
     }
 
+    func testExtractsMadisonBeerTicketmaster() {
+        let text = """
+        Deine Bestellung bei Ticketmaster
+        Du Bist Dabei
+        Hallo Benjamin,
+        danke für deine Bestellung!
+        Deine Bestellbestätigung
+        Madison Beer: the locket tour
+        Mittwoch, 13. Mai 2026, 20:00 Uhr
+        Marx Halle
+        Stehplatz
+        PK1 Stehplatz - Endpreis 79,90€
+        """
+        let result = ShareConcertExtractor.extract(text: text)
+        XCTAssertEqual(result.artist, "Madison Beer", "got=\(result.artist)")
+        XCTAssertEqual(result.tourName, "the locket tour", "got=\(result.tourName)")
+        XCTAssertTrue(result.venue.contains("Marx Halle"), "venue=\(result.venue)")
+    }
+
+    func testExtractsEurovisionOeticket() {
+        let text = """
+        Your oeticket Order - Grand Final Afternoon Preview
+        Payment:
+        PayPal
+        ORDER DETAILS
+        Grand Final Afternoon Preview
+        Date: Sat, 16.05.2026, 12:00
+        Venue: Wiener Stadthalle Halle D, Roland-Rainer-Platz 1 / Eingang Märzpark, 1150 WIEN
+        Promoter: 80:Österreichischer Rundfunk (ORF) - ESC, Hugo-Portisch-Gasse 1, 1136 Wien, Austria
+        Promotion: Eurovisions Song Contest 2026
+        Seats Category A, standard price
+        Surname: Caillet
+        First name: Benjamin
+        Entrance 1. Rang Süd, Area 64 - Tor Orange, Row 3, Seat 104
+        """
+        let result = ShareConcertExtractor.extract(text: text)
+        XCTAssertEqual(result.artist, "Grand Final Afternoon Preview", "got=\(result.artist)")
+        XCTAssertTrue(result.venue.contains("Wiener Stadthalle"), "venue=\(result.venue)")
+    }
+
     func testReturnsMinimalForBareText() {
         // extract is permissive — the classifier is the real gate
         // upstream. For text the classifier would never approve, the
