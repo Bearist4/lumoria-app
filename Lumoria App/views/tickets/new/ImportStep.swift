@@ -19,11 +19,43 @@ struct NewTicketImportStep: View {
     @State private var errorMessage: String?
 
     var body: some View {
+        Group {
+            switch funnel.importSource {
+            case .share:
+                shareImportBody
+            case .wallet, .none:
+                walletImportBody
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .fileImporter(
+            isPresented: $isPicking,
+            allowedContentTypes: [pkPassType],
+            allowsMultipleSelection: false
+        ) { result in
+            handlePickResult(result)
+        }
+        .onAppear {
+            // Wallet path: pass data delivered via the app-root share
+            // handler skips the file picker — parse immediately.
+            if funnel.importSource == .wallet, let data = funnel.pendingPassData {
+                funnel.pendingPassData = nil
+                parse(data: data)
+            }
+            // Share path: result was parsed in the extension; apply
+            // immediately and advance to .form.
+            if funnel.importSource == .share, let result = funnel.pendingShareImport {
+                funnel.pendingShareImport = nil
+                funnel.applyShareImport(result)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var walletImportBody: some View {
         VStack(spacing: 24) {
             Spacer(minLength: 0)
-
             illustration
-
             VStack(spacing: 8) {
                 Text(isParsing ? "Reading pass…" : "Drop in a boarding pass")
                     .font(.title3.bold())
@@ -34,13 +66,10 @@ struct NewTicketImportStep: View {
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, 24)
-
             if let errorMessage {
                 errorBanner(errorMessage)
             }
-
             Spacer(minLength: 0)
-
             VStack(spacing: 12) {
                 Button {
                     isPicking = true
@@ -67,22 +96,18 @@ struct NewTicketImportStep: View {
                 .disabled(isParsing)
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .fileImporter(
-            isPresented: $isPicking,
-            allowedContentTypes: [pkPassType],
-            allowsMultipleSelection: false
-        ) { result in
-            handlePickResult(result)
-        }
-        .onAppear {
-            // Pass data delivered via the app-root share handler skips
-            // the file picker — parse immediately. Consumed in one shot
-            // so bailing out of this step doesn't re-trigger the parse.
-            if let data = funnel.pendingPassData {
-                funnel.pendingPassData = nil
-                parse(data: data)
-            }
+    }
+
+    @ViewBuilder
+    private var shareImportBody: some View {
+        // Share-import results are parsed in the extension before the
+        // funnel ever opens, so this step renders for one frame at
+        // most before `.onAppear` advances to `.form`.
+        VStack(spacing: 16) {
+            ProgressView()
+            Text("Pre-filling your ticket…")
+                .font(.subheadline)
+                .foregroundStyle(Color.Text.secondary)
         }
     }
 
