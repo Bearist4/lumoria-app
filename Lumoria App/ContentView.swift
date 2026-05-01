@@ -18,6 +18,7 @@ struct ContentView: View {
     @StateObject private var sortPresenter = MemorySortPresenter()
     @StateObject private var colorPresenter = MemoryColorPresenter()
     @EnvironmentObject private var walletImport: WalletImportCoordinator
+    @EnvironmentObject private var shareImport: ShareImportCoordinator
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @EnvironmentObject private var widgetRouter: WidgetDeepLinkRouter
 
@@ -26,6 +27,9 @@ struct ContentView: View {
     /// the funnel is presented over whatever tab the user is on, so the
     /// import flow doesn't depend on `AllTicketsView` being visible.
     @State private var pendingImportPassData: Data? = nil
+    /// Parsed share-extension payload delivered via the App Group
+    /// drain. Same presentation pattern as `pendingImportPassData`.
+    @State private var pendingShareResult: ShareImportResult? = nil
     @EnvironmentObject private var authManager: AuthManager
     var body: some View {
         // iOS 18+ `Tab` API — renders the new liquid-glass floating
@@ -147,6 +151,11 @@ struct ContentView: View {
             pendingImportPassData = data
             walletImport.pending = nil
         }
+        .onChange(of: shareImport.pending) { _, result in
+            guard let result else { return }
+            pendingShareResult = result
+            shareImport.pending = nil
+        }
         .fullScreenCover(
             isPresented: Binding(
                 get: { pendingImportPassData != nil },
@@ -159,6 +168,25 @@ struct ContentView: View {
             NewTicketFunnelView(
                 initialImportSource: .wallet,
                 initialPassData: pendingImportPassData
+            )
+            .environmentObject(ticketsStore)
+            .environmentObject(memoriesStore)
+            .environmentObject(profileStore)
+            .environmentObject(notificationsStore)
+            .environmentObject(onboardingCoordinator)
+        }
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { pendingShareResult != nil },
+                set: { if !$0 { pendingShareResult = nil } }
+            )
+        ) {
+            NewTicketFunnelView(
+                initialImportSource: .share,
+                initialShareImport: pendingShareResult,
+                initialCategory: ShareImportTranslator.category(
+                    from: pendingShareResult?.classification.category
+                )
             )
             .environmentObject(ticketsStore)
             .environmentObject(memoriesStore)

@@ -34,6 +34,16 @@ struct NewTicketFunnelView: View {
     /// this to skip the file picker and parse immediately.
     var initialPassData: Data? = nil
 
+    /// Parsed share-extension payload handed in by the app-root drain
+    /// handler. Populates the funnel before the import step runs and
+    /// drives a category preset when the classifier returned one.
+    var initialShareImport: ShareImportResult? = nil
+
+    /// Optional category to lock the funnel onto when the share
+    /// extension classified the payload (e.g. plane / concert).
+    /// When nil the funnel opens at the category step.
+    var initialCategory: TicketCategory? = nil
+
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
@@ -244,6 +254,17 @@ struct NewTicketFunnelView: View {
             }
             if let data = initialPassData, funnel.pendingPassData == nil {
                 funnel.pendingPassData = data
+            }
+            if let result = initialShareImport, funnel.pendingShareImport == nil {
+                funnel.pendingShareImport = result
+            }
+            if let category = initialCategory, funnel.category == nil {
+                funnel.category = category
+                // Skip directly to the template picker when category
+                // is preset — the share extension already classified.
+                if funnel.step == .category {
+                    funnel.step = .template
+                }
             }
             if !funnel.isEditing {
                 Analytics.track(.newTicketStarted(entryPoint: .gallery))
