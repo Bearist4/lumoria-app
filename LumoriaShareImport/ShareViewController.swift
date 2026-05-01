@@ -128,9 +128,12 @@ final class ShareViewController: UIViewController {
             event = ShareConcertExtractor.extract(text: payload.text)
             if let e = event {
                 os_log(
-                    "concert fields: artist=%{public}@ tour=%{public}@ venue=%{public}@ ticketNumber=%{public}@",
+                    "concert fields: artist=%{public}@ tour=%{public}@ venue=%{public}@ ticketNumber=%{public}@ date=%{public}@ doors=%{public}@ show=%{public}@",
                     log: extensionLog, type: .default,
-                    e.artist, e.tourName, e.venue, e.ticketNumber
+                    e.artist, e.tourName, e.venue, e.ticketNumber,
+                    e.date.map { "\($0)" } ?? "nil",
+                    e.doorsTime.map { "\($0)" } ?? "nil",
+                    e.showTime.map { "\($0)" } ?? "nil"
                 )
             }
         default:

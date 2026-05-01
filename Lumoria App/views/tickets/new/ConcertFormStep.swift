@@ -81,6 +81,7 @@ struct NewConcertFormStep: View {
                 label: "Name",
                 isRequired: true,
                 assistiveText: "We’ll auto-fill the city and drop a pin on the map.",
+                initialQuery: funnel.eventForm.venue,
                 selected: $funnel.eventForm.venueLocation
             )
             .onChange(of: funnel.eventForm.venueLocation) { _, new in

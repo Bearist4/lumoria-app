@@ -79,11 +79,17 @@ struct LumoriaVenueField: View {
     var isRequired: Bool = true
     var placeholder: LocalizedStringKey = "Search a venue"
     var assistiveText: LocalizedStringKey? = nil
+    /// Optional seed text the field shows when the user hasn't picked
+    /// a venue yet. Used by the share-extension import path so OCR'd
+    /// venue names ("Marx Halle") appear pre-typed in the search box —
+    /// the user just taps a result to commit a real `TicketLocation`.
+    var initialQuery: String? = nil
 
     @Binding var selected: TicketLocation?
 
     @StateObject private var model = VenueSearchModel()
     @FocusState private var isFocused: Bool
+    @State private var didSeedInitialQuery = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -106,6 +112,23 @@ struct LumoriaVenueField: View {
             model.query = [sel.city, sel.name]
                 .compactMap { $0 }
                 .joined(separator: " · ")
+        }
+        // Seed the search field with `initialQuery` once on first
+        // appearance, so share-extension imports surface the OCR'd
+        // venue text. Skipped if the user (or edit prefill) has
+        // already populated the field.
+        .onAppear {
+            guard !didSeedInitialQuery,
+                  let initial = initialQuery?
+                    .trimmingCharacters(in: .whitespacesAndNewlines),
+                  !initial.isEmpty,
+                  selected == nil,
+                  model.query.isEmpty else {
+                didSeedInitialQuery = true
+                return
+            }
+            model.query = initial
+            didSeedInitialQuery = true
         }
     }
 

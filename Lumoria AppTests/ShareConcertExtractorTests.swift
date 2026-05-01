@@ -80,6 +80,45 @@ final class ShareConcertExtractorTests: XCTestCase {
         XCTAssertTrue(result.venue.contains("Wiener Stadthalle"), "venue=\(result.venue)")
     }
 
+    /// Real Vision-OCR'd output from a Eurovision oeticket
+    /// confirmation screenshot — captured via the share extension's
+    /// debug log. Real OCR pulls in iOS chrome at the top, the EBU
+    /// logo as `(•)EBU`, and stylized brand text — none of which can
+    /// be confused for the actual event title.
+    func testExtractsEurovisionFromRealOCR() {
+        let text = """
+        11:47 4
+        <
+        ORDER DETAILS
+        (•)EBU
+        ORF
+        eURO@ISIOn
+        SONG CONTEST
+        VIENNA CU60
+        Your oeticket Order - G...
+        Grand Final Afternoon Preview
+        Date:
+        Sat, 16.05.2026, 12:00
+        Venue:
+        Wiener Stadthalle Halle D, Roland-Rainer-
+        Platz 1 / Eingang Märzpark, 1150 WIEN
+        Promoter:
+        80 :Österreichischer Rundfunk (ORF) - ESC,
+        Hugo-Portisch-Gasse 1, 1136 Wien, Austria
+        Promotion:
+        Eurovisions Song Contest 2026
+        Seats Category A, standard price
+        4 × € 62.50
+        € 250.00
+        Surname: Caillet
+        First name: Benjamin
+        Entrance 1. Rang Süd, Area 64 - Tor Orange, Row 3, Seat 104
+        """
+        let result = ShareConcertExtractor.extract(text: text)
+        XCTAssertEqual(result.artist, "Grand Final Afternoon Preview", "got=\(result.artist)")
+        XCTAssertTrue(result.venue.contains("Wiener Stadthalle"), "venue=\(result.venue)")
+    }
+
     func testReturnsMinimalForBareText() {
         // extract is permissive — the classifier is the real gate
         // upstream. For text the classifier would never approve, the

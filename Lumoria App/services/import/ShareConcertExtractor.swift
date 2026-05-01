@@ -88,14 +88,17 @@ enum ShareConcertExtractor {
         return nil
     }
 
-    /// Filters out greeting / vendor / label / numeric lines that
-    /// can never be the artist+tour header. Errs toward inclusion —
-    /// a too-permissive header gets corrected by the user; a too-
-    /// strict one drops valid input on the floor.
+    /// Filters out greeting / vendor / label / logo lines that can
+    /// never be the artist+tour header. OCR on real screenshots picks
+    /// up logo art ("(•)EBU"), all-caps acronyms ("ORF", "SONG
+    /// CONTEST"), and stylized brand text ("eURO@ISIOn") — those
+    /// have to be rejected so the walk lands on the actual title.
     private static func isLikelyHeader(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
-        if trimmed.count < 4 { return false }
+        if trimmed.count < 5 { return false }
         let lower = trimmed.lowercased()
+
+        // Greeting / banner / label patterns.
         if lower.hasPrefix("your ") { return false }
         if lower.hasPrefix("hello ") || lower.hasPrefix("hello,") { return false }
         if lower.hasPrefix("hallo ") || lower.hasPrefix("hallo,") { return false }
@@ -108,16 +111,40 @@ enum ShareConcertExtractor {
         if lower.contains("ticketmaster") && lower.contains("confirm") { return false }
         if lower.contains("axs") && lower.contains("confirm") { return false }
         if lower.contains("oeticket") && lower.contains("order") { return false }
+
+        // Logo / stylized-text noise. Real OCR puts these on their
+        // own lines when emails embed a brand mark — none can be the
+        // artist header.
+        if trimmed.contains("(•)") || trimmed.contains("@") { return false }
+        if trimmed.contains("•") && trimmed.count <= 8 { return false }
+
+        // All-uppercase short tokens (acronyms / logos like "ORF",
+        // "SONG CONTEST") or all-caps with digits ("VIENNA CU60").
+        if trimmed.uppercased() == trimmed && trimmed.lowercased() != trimmed {
+            let hasDigit = trimmed.range(of: #"\d"#, options: .regularExpression) != nil
+            if hasDigit { return false }
+            if trimmed.count <= 13 { return false }
+        }
         return true
     }
 
     /// Restores readable casing for OCR'd text that came in as
     /// all-lowercase ("the locket tour") or all-uppercase ("MADISON
     /// BEER"). Mixed-case strings are left alone so brand names like
-    /// "iPhone" or "deadmau5" survive unchanged.
+    /// "iPhone" or "deadmau5" survive unchanged. Strings dominated
+    /// by special characters ("(•)EBU") are also left alone — the
+    /// header filter should have rejected them, but skipping the
+    /// transform here is a defensive belt.
     private static func applyTitleCaseIfNeeded(_ s: String) -> String {
         let trimmed = s.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return s }
+        let letters = trimmed.unicodeScalars.filter { CharacterSet.letters.contains($0) }
+        // Skip when fewer than 4 letters, or letters are <50% of the
+        // string — these are usually logos / icon strings.
+        guard letters.count >= 4,
+              Double(letters.count) / Double(trimmed.count) >= 0.5 else {
+            return trimmed
+        }
         let isAllLower = trimmed.lowercased() == trimmed
         let isAllUpper = trimmed.uppercased() == trimmed && trimmed.lowercased() != trimmed
         if isAllLower || isAllUpper {
