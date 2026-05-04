@@ -2,24 +2,16 @@
 //  PlanManagementView.swift
 //  Lumoria App
 //
-//  Settings → Plan management. Shows tier-driven copy when monetisation
-//  is on; renders a "Premium coming soon" stub while the kill-switch
-//  is off so the user sees the section exists without exposing buy
-//  buttons.
+//  Settings → Plan management. While EntitlementStore.kPaymentsEnabled
+//  is false, this is a read-only status row: shows the early-adopter
+//  badge for grandfathered users, or the free-plan blurb for everyone
+//  else. The upgrade flow returns when payments ship.
 //
 
 import SwiftUI
-import StoreKit
 
 struct PlanManagementView: View {
     @Environment(EntitlementStore.self) private var entitlement
-    @Environment(Paywall.PresentationState.self) private var paywallState
-
-    @State private var purchase: PurchaseService
-
-    init(entitlement: EntitlementStore) {
-        self._purchase = State(initialValue: PurchaseService(entitlement: entitlement))
-    }
 
     var body: some View {
         ScrollView {
@@ -27,10 +19,8 @@ struct PlanManagementView: View {
                 if !entitlement.monetisationEnabled {
                     comingSoon
                 } else {
-                    tierCard
-                    primaryAction
+                    statusRow
                 }
-                restoreButton
             }
             .padding(.horizontal, 24)
             .padding(.vertical, 32)
@@ -38,8 +28,6 @@ struct PlanManagementView: View {
         .navigationTitle("Plan")
         .navigationBarTitleDisplayMode(.inline)
     }
-
-    // MARK: - Off state
 
     private var comingSoon: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -51,82 +39,28 @@ struct PlanManagementView: View {
         }
     }
 
-    // MARK: - On state
-
     @ViewBuilder
-    private var tierCard: some View {
+    private var statusRow: some View {
         switch entitlement.tier {
         case .grandfathered:
-            tierBlock(
-                title: "Beta tester",
-                body: "Premium is on the house, for life. Thanks for testing Lumoria."
-            )
-        case .lifetime:
-            tierBlock(
-                title: "Lifetime",
-                body: "You bought Lumoria Lifetime. Premium stays unlocked forever."
-            )
-        case .subscriberInTrial(_, let exp):
-            tierBlock(
-                title: "Trial",
-                body: "Free until \(exp.formatted(date: .abbreviated, time: .omitted))."
-            )
-        case .subscriber(let pid, let renews):
-            let label = pid.contains("annual") ? "Annual" : "Monthly"
-            tierBlock(
-                title: label,
-                body: "Renews \(renews.formatted(date: .abbreviated, time: .omitted))."
-            )
-        case .free:
-            tierBlock(
-                title: "Free",
-                body: "Upgrade to unlock unlimited memories, tickets, the map suite, and more."
-            )
-        }
-    }
-
-    private func tierBlock(title: String, body: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title).font(.title2.bold())
-            Text(body).font(.body).foregroundStyle(Color.Text.secondary)
-        }
-    }
-
-    @ViewBuilder
-    private var primaryAction: some View {
-        switch entitlement.tier {
-        case .free:
-            Button {
-                Paywall.present(
-                    for: .upgradeFromSettings,
-                    entitlement: entitlement,
-                    state: paywallState
-                )
-            } label: {
-                Text("See plans")
+            HStack(alignment: .top, spacing: 12) {
+                LumoriaPremiumBadge(style: .crown)
+                Text("Early adopter — unlimited memories and tickets")
                     .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .foregroundStyle(Color.Text.primary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-        case .subscriber, .subscriberInTrial:
-            if let url = URL(string: "itms-apps://apps.apple.com/account/subscriptions") {
-                Link("Manage subscription", destination: url)
-                    .font(.headline)
+        default:
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Free plan")
+                    .font(.title2.bold())
+                Text("3 memories, 10 tickets")
+                    .font(.body)
+                    .foregroundStyle(Color.Text.secondary)
+                Text("+1 memory or +2 tickets when your invite is redeemed")
+                    .font(.footnote)
+                    .foregroundStyle(Color.Text.tertiary)
             }
-        case .lifetime, .grandfathered:
-            EmptyView()
         }
-    }
-
-    // MARK: - Restore (always visible)
-
-    private var restoreButton: some View {
-        Button("Restore purchases") {
-            Task { _ = await purchase.restore() }
-        }
-        .font(.footnote)
-        .foregroundStyle(.tint)
     }
 }

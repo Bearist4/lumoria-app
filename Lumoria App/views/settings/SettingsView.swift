@@ -104,7 +104,7 @@ struct SettingsView: View {
                 case .appearance:    AppearanceView()
                 case .map:           MapPreferencesView()
                 case .referral:      InviteView()
-                case .plan:          PlanManagementView(entitlement: entitlement)
+                case .plan:          PlanManagementView()
                 case .helpCenter:
                     HelpCenterView { article in
                         path.append(.helpArticle(article.id))
