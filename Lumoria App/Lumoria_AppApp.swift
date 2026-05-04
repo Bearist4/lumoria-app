@@ -124,7 +124,11 @@ struct Lumoria_AppApp: App {
                             set: { paywallState.isPresented = $0 }
                         )) {
                             if let trigger = paywallState.trigger {
-                                PaywallView(trigger: trigger, entitlement: entitlement)
+                                if EntitlementStore.kPaymentsEnabled {
+                                    PaywallView(trigger: trigger, entitlement: entitlement)
+                                } else {
+                                    InviteLandingView(trigger: trigger)
+                                }
                             }
                         }
                 } else if shouldShowLanding {
