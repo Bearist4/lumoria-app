@@ -89,16 +89,7 @@ struct FormStepCollapsibleItem<Content: View>: View {
     @ViewBuilder
     private var statusIcon: some View {
         if proBadge {
-            // 24pt purple disc with the SF "crown" glyph — matches the
-            // premium badge used elsewhere in the funnel chrome.
-            ZStack {
-                Circle()
-                    .fill(Color("Colors/Purple/400"))
-                    .frame(width: 24, height: 24)
-                Image(systemName: "crown.fill")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(.white)
-            }
+            LumoriaPremiumBadge(style: .crown)
         } else if isComplete {
             Image(systemName: "checkmark.circle.fill")
                 .font(.body)
