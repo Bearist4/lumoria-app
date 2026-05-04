@@ -25,7 +25,9 @@ enum Paywall {
     }
 
     /// Present the paywall for the given trigger. No-op when the user
-    /// is already Premium.
+    /// is already Premium, and no-op for non-limit triggers while
+    /// `EntitlementStore.kPaymentsEnabled` is false (those triggers
+    /// have nothing to upgrade to without a purchase path).
     @MainActor
     static func present(
         for trigger: PaywallTrigger,
@@ -33,6 +35,9 @@ enum Paywall {
         state: PresentationState
     ) {
         guard !entitlement.hasPremium else { return }
+        if !EntitlementStore.kPaymentsEnabled, !trigger.isLimitReached {
+            return
+        }
         state.trigger = trigger
     }
 }

@@ -29,6 +29,11 @@ private let kAnnualProductId   = "app.lumoria.premium.annual"
 @Observable
 final class EntitlementStore {
 
+    /// Master toggle for any payment-related UI. False = no purchase
+    /// paths anywhere in the app; the limit-reached paywall renders the
+    /// invite-only landing instead. Flip to true once StoreKit ships.
+    static let kPaymentsEnabled = false
+
     /// Pre-flag tier (what StoreKit + the profile say).
     private(set) var tier: EntitlementTier = .free
     /// Monetisation kill-switch state. False = free-for-all, no caps,
@@ -125,4 +130,38 @@ final class EntitlementStore {
         }
         return .free
     }
+
+#if DEBUG
+    /// Test-only constructor that skips ProfileService / AppSettingsService.
+    /// Lets unit tests build a deterministic store without touching Supabase.
+    static func previewInstance(
+        tier: EntitlementTier,
+        monetisationEnabled: Bool,
+        inviteRewardKind: InviteRewardKind? = nil
+    ) -> EntitlementStore {
+        let store = EntitlementStore(
+            profileService: PreviewEntitlementProfileService(),
+            appSettingsService: PreviewEntitlementAppSettingsService()
+        )
+        store.tier = tier
+        store.monetisationEnabled = monetisationEnabled
+        store.inviteRewardKind = inviteRewardKind
+        return store
+    }
+#endif
 }
+
+#if DEBUG
+private final class PreviewEntitlementProfileService: ProfileServicing, @unchecked Sendable {
+    func fetch() async throws -> Profile { throw ProfileServiceError.notFound }
+    func setStep(_ step: OnboardingStep) async throws {}
+    func setShowOnboarding(_ value: Bool) async throws {}
+    func replay() async throws {}
+}
+
+private final class PreviewEntitlementAppSettingsService: AppSettingsServicing, @unchecked Sendable {
+    func fetch() async throws -> AppSettings {
+        throw NSError(domain: "preview", code: 0)
+    }
+}
+#endif
