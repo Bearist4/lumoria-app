@@ -3,7 +3,8 @@
 //  Lumoria App
 //
 //  Free-tier counter math. Mirrors the SQL trigger logic in
-//  supabase/migrations/20260506000000_paywall_phase_1_foundation.sql.
+//  supabase/migrations/20260504000000_bump_ticket_cap_to_10.sql
+//  (and the original 20260506000000_paywall_phase_1_foundation.sql).
 //  Keep both sides in sync.
 //
 
@@ -13,7 +14,7 @@ enum FreeCaps {
     static let baseMemoryCap = 3
     static let memoryRewardBonus = 1
 
-    static let baseTicketCap = 5
+    static let baseTicketCap = 10
     static let ticketRewardBonus = 2
 
     static func memoryCap(rewardKind: InviteRewardKind?) -> Int {
