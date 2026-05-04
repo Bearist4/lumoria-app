@@ -155,14 +155,18 @@ struct AllTicketsView: View {
 
     @ViewBuilder
     private var content: some View {
+        // Multi-leg public-transport tickets (and any future grouped
+        // tickets) collapse into a single representative entry here.
+        // The detail view pages through the full group on tap.
+        let collapsed = store.tickets.collapsedToGroupRepresentatives()
         switch sortPresenter.field {
         case .none:
-            grid(for: store.tickets)
+            grid(for: collapsed)
         case .dateCreated, .dateAdded, .eventDate:
             // TODO: differentiate by which date column is picked.
             // For now all three date options reuse the existing
             // grouped-by-date layout; ascending flips section order.
-            let groups = TicketGrouping.byDate(store.tickets, now: Date())
+            let groups = TicketGrouping.byDate(collapsed, now: Date())
             groupedSections(
                 groups: sortPresenter.ascending ? groups.reversed() : groups
             )
@@ -170,11 +174,11 @@ struct AllTicketsView: View {
             // `byCategory` returns groups in first-occurrence order;
             // sort by the group id (= category label string) for true
             // alphabetical ordering.
-            let groups = TicketGrouping.byCategory(store.tickets)
+            let groups = TicketGrouping.byCategory(collapsed)
                 .sorted { $0.id.localizedCaseInsensitiveCompare($1.id) == .orderedAscending }
             groupedSections(groups: groups)
         case .categoryZA:
-            let groups = TicketGrouping.byCategory(store.tickets)
+            let groups = TicketGrouping.byCategory(collapsed)
                 .sorted { $0.id.localizedCaseInsensitiveCompare($1.id) == .orderedDescending }
             groupedSections(groups: groups)
         }
@@ -239,11 +243,28 @@ struct AllTicketsView: View {
 
     private func ticketLink(_ ticket: Ticket) -> some View {
         NavigationLink(value: ticket) {
-            TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
-                .trackCenteredRow(id: ticket.id, into: $centredId)
-                .ticketInspect()
+            ZStack(alignment: .topTrailing) {
+                TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
+                    .trackCenteredRow(id: ticket.id, into: $centredId)
+                    .ticketInspect()
+
+                if let count = groupCount(for: ticket) {
+                    LumoriaGroupBadge(count: count)
+                        .padding(12)
+                        .allowsHitTesting(false)
+                }
+            }
         }
         .buttonStyle(TicketCardButtonStyle())
+    }
+
+    /// Number of legs in the ticket's group, or nil when the ticket
+    /// stands alone. Used to gate the leg-count badge so single-ticket
+    /// cards stay unbadged.
+    private func groupCount(for ticket: Ticket) -> Int? {
+        guard ticket.groupId != nil else { return nil }
+        let count = store.tickets.groupSiblings(of: ticket).count
+        return count > 1 ? count : nil
     }
 
     // MARK: - Row partitioning

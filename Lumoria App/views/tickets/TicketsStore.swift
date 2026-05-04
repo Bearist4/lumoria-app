@@ -82,7 +82,9 @@ final class TicketsStore: ObservableObject {
         originLocation: TicketLocation? = nil,
         destinationLocation: TicketLocation? = nil,
         styleId: String? = nil,
-        eventDate: Date? = nil
+        colorOverrides: [String: String]? = nil,
+        eventDate: Date? = nil,
+        groupId: UUID? = nil
     ) async -> Ticket? {
 
         let userId: UUID
@@ -107,7 +109,9 @@ final class TicketsStore: ObservableObject {
                 locationPrimaryEnc: primaryEnc,
                 locationSecondaryEnc: secondaryEnc,
                 styleId: styleId,
-                eventDateEnc: eventDateEnc
+                colorOverrides: (colorOverrides?.isEmpty ?? true) ? nil : colorOverrides,
+                eventDateEnc: eventDateEnc,
+                groupId: groupId
             )
 
             let row: TicketRow = try await supabase
@@ -166,7 +170,9 @@ final class TicketsStore: ObservableObject {
                 locationPrimaryEnc: primaryEnc,
                 locationSecondaryEnc: secondaryEnc,
                 styleId: ticket.styleId,
-                eventDateEnc: eventDateEnc
+                colorOverrides: (ticket.colorOverrides?.isEmpty ?? true) ? nil : ticket.colorOverrides,
+                eventDateEnc: eventDateEnc,
+                groupId: ticket.groupId
             )
 
             let updated: TicketRow = try await supabase

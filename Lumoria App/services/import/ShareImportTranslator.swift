@@ -28,7 +28,9 @@ enum ShareImportTranslator {
         input.terminal = fields.terminal
         if let date = fields.departureDate {
             input.departureDate = date
+            input.departureDateIsSet = true
             input.departureTime = date
+            input.departureTimeIsSet = true
         }
         return input
     }
@@ -41,9 +43,11 @@ enum ShareImportTranslator {
         input.ticketNumber = fields.ticketNumber
         if let date = fields.date {
             input.date = date
+            input.dateIsSet = true
         }
         if let show = fields.showTime {
             input.showTime = show
+            input.showTimeIsSet = true
         }
         // Doors-time fallback: most concert confirmations only print
         // the show start time. When that's the only time we have, set
@@ -51,8 +55,10 @@ enum ShareImportTranslator {
         // edit it in the form.
         if let doors = fields.doorsTime {
             input.doorsTime = doors
+            input.doorsTimeIsSet = true
         } else if let show = fields.showTime {
             input.doorsTime = show.addingTimeInterval(-45 * 60)
+            input.doorsTimeIsSet = true
         }
         return input
     }

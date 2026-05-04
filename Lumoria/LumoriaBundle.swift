@@ -10,5 +10,6 @@ import WidgetKit
 struct LumoriaBundle: WidgetBundle {
     var body: some Widget {
         MemoryWidget()
+        ProfileStatsWidget()
     }
 }

@@ -86,7 +86,7 @@ struct MemoryEditMode: View {
     // MARK: - Background
 
     private var tintBackground: Color {
-        Color("Colors/\(colorFamily)/50")
+        Color.Background.memory(colorFamily)
     }
 
     // MARK: - Top bar

@@ -5,6 +5,8 @@
 //  Step 4 — Night (sleeper) train variant of the form. Station pickers
 //  populate city + station; the berth slot is a dropdown
 //  (Lower / Middle / Upper / Single). Reuses `TrainFormInput` fields.
+//  Sections are grouped into collapsibles mirroring the Night
+//  template's `requirements` categories.
 //
 
 import SwiftUI
@@ -14,14 +16,23 @@ struct NewNightFormStep: View {
     @ObservedObject var funnel: NewTicketFunnel
 
     @State private var didFireSubmit = false
+    @State private var expandedItems: Set<String> = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            trainSection
-            originSection
-            destinationSection
-            scheduleSection
-            seatSection
+        VStack(spacing: 16) {
+            FormPreviewTile(funnel: funnel)
+
+            VStack(spacing: 8) {
+                ForEach(categories, id: \.id) { category in
+                    FormStepCollapsibleItem(
+                        title: category.label,
+                        isComplete: category.isComplete,
+                        isExpanded: binding(for: category.id)
+                    ) {
+                        category.content
+                    }
+                }
+            }
         }
         .onAppear {
             guard let template = funnel.template else { return }
@@ -37,6 +48,69 @@ struct NewNightFormStep: View {
                 hasDestinationLocation: hasDestinationLocation()
             ))
         }
+    }
+
+    // MARK: - Categories
+
+    private struct Category {
+        let id: String
+        let label: String
+        let isComplete: Bool
+        let content: AnyView
+    }
+
+    private var categories: [Category] {
+        (funnel.template?.requirements ?? []).compactMap { req in
+            switch req.label {
+            case "Departing & arrival cities":
+                return Category(id: "cities", label: req.label, isComplete: hasCities, content: AnyView(citiesContent))
+            case "Train type & code":
+                return Category(id: "train", label: req.label, isComplete: hasTrain, content: AnyView(trainContent))
+            case "Departure date & time":
+                return Category(id: "schedule", label: req.label, isComplete: hasSchedule, content: AnyView(scheduleContent))
+            case "Car, berth & passenger":
+                return Category(id: "berth", label: req.label, isComplete: hasBerth, content: AnyView(berthContent))
+            default:
+                return nil
+            }
+        }
+    }
+
+    // MARK: - Completion predicates
+
+    private var hasCities: Bool {
+        let t = funnel.trainForm
+        return !t.originCity.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.destinationCity.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var hasTrain: Bool {
+        let t = funnel.trainForm
+        return !t.company.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.trainType.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.trainNumber.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var hasSchedule: Bool {
+        let t = funnel.trainForm
+        return t.dateIsSet && t.departureTimeIsSet
+    }
+
+    private var hasBerth: Bool {
+        let t = funnel.trainForm
+        return !t.car.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.berth.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.passenger.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func binding(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { expandedItems.contains(id) },
+            set: { isOn in
+                if isOn { expandedItems.insert(id) }
+                else    { expandedItems.remove(id) }
+            }
+        )
     }
 
     private func countFilledFields() -> Int {
@@ -57,12 +131,36 @@ struct NewNightFormStep: View {
     private func hasOriginLocation() -> Bool { funnel.trainForm.originStationLocation != nil }
     private func hasDestinationLocation() -> Bool { funnel.trainForm.destinationStationLocation != nil }
 
-    // MARK: - Train
+    // MARK: - Cities content
 
-    private var trainSection: some View {
+    private var citiesContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("About your train")
+            LumoriaStationField(
+                label: "Departing station",
+                isRequired: true,
+                assistiveText: "We’ll auto-fill the city for you.",
+                selected: $funnel.trainForm.originStationLocation
+            )
+            .onChange(of: funnel.trainForm.originStationLocation) { _, new in
+                applyStation(new, isOrigin: true)
+            }
 
+            LumoriaStationField(
+                label: "Arrival station",
+                isRequired: true,
+                assistiveText: "We’ll auto-fill the city for you.",
+                selected: $funnel.trainForm.destinationStationLocation
+            )
+            .onChange(of: funnel.trainForm.destinationStationLocation) { _, new in
+                applyStation(new, isOrigin: false)
+            }
+        }
+    }
+
+    // MARK: - Train content
+
+    private var trainContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
             LumoriaInputField(
                 label: "Company",
                 placeholder: "OBB Nightjet",
@@ -86,59 +184,37 @@ struct NewNightFormStep: View {
         }
     }
 
-    // MARK: - Origin
+    // MARK: - Schedule content
 
-    private var originSection: some View {
+    private var scheduleContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Departure")
-
-            LumoriaStationField(
-                label: "Station",
-                isRequired: true,
-                assistiveText: "We’ll auto-fill the city for you.",
-                selected: $funnel.trainForm.originStationLocation
+            LumoriaDateField(
+                label: "Date",
+                placeholder: "Pick a date",
+                date: optionalDateBinding(
+                    date: $funnel.trainForm.date,
+                    isSet: $funnel.trainForm.dateIsSet
+                ),
+                isRequired: true
             )
-            .onChange(of: funnel.trainForm.originStationLocation) { _, new in
-                applyStation(new, isOrigin: true)
-            }
-        }
-    }
 
-    // MARK: - Destination
-
-    private var destinationSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Arrival")
-
-            LumoriaStationField(
-                label: "Station",
+            LumoriaDateField(
+                label: "Departs",
+                placeholder: "Pick a time",
+                date: optionalDateBinding(
+                    date: $funnel.trainForm.departureTime,
+                    isSet: $funnel.trainForm.departureTimeIsSet
+                ),
                 isRequired: true,
-                assistiveText: "We’ll auto-fill the city for you.",
-                selected: $funnel.trainForm.destinationStationLocation
+                displayedComponents: .hourAndMinute
             )
-            .onChange(of: funnel.trainForm.destinationStationLocation) { _, new in
-                applyStation(new, isOrigin: false)
-            }
         }
     }
 
-    // MARK: - Schedule
+    // MARK: - Berth content
 
-    private var scheduleSection: some View {
+    private var berthContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Schedule")
-
-            dateField("Date", selection: $funnel.trainForm.date)
-            timeField("Departs", selection: $funnel.trainForm.departureTime)
-        }
-    }
-
-    // MARK: - Passenger + berth
-
-    private var seatSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Passenger & berth")
-
             LumoriaInputField(
                 label: "Passenger name",
                 placeholder: "Jane Doe",
@@ -201,55 +277,5 @@ struct NewNightFormStep: View {
             },
             set: { funnel.trainForm.berth = $0?.name ?? "" }
         )
-    }
-
-    // MARK: - Section title
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.title2.bold())
-            .foregroundStyle(Color.Text.primary)
-    }
-
-    // MARK: - Date / time field shells
-
-    private func dateField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.Text.primary)
-            DatePicker("", selection: selection, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .frame(height: 50)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-    }
-
-    private func timeField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.Text.primary)
-            DatePicker("", selection: selection, displayedComponents: .hourAndMinute)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .frame(height: 50)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
     }
 }

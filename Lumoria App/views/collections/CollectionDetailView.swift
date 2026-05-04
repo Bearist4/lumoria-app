@@ -213,7 +213,7 @@ struct MemoryDetailView: View {
     }
 
     private var tintBackground: Color {
-        Color("Colors/\(activeColorFamily)/50")
+        Color.Background.memory(activeColorFamily)
     }
 
     // MARK: - Top bar
@@ -282,8 +282,13 @@ struct MemoryDetailView: View {
 
     @ViewBuilder
     private var contentCard: some View {
+        // Collapse multi-leg group siblings to a single representative
+        // entry (same shape as AllTicketsView). The detail view pages
+        // through the full group on tap. Sort runs *after* collapse so
+        // the visible order mirrors the rendered list.
         let tickets = MemorySortApplier.apply(
-            ticketsStore.tickets(in: memory.id),
+            ticketsStore.tickets(in: memory.id)
+                .collapsedToGroupRepresentatives(),
             field: currentMemory.sortField,
             ascending: currentMemory.sortAscending,
             memoryId: memory.id
@@ -393,11 +398,26 @@ struct MemoryDetailView: View {
 
     private func link(_ ticket: Ticket) -> some View {
         NavigationLink(value: ticket) {
-            TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
-                .trackCenteredRow(id: ticket.id, into: $centredId)
-                .ticketInspect()
+            ZStack(alignment: .topTrailing) {
+                TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
+                    .trackCenteredRow(id: ticket.id, into: $centredId)
+                    .ticketInspect()
+
+                if let count = groupCount(for: ticket) {
+                    LumoriaGroupBadge(count: count)
+                        .padding(12)
+                        .allowsHitTesting(false)
+                }
+            }
         }
         .buttonStyle(TicketCardButtonStyle())
+    }
+
+    /// Leg count when `ticket` heads a group; nil for solo tickets.
+    private func groupCount(for ticket: Ticket) -> Int? {
+        guard ticket.groupId != nil else { return nil }
+        let count = ticketsStore.tickets.groupSiblings(of: ticket).count
+        return count > 1 ? count : nil
     }
 
     // MARK: - Row partitioning

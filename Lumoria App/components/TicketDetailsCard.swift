@@ -38,6 +38,17 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
     let menuItems: [LumoriaMenuItem]
     @ViewBuilder var memoriesContent: () -> MemoriesContent
 
+    // MARK: Camera state
+    //
+    // `Map(initialPosition:)` only reads its argument once at mount,
+    // so the camera froze on the first leg when used inside a paged
+    // detail view. Holding the position in state and re-issuing it on
+    // location/route change keeps the camera in sync as the focused
+    // leg switches under the card.
+
+    @State private var locationCamera: MapCameraPosition = .automatic
+    @State private var routeCamera: MapCameraPosition = .automatic
+
     // MARK: Body
 
     var body: some View {
@@ -81,21 +92,19 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
     // MARK: Location card
 
     private func locationCard(_ location: TicketLocation) -> some View {
-        ZStack(alignment: .bottom) {
-            Map(
-                initialPosition: .region(MKCoordinateRegion(
-                    center: location.coordinate,
-                    span: MKCoordinateSpan(
-                        latitudeDelta: 0.08,
-                        longitudeDelta: 0.08
-                    )
-                )),
-                interactionModes: []
-            ) {
+        let key = Self.locationKey(location)
+        return ZStack(alignment: .bottom) {
+            Map(position: $locationCamera, interactionModes: []) {
                 Marker(location.name, coordinate: location.coordinate)
             }
             .mapStyle(.standard(elevation: .flat, pointsOfInterest: .all))
             .allowsHitTesting(false)
+            .onAppear { locationCamera = Self.locationRegion(location) }
+            .onChange(of: key) { _, _ in
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    locationCamera = Self.locationRegion(location)
+                }
+            }
 
             locationNamePill(location)
                 .padding(8)
@@ -104,15 +113,24 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
+    private static func locationKey(_ l: TicketLocation) -> String {
+        "\(l.lat),\(l.lng)"
+    }
+
+    private static func locationRegion(_ l: TicketLocation) -> MapCameraPosition {
+        .region(MKCoordinateRegion(
+            center: l.coordinate,
+            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+        ))
+    }
+
     // MARK: Transit route card
 
     private func transitRouteCard(_ route: TransitRoutePath) -> some View {
         let tint = Color(hex: route.lineColorHex)
+        let key = Self.routeKey(route)
         return ZStack(alignment: .bottom) {
-            Map(
-                initialPosition: .region(Self.region(for: route.coordinates)),
-                interactionModes: []
-            ) {
+            Map(position: $routeCamera, interactionModes: []) {
                 MapPolyline(coordinates: route.coordinates)
                     .stroke(tint, style: StrokeStyle(
                         lineWidth: 4,
@@ -126,12 +144,24 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
             }
             .mapStyle(.standard(elevation: .flat, pointsOfInterest: .all))
             .allowsHitTesting(false)
+            .onAppear {
+                routeCamera = .region(Self.region(for: route.coordinates))
+            }
+            .onChange(of: key) { _, _ in
+                withAnimation(.easeInOut(duration: 0.4)) {
+                    routeCamera = .region(Self.region(for: route.coordinates))
+                }
+            }
 
             transitRoutePill(route, tint: tint)
                 .padding(8)
         }
         .frame(height: 141)
         .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private static func routeKey(_ r: TransitRoutePath) -> String {
+        "\(r.lineShortName)|\(r.origin.lat),\(r.origin.lng)|\(r.destination.lat),\(r.destination.lng)"
     }
 
     private func transitRoutePill(

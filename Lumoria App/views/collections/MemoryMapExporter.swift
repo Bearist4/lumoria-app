@@ -137,7 +137,7 @@ enum MemoryMapExporter {
             // catalog — avoids the SwiftUI bridging init, which some
             // build configurations miss if SwiftUI isn't fully linked.
             let discRect = circleRect.insetBy(dx: ring, dy: ring)
-            let bg = UIColor(named: "Colors/\(category.colorFamily)/300") ?? .gray
+            let bg = UIColor(named: "Colors/category/background/\(category.assetSlug)") ?? .gray
             bg.setFill()
             UIBezierPath(ovalIn: discRect).fill()
 
@@ -145,7 +145,7 @@ enum MemoryMapExporter {
             if let symbol = UIImage(systemName: category.systemImage,
                                     withConfiguration: UIImage.SymbolConfiguration(
                                         pointSize: pinDiameter * 0.4, weight: .semibold)) {
-                let onColor = UIColor(named: "Colors/Opacity/White/inverse/95") ?? .white
+                let onColor = UIColor(named: "Colors/category/content/\(category.assetSlug)") ?? .white
                 let tinted = symbol.withTintColor(onColor,
                                                   renderingMode: .alwaysOriginal)
                 let glyphSize = tinted.size

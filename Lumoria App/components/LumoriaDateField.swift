@@ -17,6 +17,11 @@ struct LumoriaDateField: View {
     var isRequired: Bool = false
     var state: LumoriaInputFieldState = .default
     var assistiveText: LocalizedStringKey? = nil
+    /// Which `DatePicker` slots are surfaced. Defaults to `.date` so
+    /// existing callers stay backwards-compatible; pass `.hourAndMinute`
+    /// to repurpose the field as a time picker (placeholder + glyph
+    /// swap to a clock).
+    var displayedComponents: DatePicker.Components = .date
 
     @State private var showPicker = false
     @State private var draft: Date = Date()
@@ -28,7 +33,8 @@ struct LumoriaDateField: View {
         date: Binding<Date?>,
         isRequired: Bool = false,
         state: LumoriaInputFieldState = .default,
-        assistiveText: LocalizedStringKey? = nil
+        assistiveText: LocalizedStringKey? = nil,
+        displayedComponents: DatePicker.Components = .date
     ) {
         self.label = label
         self.placeholder = placeholder
@@ -36,6 +42,7 @@ struct LumoriaDateField: View {
         self.isRequired = isRequired
         self.state = state
         self.assistiveText = assistiveText
+        self.displayedComponents = displayedComponents
     }
 
     var body: some View {
@@ -52,7 +59,17 @@ struct LumoriaDateField: View {
         .disabled(state == .disabled)
         .sheet(isPresented: $showPicker) {
             pickerSheet
-                .presentationDetents([.height(420)])
+                // Time picker (wheel) is short and well-served by a
+                // fixed half-screen detent; the graphical calendar
+                // needs more room and a resize affordance — `.medium`
+                // / `.large` lets the user expand and respects the
+                // home-indicator safe area natively, which the
+                // earlier fixed `.height(420)` did not.
+                .presentationDetents(
+                    displayedComponents == .hourAndMinute
+                        ? [.height(360)]
+                        : [.medium, .large]
+                )
                 .presentationDragIndicator(.visible)
         }
     }
@@ -91,7 +108,7 @@ struct LumoriaDateField: View {
                 .font(.body)
                 .foregroundStyle(textColor)
                 Spacer(minLength: 0)
-                Image(systemName: "calendar")
+                Image(systemName: glyph)
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Color.Text.secondary)
             }
@@ -116,41 +133,62 @@ struct LumoriaDateField: View {
                 .font(.title2.bold())
                 .foregroundStyle(Color.Text.primary)
 
-            DatePicker(
-                "",
-                selection: $draft,
-                displayedComponents: [.date]
-            )
-            .datePickerStyle(.graphical)
+            // Style swap can't happen via a runtime ternary — `wheel`
+            // and `graphical` are distinct generic types — so branch
+            // the DatePicker itself. Wrapped in a ScrollView for the
+            // graphical case so an extra-tall calendar (e.g. month
+            // with 6 visible weeks) can scroll instead of pushing
+            // the action row off the bottom of a `.medium` detent.
+            Group {
+                if displayedComponents == .hourAndMinute {
+                    DatePicker("", selection: $draft, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(.wheel)
+                } else {
+                    ScrollView {
+                        DatePicker("", selection: $draft, displayedComponents: displayedComponents)
+                            .datePickerStyle(.graphical)
+                    }
+                }
+            }
             .labelsHidden()
 
-            HStack {
-                if date != nil {
-                    Button(role: .destructive) {
-                        date = nil
-                        showPicker = false
-                    } label: {
-                        Text("Clear")
-                    }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(Color.Feedback.Danger.text)
-                    .font(.body.weight(.semibold))
-                }
-
-                Spacer(minLength: 0)
-
-                Button {
-                    date = draft
-                    showPicker = false
-                } label: {
-                    Text("Done")
-                }
-                .lumoriaButtonStyle(.primary, size: .medium)
-            }
+            // `safeAreaInset` would also work, but the action row is
+            // simple enough that pinning it via Spacer keeps the
+            // sheet's layout legible. The outer .bottom padding +
+            // SwiftUI's automatic sheet safe-area inset keeps the
+            // buttons above the home indicator at any detent.
+            actionRow
         }
         .padding(.horizontal, 24)
         .padding(.top, 24)
         .padding(.bottom, 16)
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private var actionRow: some View {
+        HStack {
+            if date != nil {
+                Button(role: .destructive) {
+                    date = nil
+                    showPicker = false
+                } label: {
+                    Text("Clear")
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.Feedback.Danger.text)
+                .font(.body.weight(.semibold))
+            }
+
+            Spacer(minLength: 0)
+
+            Button {
+                date = draft
+                showPicker = false
+            } label: {
+                Text("Done")
+            }
+            .lumoriaButtonStyle(.primary, size: .medium)
+        }
     }
 
     // MARK: - Derived
@@ -158,8 +196,19 @@ struct LumoriaDateField: View {
     private var displayText: String? {
         guard let d = date else { return nil }
         let f = DateFormatter()
-        f.dateFormat = "d MMMM yyyy"
+        if displayedComponents == .hourAndMinute {
+            f.dateFormat = "HH:mm"
+        } else {
+            f.dateFormat = "d MMMM yyyy"
+        }
         return f.string(from: d)
+    }
+
+    /// Glyph paired with the field. Calendar icon for date pickers,
+    /// clock for time pickers — keeps the affordance obvious without
+    /// the user having to read the label.
+    private var glyph: String {
+        displayedComponents == .hourAndMinute ? "clock" : "calendar"
     }
 
     private var textColor: Color {
@@ -185,9 +234,9 @@ struct LumoriaDateField: View {
 
     private var assistiveTextColor: Color {
         switch state {
-        case .error:   return Color(hex: "AC001A")
-        case .warning: return Color(hex: "8A4500")
-        default:       return Color(hex: "525252")
+        case .error:   return Color.InputField.AssistiveText.danger
+        case .warning: return Color.InputField.AssistiveText.warning
+        default:       return Color.InputField.AssistiveText.default
         }
     }
 }

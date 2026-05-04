@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.6',
+  date: '2026-05-04',
+  type: 'fix',
+  title: 'Airport codes — full IATA corpus',
+}
+
+Airport search now resolves to the correct 3-letter IATA code for every commercial airport in the world. Picking "Nantes Atlantique Airport" yields **NTE**, not the old first-three-letters fallback **NAN**. The bundled airport database swapped a 150-entry hand-curated seed for the full ~9,250-airport corpus from `lxndrblz/Airports` (CC-BY), loaded lazily from CSV at first lookup. A latent CRLF-vs-`String.split` bug was leaving the seed silently empty on device — fixed by switching to `components(separatedBy:)` and stripping the trailing `\r` per line. Regional fields like Bordeaux (BOD), Pisa (PSA), and Catania (CTA) now resolve correctly too.

@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.6',
+  date: '2026-05-04',
+  type: 'feature',
+  title: 'Profile stats widget',
+}
+
+A new small home-screen widget surfaces the same numbers as the Profile page — pick `Memories created` (orange) or `Tickets created this month` (blue) in the widget configuration sheet. The tile mirrors the in-app `LumoriaDataCard` look: SF Pro Rounded Bold value with a soft accent glow, two-line caption in `text/secondary`, brand logomark badge in the bottom-right corner. The main app's snapshot writer now also serialises aggregate counts to the App Group container, so the widget process renders without ever touching Supabase or the encryption key, and `WidgetCenter.reloadAllTimelines()` keeps the value in sync the moment a new memory or ticket is saved.

@@ -24,14 +24,53 @@ struct StudioTicketVerticalView: View {
             let s = w / 260
 
             ZStack(alignment: .bottom) {
-                // Rotated ticket shape (original is 455x260, rotated 90° cw → 260x455).
-                if let asset = style.backgroundAsset {
-                    Image(asset)
-                        .resizable()
-                        .frame(width: h, height: w)
-                        .rotationEffect(.degrees(90))
-                        .frame(width: w, height: h)
+                Group {
+                    if let bg = style.backgroundColor {
+                        // Flat-color override masked through the
+                        // rotated asset so the ticket keeps its
+                        // notches and rounded edges. Falls back to a
+                        // plain rounded rectangle when the variant
+                        // didn't ship an asset.
+                        if let asset = style.backgroundAsset {
+                            Rectangle()
+                                .fill(bg)
+                                .frame(width: w, height: h)
+                                .mask(
+                                    Image(asset)
+                                        .resizable()
+                                        .frame(width: h, height: w)
+                                        .rotationEffect(.degrees(90))
+                                        .frame(width: w, height: h)
+                                )
+                        } else {
+                            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                .fill(bg)
+                                .frame(width: w, height: h)
+                        }
+                    } else if let asset = style.backgroundAsset {
+                        // Rotated ticket shape (original is 455x260, rotated 90° cw → 260x455).
+                        Image(asset)
+                            .resizable()
+                            .frame(width: h, height: w)
+                            .rotationEffect(.degrees(90))
+                            .frame(width: w, height: h)
+                    }
                 }
+                .styleAnchor(.background)
+
+                // Safe-knob region: the visual interior of the
+                // ticket excluding the iPhone-bezel notch and the
+                // "Made with Lumoria" footer strip. The style step
+                // clamps the `.background` knob into this rect so
+                // the dot lands on the surface rather than inside
+                // the notch (where pixels are transparent).
+                Color.clear
+                    .frame(
+                        width: w - 48 * s,
+                        height: h - 84 * s
+                    )
+                    .styleSafeArea()
+                    .padding(.bottom, 48 * s)
 
                 // Main content column.
                 VStack(spacing: 0) {
@@ -73,6 +112,20 @@ struct StudioTicketVerticalView: View {
                             .rotationEffect(.degrees(90))
                             .frame(width: w, height: h)
                     }
+                } else {
+                    // Flat-color path — no silhouette mask. The strip
+                    // sits flush with the rounded-rectangle bottom.
+                    madeWithStrip(scale: s)
+                        .frame(width: w, height: 40 * s)
+                        .clipShape(
+                            UnevenRoundedRectangle(
+                                cornerRadii: .init(
+                                    bottomLeading: cornerRadius,
+                                    bottomTrailing: cornerRadius
+                                ),
+                                style: .continuous
+                            )
+                        )
                 }
             }
             .frame(width: w, height: h)
@@ -94,6 +147,7 @@ struct StudioTicketVerticalView: View {
                 Text(ticket.cabinClass)
                     .font(.system(size: 8 * s, weight: .bold))
                     .foregroundStyle(style.onAccent)
+                    .styleAnchor(.onAccent)
                     .padding(.horizontal, 8 * s)
                     .padding(.vertical, 4 * s)
                     .background(
@@ -138,6 +192,7 @@ struct StudioTicketVerticalView: View {
             Image(systemName: "airplane")
                 .font(.system(size: 16 * s, weight: .regular))
                 .foregroundStyle(style.accent)
+                .styleAnchor(.accent)
 
             Spacer(minLength: 0)
 
@@ -161,6 +216,7 @@ struct StudioTicketVerticalView: View {
             Text(code)
                 .font(.system(size: 48 * s, weight: .bold))
                 .foregroundStyle(style.textPrimary)
+                .styleAnchor(.textPrimary)
                 .frame(maxWidth: .infinity)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)

@@ -5,6 +5,8 @@
 //  Step 4 — Express (train) variant of the form. Station pickers
 //  populate city / kanji text fields; the kanji slot is suggested
 //  via `CityNameTranslator` on city change and remains editable.
+//  Fields are grouped into collapsible items mirroring the Express
+//  template's `requirements` categories.
 //
 
 import SwiftUI
@@ -19,18 +21,24 @@ struct NewTrainFormStep: View {
     /// calling `.invalidate()`) re-fires the `.translationTask` body.
     @State private var translationConfig: TranslationSession.Configuration?
     @State private var didFireSubmit = false
+    @State private var expandedItems: Set<String> = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            trainSection
-            originSection
-            destinationSection
-            scheduleSection
-            seatSection
+        VStack(spacing: 16) {
+            FormPreviewTile(funnel: funnel)
+
+            VStack(spacing: 8) {
+                ForEach(categories, id: \.id) { category in
+                    FormStepCollapsibleItem(
+                        title: category.label,
+                        isComplete: category.isComplete,
+                        isExpanded: binding(for: category.id)
+                    ) {
+                        category.content
+                    }
+                }
+            }
         }
-        // On-device EN → JA translation. Fires whenever
-        // `translationConfig` is set or invalidated; we do that on
-        // every station pick.
         .translationTask(translationConfig) { session in
             await translateCities(using: session)
         }
@@ -48,6 +56,67 @@ struct NewTrainFormStep: View {
                 hasDestinationLocation: hasDestinationLocation()
             ))
         }
+    }
+
+    // MARK: - Categories
+
+    private struct Category {
+        let id: String
+        let label: String
+        let isComplete: Bool
+        let content: AnyView
+    }
+
+    private var categories: [Category] {
+        (funnel.template?.requirements ?? []).compactMap { req in
+            switch req.label {
+            case "Departing & arrival cities":
+                return Category(id: "cities", label: req.label, isComplete: hasCities, content: AnyView(citiesContent))
+            case "Date & travel times":
+                return Category(id: "schedule", label: req.label, isComplete: hasSchedule, content: AnyView(scheduleContent))
+            case "Train details":
+                return Category(id: "train", label: req.label, isComplete: hasTrainDetails, content: AnyView(trainContent))
+            case "Car & seat":
+                return Category(id: "seat", label: req.label, isComplete: hasSeat, content: AnyView(seatContent))
+            default:
+                return nil
+            }
+        }
+    }
+
+    // MARK: - Completion predicates
+
+    private var hasCities: Bool {
+        let t = funnel.trainForm
+        return !t.originCity.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.destinationCity.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var hasSchedule: Bool {
+        let t = funnel.trainForm
+        return t.dateIsSet && t.departureTimeIsSet && t.arrivalTimeIsSet
+    }
+
+    private var hasTrainDetails: Bool {
+        let t = funnel.trainForm
+        return !t.trainType.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.trainNumber.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var hasSeat: Bool {
+        let t = funnel.trainForm
+        return !t.car.trimmingCharacters(in: .whitespaces).isEmpty
+            && !t.seat.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func binding(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { expandedItems.contains(id) },
+            set: { isOn in
+                if isOn { expandedItems.insert(id) }
+                else    { expandedItems.remove(id) }
+            }
+        )
     }
 
     private func countFilledFields() -> Int {
@@ -69,12 +138,75 @@ struct NewTrainFormStep: View {
     private func hasOriginLocation() -> Bool { funnel.trainForm.originStationLocation != nil }
     private func hasDestinationLocation() -> Bool { funnel.trainForm.destinationStationLocation != nil }
 
-    // MARK: - Train
+    // MARK: - Cities content
 
-    private var trainSection: some View {
+    private var citiesContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("About your train")
+            LumoriaStationField(
+                label: "Departing station",
+                isRequired: true,
+                assistiveText: "Pick a station — we’ll translate the city name to Japanese automatically.",
+                selected: $funnel.trainForm.originStationLocation
+            )
+            .onChange(of: funnel.trainForm.originStationLocation) { _, new in
+                applyStation(new, isOrigin: true)
+            }
 
+            LumoriaStationField(
+                label: "Arrival station",
+                isRequired: true,
+                assistiveText: "Pick a station — we’ll translate the city name to Japanese automatically.",
+                selected: $funnel.trainForm.destinationStationLocation
+            )
+            .onChange(of: funnel.trainForm.destinationStationLocation) { _, new in
+                applyStation(new, isOrigin: false)
+            }
+        }
+    }
+
+    // MARK: - Schedule content
+
+    private var scheduleContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            LumoriaDateField(
+                label: "Date",
+                placeholder: "Pick a date",
+                date: optionalDateBinding(
+                    date: $funnel.trainForm.date,
+                    isSet: $funnel.trainForm.dateIsSet
+                ),
+                isRequired: true
+            )
+
+            HStack(spacing: 12) {
+                LumoriaDateField(
+                    label: "Departs",
+                    placeholder: "Pick a time",
+                    date: optionalDateBinding(
+                        date: $funnel.trainForm.departureTime,
+                        isSet: $funnel.trainForm.departureTimeIsSet
+                    ),
+                    isRequired: true,
+                    displayedComponents: .hourAndMinute
+                )
+                LumoriaDateField(
+                    label: "Arrives",
+                    placeholder: "Pick a time",
+                    date: optionalDateBinding(
+                        date: $funnel.trainForm.arrivalTime,
+                        isSet: $funnel.trainForm.arrivalTimeIsSet
+                    ),
+                    isRequired: true,
+                    displayedComponents: .hourAndMinute
+                )
+            }
+        }
+    }
+
+    // MARK: - Train content
+
+    private var trainContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
             LumoriaInputField(
                 label: "Train type",
                 placeholder: "Shinkansen N700",
@@ -104,63 +236,10 @@ struct NewTrainFormStep: View {
         }
     }
 
-    // MARK: - Origin
+    // MARK: - Seat content
 
-    private var originSection: some View {
+    private var seatContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Departure")
-
-            LumoriaStationField(
-                label: "Station",
-                isRequired: true,
-                assistiveText: "Pick a station — we’ll translate the city name to Japanese automatically.",
-                selected: $funnel.trainForm.originStationLocation
-            )
-            .onChange(of: funnel.trainForm.originStationLocation) { _, new in
-                applyStation(new, isOrigin: true)
-            }
-        }
-    }
-
-    // MARK: - Destination
-
-    private var destinationSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Arrival")
-
-            LumoriaStationField(
-                label: "Station",
-                isRequired: true,
-                assistiveText: "Pick a station — we’ll translate the city name to Japanese automatically.",
-                selected: $funnel.trainForm.destinationStationLocation
-            )
-            .onChange(of: funnel.trainForm.destinationStationLocation) { _, new in
-                applyStation(new, isOrigin: false)
-            }
-        }
-    }
-
-    // MARK: - Schedule
-
-    private var scheduleSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Schedule")
-
-            dateField("Date", selection: $funnel.trainForm.date)
-
-            HStack(spacing: 12) {
-                timeField("Departs", selection: $funnel.trainForm.departureTime)
-                timeField("Arrives", selection: $funnel.trainForm.arrivalTime)
-            }
-        }
-    }
-
-    // MARK: - Seat
-
-    private var seatSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Seat & ticket")
-
             HStack(spacing: 12) {
                 LumoriaInputField(
                     label: "Car",
@@ -210,10 +289,6 @@ struct NewTrainFormStep: View {
 
     // MARK: - On-device translation
 
-    /// Configures / re-fires the translation task. Source is forced to
-    /// English because our city names come from MapKit's `locality`
-    /// field which is ASCII in most locales we care about; target is
-    /// Japanese.
     private func triggerTranslation() {
         let config = TranslationSession.Configuration(
             source: Locale.Language(identifier: "en"),
@@ -226,9 +301,6 @@ struct NewTrainFormStep: View {
         }
     }
 
-    /// Translates both cities in one session pass. Empty strings are
-    /// skipped. Failures leave the existing (static-dict-seeded) kanji
-    /// in place — so the user always has *something* on the ticket.
     private func translateCities(using session: TranslationSession) async {
         let origin = funnel.trainForm.originCity
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -256,55 +328,5 @@ struct NewTrainFormStep: View {
             },
             set: { funnel.trainForm.cabinClass = $0?.name ?? "" }
         )
-    }
-
-    // MARK: - Section title
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.title2.bold())
-            .foregroundStyle(Color.Text.primary)
-    }
-
-    // MARK: - Date / time field shells
-
-    private func dateField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.Text.primary)
-            DatePicker("", selection: selection, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .frame(height: 50)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-    }
-
-    private func timeField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.Text.primary)
-            DatePicker("", selection: selection, displayedComponents: .hourAndMinute)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .frame(height: 50)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
     }
 }

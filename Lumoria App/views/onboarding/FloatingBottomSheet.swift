@@ -23,7 +23,7 @@ private struct FloatingBottomSheetModifier<Sheet: View>: ViewModifier {
             .overlay {
                 ZStack(alignment: .bottom) {
                     if isPresented {
-                        Color.black.opacity(0.4)
+                        Color.Overlay.sheet
                             .transition(.opacity)
                             .onTapGesture {
                                 if interactiveDismiss { isPresented = false }
@@ -40,7 +40,12 @@ private struct FloatingBottomSheetModifier<Sheet: View>: ViewModifier {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-                .ignoresSafeArea()
+                // Ignore container insets only (notch / home indicator)
+                // so the card can bleed flush to screen edges, but keep
+                // respecting the keyboard inset — when a TextField inside
+                // the sheet focuses, the card rises above the keyboard
+                // instead of being covered by it.
+                .ignoresSafeArea(.container)
                 // Animation must live OUTSIDE the if-condition so SwiftUI
                 // sees the value flip and animates the appear, not just
                 // the disappear.

@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.3',
+  date: '2026-05-03',
+  type: 'enhancement',
+  title: 'Mirror the full Figma token tree in Swift',
+}
+
+Pulled every alias from the Figma "Colors" variable collection (123 tokens across `background/*`, `category/*`, `text/*`, `feedback/*`, `overlay/*`, `components/*`, `controls/*`, `misc/*`) and generated a matching xcasset entry for each — every colorset bakes in all four appearance modes (Light, Dark, HC Light, HC Dark) so SwiftUI's asset lookup picks the right value with zero runtime branching. Rebuilt `DesignTokens.swift` as a one-to-one Swift mirror of that tree (`Color.Background.*`, `Color.Category.*`, `Color.Feedback.*`, `Color.Button.*`, `Color.IconButton.*`, `Color.InputField.*`, `Color.Memory.*`, `Color.Overlay.*`, `Color.Controls.*`, `Color.Misc.*`). Wired the consumers: every shared component (buttons, input fields, date fields, code inputs, icon buttons, callout, dropdowns) now reads through the new tokens, the memory detail page + color picker route to `background/memory/<family>`, and category pills/pins resolve through `category/background/<style>` and `category/content/<style>`. Behavior in default modes stays the same; high-contrast modes now inherit the correct values across the board.

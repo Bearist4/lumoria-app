@@ -21,20 +21,36 @@ struct OrientationTile: View {
     /// different labels (e.g. localized strings).
     var titleOverride: String? = nil
     var onTap: () -> Void = {}
+    /// When false the tile is rendered as a plain preview card — no
+    /// button wrapper, no selection chrome, no label. Used by the
+    /// new-ticket form step to surface a static ticket preview at the
+    /// top of the form.
+    var isInteractive: Bool = true
 
     var body: some View {
-        Button(action: onTap) {
-            SelectionTile(isSelected: isSelected, verticalPadding: 32) {
-                VStack(spacing: 16) {
-                    preview
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        if isInteractive {
+            Button(action: onTap) {
+                SelectionTile(isSelected: isSelected, verticalPadding: 32) {
+                    VStack(spacing: 16) {
+                        preview
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                    SelectionTileLabel(text: title, isSelected: isSelected)
+                        SelectionTileLabel(text: title, isSelected: isSelected)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .buttonStyle(.plain)
+        } else {
+            preview
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 24)
+                .background(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .fill(Color.Background.fieldFill)
+                )
         }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Title

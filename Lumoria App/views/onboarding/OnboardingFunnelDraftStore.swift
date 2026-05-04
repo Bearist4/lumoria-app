@@ -25,6 +25,10 @@ struct OnboardingFunnelDraft: Codable {
     var eurovisionForm: EurovisionFormInput?
     var undergroundForm: UndergroundFormInput
     var selectedStyleId: String?
+    /// Optional so drafts that pre-date the color-overrides feature
+    /// keep decoding — missing key resolves to nil and the funnel falls
+    /// back to an empty override map.
+    var colorOverrides: [String: String]?
     /// Set once the ticket has been persisted (success / allDone /
     /// exportOrAddMemory steps). Non-nil means the resume path can
     /// re-fetch this ticket and jump straight to the success step.

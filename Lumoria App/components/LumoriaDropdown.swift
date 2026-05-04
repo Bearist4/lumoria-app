@@ -142,7 +142,7 @@ struct LumoriaDropdown<Item: Identifiable, Row: View>: View {
             if isRequired {
                 Text(verbatim: "*")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color("Colors/Red/400"))
+                    .foregroundStyle(Color.Feedback.Danger.border)
             }
         }
     }

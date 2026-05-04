@@ -302,7 +302,9 @@ enum PKPassImporter {
             ])?.value)
         if let departure {
             input.departureDate = departure
+            input.departureDateIsSet = true
             input.departureTime = departure
+            input.departureTimeIsSet = true
         }
 
         return input
@@ -374,7 +376,9 @@ enum PKPassImporter {
             ])?.value)
         if let departure {
             input.date = departure
+            input.dateIsSet = true
             input.departureTime = departure
+            input.departureTimeIsSet = true
             // Arrival comes in two flavors across carriers: a full
             // ISO-8601 timestamp (SNCF "2025-02-10T13:28+01:00") or a
             // bare HH:mm clock (Westbahn "16:44"). Try ISO first, fall
@@ -384,10 +388,12 @@ enum PKPassImporter {
             ])?.value {
                 if let iso = parseDate(arrivalStr) {
                     input.arrivalTime = iso
+                    input.arrivalTimeIsSet = true
                 } else if let clock = combineDate(
                     departure, withTimeString: arrivalStr
                 ) {
                     input.arrivalTime = clock
+                    input.arrivalTimeIsSet = true
                 }
             }
         }

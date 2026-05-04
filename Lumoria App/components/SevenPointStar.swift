@@ -1,103 +1,103 @@
 import SwiftUI
 
-/// Lumoria's signature 7-point star — the exact curve set from the
-/// brand SVG (75×75 viewBox), normalised to fill any rect.
-///
-/// The path uses rounded-bezier petals rather than sharp triangles so
-/// the star reads as a seal / stamp rather than a generic star.
+/// Lumoria's signature 7-point star — exact curve set from the
+/// canonical brand SVG (124×124 viewBox), normalised to fill any
+/// rect. Rounded-bezier petals so the star reads as a seal/stamp
+/// rather than a generic star. Same path the app icon uses, so
+/// any in-app render morphs seamlessly into the icon artwork.
 struct SevenPointStar: Shape {
 
     func path(in rect: CGRect) -> Path {
-        let sx = rect.width / 75.0
-        let sy = rect.height / 75.0
+        let sx = rect.width / 124.0
+        let sy = rect.height / 124.0
         func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
             CGPoint(x: rect.minX + x * sx, y: rect.minY + y * sy)
         }
 
         var path = Path()
-        path.move(to: p(32.0538, 2.36823))
+        path.move(to: p(53.3927, 3.94481))
         path.addCurve(
-            to: p(42.3886, 2.36823),
-            control1: p(34.8044, -0.78941),
-            control2: p(39.638, -0.78941)
+            to: p(70.6076, 3.94481),
+            control1: p(57.9744, -1.31494),
+            control2: p(66.0258, -1.31494)
         )
-        path.addLine(to: p(48.2659, 9.11529))
+        path.addLine(to: p(80.3975, 15.1835))
         path.addCurve(
-            to: p(53.0627, 11.4734),
-            control1: p(49.4925, 10.5233),
-            control2: p(51.2196, 11.3723)
+            to: p(88.3876, 19.1114),
+            control1: p(82.4406, 17.5289),
+            control2: p(85.3176, 18.9431)
         )
-        path.addLine(to: p(61.8946, 11.9575))
+        path.addLine(to: p(103.099, 19.9178))
         path.addCurve(
-            to: p(68.3382, 20.206),
-            control1: p(66.0279, 12.1841),
-            control2: p(69.0416, 16.0419)
+            to: p(113.832, 33.6575),
+            control1: p(109.984, 20.2952),
+            control2: p(115.004, 26.7213)
         )
-        path.addLine(to: p(66.8354, 29.1036))
+        path.addLine(to: p(111.329, 48.4784))
         path.addCurve(
-            to: p(68.02, 34.4021),
-            control1: p(66.5217, 30.9604),
-            control2: p(66.9482, 32.8681)
+            to: p(113.302, 57.3043),
+            control1: p(110.807, 51.5713),
+            control2: p(111.517, 54.749)
         )
-        path.addLine(to: p(73.1558, 41.7529))
+        path.addLine(to: p(121.857, 69.5486))
         path.addCurve(
-            to: p(70.8561, 52.0386),
-            control1: p(75.5594, 45.193),
-            control2: p(74.4838, 50.0037)
+            to: p(118.026, 86.6816),
+            control1: p(125.861, 75.2789),
+            control2: p(124.069, 83.2921)
         )
-        path.addLine(to: p(63.1046, 56.3866))
+        path.addLine(to: p(105.115, 93.9243))
         path.addCurve(
-            to: p(59.7852, 60.6357),
-            control1: p(61.487, 57.294),
-            control2: p(60.2918, 58.8239)
+            to: p(99.5854, 101.002),
+            control1: p(102.42, 95.4357),
+            control2: p(100.429, 97.9841)
         )
-        path.addLine(to: p(57.3575, 69.3178))
+        path.addLine(to: p(95.5415, 115.464))
         path.addCurve(
-            to: p(48.0461, 73.8954),
-            control1: p(56.2214, 73.3811),
-            control2: p(51.8664, 75.522)
+            to: p(80.0313, 123.089),
+            control1: p(93.6491, 122.232),
+            control2: p(86.3949, 125.798)
         )
-        path.addLine(to: p(39.8832, 70.4197))
+        path.addLine(to: p(66.4343, 117.3))
         path.addCurve(
-            to: p(34.5592, 70.4197),
-            control1: p(38.1797, 69.6944),
-            control2: p(36.2627, 69.6944)
+            to: p(57.566, 117.3),
+            control1: p(63.5967, 116.091),
+            control2: p(60.4035, 116.091)
         )
-        path.addLine(to: p(26.3962, 73.8954))
+        path.addLine(to: p(43.9687, 123.089))
         path.addCurve(
-            to: p(17.0848, 69.3178),
-            control1: p(22.5759, 75.522),
-            control2: p(18.2209, 73.3811)
+            to: p(28.4585, 115.464),
+            control1: p(37.6051, 125.798),
+            control2: p(30.3509, 122.232)
         )
-        path.addLine(to: p(14.6571, 60.6357))
+        path.addLine(to: p(24.4146, 101.002))
         path.addCurve(
-            to: p(11.3377, 56.3866),
-            control1: p(14.1505, 58.8239),
-            control2: p(12.9553, 57.294)
+            to: p(18.8854, 93.9243),
+            control1: p(23.5707, 97.9841),
+            control2: p(21.5799, 95.4357)
         )
-        path.addLine(to: p(3.58623, 52.0386))
+        path.addLine(to: p(5.97366, 86.6816))
         path.addCurve(
-            to: p(1.28649, 41.7529),
-            control1: p(-0.0414772, 50.0037),
-            control2: p(-1.11708, 45.193)
+            to: p(2.14293, 69.5486),
+            control1: p(-0.0690891, 83.2921),
+            control2: p(-1.86074, 75.2789)
         )
-        path.addLine(to: p(6.42247, 34.4021))
+        path.addLine(to: p(10.698, 57.3043))
         path.addCurve(
-            to: p(7.60708, 29.1036),
-            control1: p(7.49424, 32.8681),
-            control2: p(7.92072, 30.9604)
+            to: p(12.6713, 48.4784),
+            control1: p(12.4833, 54.749),
+            control2: p(13.1937, 51.5713)
         )
-        path.addLine(to: p(6.1041, 20.206))
+        path.addLine(to: p(10.1677, 33.6575))
         path.addCurve(
-            to: p(12.5479, 11.9575),
-            control1: p(5.40073, 16.0419),
-            control2: p(8.41453, 12.1841)
+            to: p(20.9012, 19.9178),
+            control1: p(8.99611, 26.7213),
+            control2: p(14.0162, 20.2952)
         )
-        path.addLine(to: p(21.3797, 11.4734))
+        path.addLine(to: p(35.6126, 19.1114))
         path.addCurve(
-            to: p(26.1764, 9.11529),
-            control1: p(23.2228, 11.3723),
-            control2: p(24.9498, 10.5233)
+            to: p(43.6025, 15.1835),
+            control1: p(38.6827, 18.9431),
+            control2: p(41.5594, 17.5289)
         )
         path.closeSubpath()
         return path

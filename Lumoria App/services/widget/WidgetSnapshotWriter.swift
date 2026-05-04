@@ -130,7 +130,18 @@ final class WidgetSnapshotWriter: ObservableObject {
         pruneOrphanImages(folder: ticketsFolderURL, keep: keepFilenames)
         renderBrandLogomark()
 
-        let snapshot = WidgetSnapshot(lastUpdated: Date(), memories: memorySnapshots)
+        let stats = WidgetProfileStats(
+            memoriesCount: memories.count,
+            ticketsThisMonth: tickets.filter {
+                Calendar.current.isDate($0.createdAt, equalTo: Date(), toGranularity: .month)
+            }.count
+        )
+
+        let snapshot = WidgetSnapshot(
+            lastUpdated: Date(),
+            memories: memorySnapshots,
+            profileStats: stats
+        )
         do {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601

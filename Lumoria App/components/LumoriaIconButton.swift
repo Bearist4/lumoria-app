@@ -72,24 +72,30 @@ private struct IconButtonStyle: ButtonStyle {
     private func background(isPressed: Bool) -> Color {
         switch position {
         case .onBackground:
-            if isPressed { return Color.Button.Secondary.Background.pressed }
-            return Color.Button.Secondary.Background.default
+            return isPressed
+                ? Color.IconButton.OnBackground.Background.pressed
+                : Color.IconButton.OnBackground.Background.default
         case .onSurface:
-            if isPressed { return Color.Background.elevated.opacity(0.85) }
-            return Color.Background.default
+            return isPressed
+                ? Color.IconButton.OnSurface.Background.pressed
+                : Color.IconButton.OnSurface.Background.default
         case .onDark:
-            if isPressed { return Color.white.opacity(0.25) }
-            return Color.white.opacity(0.12)
+            return isPressed
+                ? Color.IconButton.OnDark.Background.pressed
+                : Color.IconButton.OnDark.Background.default
         case .success:
-            if isPressed { return Color("Colors/Green/600") }
-            return Color("Colors/Green/500")
+            return isPressed
+                ? Color.IconButton.Success.Background.pressed
+                : Color.IconButton.Success.Background.default
         }
     }
 
     private func foregroundColor(isPressed: Bool) -> Color {
         switch position {
-        case .onBackground, .onSurface: return Color.Text.primary
-        case .onDark, .success:         return Color.Text.OnColor.white
+        case .onBackground: return Color.IconButton.OnBackground.Content.default
+        case .onSurface:    return Color.IconButton.OnSurface.Content.default
+        case .onDark:       return Color.IconButton.OnDark.Content.default
+        case .success:      return Color.IconButton.Success.Content.default
         }
     }
 }
@@ -171,7 +177,7 @@ struct LumoriaIconButton: View {
     @ViewBuilder
     private func menuTrigger(items: [LumoriaMenuItem]) -> some View {
         Button {
-            isMenuShowing.toggle()
+            present()
         } label: {
             Image(systemName: systemImage)
         }
@@ -196,15 +202,27 @@ struct LumoriaIconButton: View {
                 anchor: anchor,
                 items: items,
                 onSelect: { item in
-                    isMenuShowing = false
+                    dismiss()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         item.action()
                     }
                 },
-                onDismiss: { isMenuShowing = false }
+                onDismiss: { dismiss() }
             )
             .presentationBackground(.clear)
         }
+    }
+
+    private func present() {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { isMenuShowing = true }
+    }
+
+    private func dismiss() {
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { isMenuShowing = false }
     }
 
     // MARK: - Visual-only rendering
@@ -224,20 +242,22 @@ struct LumoriaIconButton: View {
     // MARK: - Visual-only tokens (mirror IconButtonStyle at rest)
 
     private var visualBackground: Color {
-        if isActive { return Color.Button.Primary.Background.default }
+        if isActive { return Color.IconButton.OnBackground.Background.active }
         switch position {
-        case .onBackground: return Color.Button.Secondary.Background.default
-        case .onSurface:    return Color.Background.default
-        case .onDark:       return Color.white.opacity(0.12)
-        case .success:      return Color("Colors/Green/500")
+        case .onBackground: return Color.IconButton.OnBackground.Background.default
+        case .onSurface:    return Color.IconButton.OnSurface.Background.default
+        case .onDark:       return Color.IconButton.OnDark.Background.default
+        case .success:      return Color.IconButton.Success.Background.default
         }
     }
 
     private var visualForeground: Color {
-        if isActive { return Color.Button.Primary.Label.default }
+        if isActive { return Color.IconButton.OnBackground.Content.active }
         switch position {
-        case .onBackground, .onSurface: return Color.Text.primary
-        case .onDark, .success:         return Color.Text.OnColor.white
+        case .onBackground: return Color.IconButton.OnBackground.Content.default
+        case .onSurface:    return Color.IconButton.OnSurface.Content.default
+        case .onDark:       return Color.IconButton.OnDark.Content.default
+        case .success:      return Color.IconButton.Success.Content.default
         }
     }
 

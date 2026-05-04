@@ -263,9 +263,9 @@ struct LumoriaInputField: View {
 
     private var assistiveTextColor: Color {
         switch state {
-        case .error:   return Color(hex: "AC001A")
-        case .warning: return Color(hex: "8A4500")
-        default:       return Color(hex: "525252")
+        case .error:   return Color.InputField.AssistiveText.danger
+        case .warning: return Color.InputField.AssistiveText.warning
+        default:       return Color.InputField.AssistiveText.default
         }
     }
 }
@@ -366,19 +366,24 @@ struct EmojiPickerSheet: View {
                     prompt: Text("Type your emoji here")
                         .foregroundColor(Color.Text.tertiary)
                 )
-                .font(.footnote)
+                .font(.callout)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .frame(height: 64)
                 .background(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color.black.opacity(0.05))
+                        .fill(Color.InputField.Background.hover)
                 )
                 .focused($customFocused)
                 .onChange(of: customInput) { _, new in
-                    if let first = new.first, String(first).isSingleEmoji {
-                        selection = String(first)
-                        customInput = ""
+                    // Trim to the first grapheme and keep it visible so the
+                    // user can see what they picked. Earlier impl cleared
+                    // the field, leaving it apparently empty after a keypress.
+                    guard let first = new.first, String(first).isSingleEmoji else { return }
+                    let trimmed = String(first)
+                    selection = trimmed
+                    if customInput != trimmed {
+                        customInput = trimmed
                     }
                 }
             }
@@ -417,6 +422,7 @@ struct EmojiPickerSheet: View {
     private func emojiCell(_ e: String) -> some View {
         Button {
             selection = e
+            customInput = ""
         } label: {
             Text(e)
                 .font(.system(size: 24))
@@ -424,7 +430,7 @@ struct EmojiPickerSheet: View {
                 .frame(height: 64)
                 .background(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(Color.black.opacity(0.05))
+                        .fill(Color.InputField.Background.hover)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 20, style: .continuous)

@@ -155,6 +155,14 @@ struct FlightFormInput: Codable {
     var originLocation: String = ""
     var departureDate: Date = Date()
     var departureTime: Date = Date()
+    /// Tracks whether the user (or import path) has actually picked a
+    /// departure date. Defaults false so the form's date collapsible
+    /// stays "incomplete" until the user touches the field. Render
+    /// paths still read `departureDate`, which carries today's date
+    /// as a sensible fallback.
+    var departureDateIsSet: Bool = false
+    /// Same gating idea as `departureDateIsSet` for the time slot.
+    var departureTimeIsSet: Bool = false
 
     var destinationCode: String = ""
     var destinationName: String = ""
@@ -224,6 +232,11 @@ struct TrainFormInput: Codable {
     var destinationCity: String = ""
     var date: Date = Date()
     var departureTime: Date = Date()
+    /// Tracks whether the user has actually picked a date / departure
+    /// time. Defaults false so the form's schedule collapsible stays
+    /// "incomplete" until the user touches it.
+    var dateIsSet: Bool = false
+    var departureTimeIsSet: Bool = false
     var car: String = ""
     var seat: String = ""
     var ticketNumber: String = ""
@@ -241,6 +254,9 @@ struct TrainFormInput: Codable {
     var originCityKanji: String = ""
     var destinationCityKanji: String = ""
     var arrivalTime: Date = Date()
+    /// Tracks whether the Express form's arrival-time slot has been
+    /// touched. Same gating contract as `dateIsSet`.
+    var arrivalTimeIsSet: Bool = false
 
     // Orient-only — vintage Orient Express
     var company: String = ""
@@ -311,6 +327,12 @@ struct EventFormInput: Codable {
     var date: Date = Date()
     var doorsTime: Date = Date()
     var showTime: Date = Date()
+    /// Tracks whether the user has actually picked the matching slot.
+    /// Defaults false so the form's schedule collapsible stays
+    /// "incomplete" until touched.
+    var dateIsSet: Bool = false
+    var doorsTimeIsSet: Bool = false
+    var showTimeIsSet: Bool = false
     var ticketNumber: String = ""
 
     var venueLocation: TicketLocation? = nil
@@ -374,6 +396,10 @@ struct UndergroundFormInput: Codable {
     var destinationStation: TicketLocation? = nil
 
     var date: Date = Date()
+    /// Tracks whether the user has actually picked a date. Defaults
+    /// false so the form's date collapsible stays "incomplete" until
+    /// touched.
+    var dateIsSet: Bool = false
     var ticketNumber: String = ""
     var zones: String = ""
     var fare: String = ""
@@ -401,6 +427,7 @@ struct UndergroundFormInput: Codable {
         case originStation
         case destinationStation
         case date
+        case dateIsSet
         case ticketNumber
         case zones
         case fare
@@ -582,7 +609,10 @@ final class NewTicketFunnel: ObservableObject {
             // Style ids are namespaced per template ("studio.dark"), so a
             // selection from a previous template never applies to the next
             // one. Clear it whenever the template changes.
-            if oldValue != template { selectedStyleId = nil }
+            if oldValue != template {
+                selectedStyleId = nil
+                colorOverrides = [:]
+            }
         }
     }
     @Published var orientation: TicketOrientation = .horizontal
@@ -593,7 +623,21 @@ final class NewTicketFunnel: ObservableObject {
     @Published var undergroundForm: UndergroundFormInput = UndergroundFormInput()
     /// Identifier of the selected style variant for the chosen template.
     /// Resolved against `template.styles`; nil before a template is picked.
-    @Published var selectedStyleId: String? = nil
+    /// Setting this clears `colorOverrides` so themes act as full presets.
+    @Published var selectedStyleId: String? = nil {
+        didSet {
+            if oldValue != selectedStyleId, !suppressColorOverrideReset {
+                colorOverrides = [:]
+            }
+        }
+    }
+    /// Per-element color overrides keyed by `TicketStyleVariant.Element`
+    /// raw values. Empty means no overrides — the resolved style equals
+    /// the catalog's variant verbatim.
+    @Published var colorOverrides: [String: String] = [:]
+    /// Internal latch used by `prefill(from:)` so hydrating a saved
+    /// `selectedStyleId` doesn't immediately wipe the saved overrides.
+    private var suppressColorOverrideReset: Bool = false
 
     // MARK: Import
 
@@ -642,10 +686,13 @@ final class NewTicketFunnel: ObservableObject {
         template?.styles ?? []
     }
 
-    /// Style step is only worth showing when there are multiple variants.
+    /// Style step is worth showing when the user has SOMETHING to pick:
+    /// either multiple pre-made themes OR per-element recolor controls
+    /// (Afterglow ships one theme but lets the user tweak background +
+    /// text — so we still want to land on the step).
     var hasStylesStep: Bool {
         guard let template else { return false }
-        return template.hasStyleVariants
+        return template.hasStyleVariants || !template.supportedOverrideElements.isEmpty
     }
 
     /// Style applied to the live preview — falls back to the template's
@@ -943,6 +990,7 @@ final class NewTicketFunnel: ObservableObject {
             eurovisionForm: eurovisionForm,
             undergroundForm: undergroundForm,
             selectedStyleId: selectedStyleId,
+            colorOverrides: colorOverrides.isEmpty ? nil : colorOverrides,
             createdTicketId: createdTicketId
         )
     }
@@ -963,7 +1011,10 @@ final class NewTicketFunnel: ObservableObject {
         // restored station/city inputs so the form's route picker has
         // something to show on resume.
         undergroundForm.replan()
+        suppressColorOverrideReset = true
         selectedStyleId = draft.selectedStyleId
+        suppressColorOverrideReset = false
+        colorOverrides = draft.colorOverrides ?? [:]
         step = draft.step
     }
 
@@ -1417,6 +1468,7 @@ final class NewTicketFunnel: ObservableObject {
             originLocation: origin,
             destinationLocation: destination,
             styleId: selectedStyleId ?? template?.defaultStyle.id,
+            colorOverrides: colorOverrides.isEmpty ? nil : colorOverrides,
             eventDate: currentEventDate
         )
         if let ticket {
@@ -1458,6 +1510,12 @@ final class NewTicketFunnel: ObservableObject {
         // first render.
         var collected: [Ticket] = []
 
+        // Multi-leg journeys persist a shared `group_id` so the AllTickets
+        // list and TicketDetailView can collapse the legs into one paged
+        // entry. Single-leg trips stay ungrouped (nil) — no need to bind
+        // a lone ticket to a group.
+        let sharedGroupId: UUID? = payloads.count > 1 ? UUID() : nil
+
         for (idx, payload) in payloads.enumerated() {
             let pair = idx < locations.count ? locations[idx] : nil
             guard let wrapped = Self.transitPayload(
@@ -1473,7 +1531,9 @@ final class NewTicketFunnel: ObservableObject {
                 originLocation: pair?.origin,
                 destinationLocation: pair?.destination,
                 styleId: styleId,
-                eventDate: undergroundForm.date
+                colorOverrides: colorOverrides.isEmpty ? nil : colorOverrides,
+                eventDate: undergroundForm.date,
+                groupId: sharedGroupId
             )
             guard let ticket else {
                 errorMessage = store.errorMessage
@@ -1528,8 +1588,10 @@ final class NewTicketFunnel: ObservableObject {
             originLocation: origin,
             destinationLocation: destination,
             styleId: selectedStyleId ?? template?.defaultStyle.id,
+            colorOverrides: colorOverrides.isEmpty ? nil : colorOverrides,
             eventDate: currentEventDate,
-            addedAtByMemory: original.addedAtByMemory
+            addedAtByMemory: original.addedAtByMemory,
+            groupId: original.groupId
         )
     }
 
@@ -1598,7 +1660,13 @@ final class NewTicketFunnel: ObservableObject {
         template = ticket.kind
         category = TicketCategory.allCases.first { $0.templates.contains(ticket.kind) }
         orientation = ticket.orientation
+        // Setting `selectedStyleId` would normally clear `colorOverrides`
+        // — suppress that during prefill so the saved overrides survive
+        // the hydrate step.
+        suppressColorOverrideReset = true
         selectedStyleId = ticket.styleId
+        suppressColorOverrideReset = false
+        colorOverrides = ticket.colorOverrides ?? [:]
 
         form = FlightFormInput()
         trainForm = TrainFormInput()
@@ -1614,10 +1682,12 @@ final class NewTicketFunnel: ObservableObject {
             form.destinationCode = t.destination
             form.destinationName = t.destinationCity
             form.departureDate = Self.longDateFormatter.date(from: t.date) ?? Date()
+            form.departureDateIsSet = true
             // Afterglow only persists boardingTime (= departure − 30min); add it back
             // so the form's departureTime matches what the user originally entered.
             let afterglowBoard = Self.timeFormatter.date(from: t.boardingTime) ?? Date()
             form.departureTime = afterglowBoard.addingTimeInterval(30 * 60)
+            form.departureTimeIsSet = true
             form.gate = t.gate
             form.seat = t.seat
             form.originAirport = ticket.originLocation
@@ -1634,7 +1704,9 @@ final class NewTicketFunnel: ObservableObject {
             form.destinationName = t.destinationName
             form.destinationLocation = t.destinationLocation
             form.departureDate = Self.longDateFormatter.date(from: t.date) ?? Date()
+            form.departureDateIsSet = true
             form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            form.departureTimeIsSet = true
             form.gate = t.gate
             form.seat = t.seat
             form.originAirport = ticket.originLocation
@@ -1654,7 +1726,9 @@ final class NewTicketFunnel: ObservableObject {
             form.gate = t.gate
             form.seat = t.seat
             form.departureDate = Self.longDateFormatter.date(from: t.fullDate) ?? Date()
+            form.departureDateIsSet = true
             form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            form.departureTimeIsSet = true
             Self.unpackTicketNumber(t.ticketNumber, into: &form)
             form.originAirport = ticket.originLocation
             form.destinationAirport = ticket.destinationLocation
@@ -1671,7 +1745,9 @@ final class NewTicketFunnel: ObservableObject {
             form.gate = t.gate
             form.seat = t.seat
             form.departureDate = Self.longDateFormatter.date(from: t.fullDate) ?? Date()
+            form.departureDateIsSet = true
             form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            form.departureTimeIsSet = true
             Self.unpackTicketNumber(t.ticketNumber, into: &form)
             form.originAirport = ticket.originLocation
             form.destinationAirport = ticket.destinationLocation
@@ -1686,7 +1762,9 @@ final class NewTicketFunnel: ObservableObject {
             form.seat = t.seat
             form.terminal = t.terminal
             form.departureDate = Self.longDateFormatter.date(from: t.date) ?? Date()
+            form.departureDateIsSet = true
             form.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            form.departureTimeIsSet = true
             Self.unpackTicketNumber(t.ticketNumber, into: &form)
             form.originAirport = ticket.originLocation
             form.destinationAirport = ticket.destinationLocation
@@ -1700,8 +1778,11 @@ final class NewTicketFunnel: ObservableObject {
             trainForm.destinationCity = t.destinationCity
             trainForm.destinationCityKanji = t.destinationCityKanji
             trainForm.date = Self.trainDateFormatter.date(from: t.date) ?? Date()
+            trainForm.dateIsSet = true
             trainForm.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            trainForm.departureTimeIsSet = true
             trainForm.arrivalTime = Self.timeFormatter.date(from: t.arrivalTime) ?? Date()
+            trainForm.arrivalTimeIsSet = true
             trainForm.car = t.car
             trainForm.seat = t.seat
             trainForm.ticketNumber = t.ticketNumber
@@ -1718,7 +1799,9 @@ final class NewTicketFunnel: ObservableObject {
             trainForm.passenger = t.passenger
             trainForm.ticketNumber = t.ticketNumber
             trainForm.date = Self.longDateFormatter.date(from: t.date) ?? Date()
+            trainForm.dateIsSet = true
             trainForm.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            trainForm.departureTimeIsSet = true
             trainForm.car = t.carriage
             trainForm.seat = t.seat
             trainForm.originStationLocation = ticket.originLocation
@@ -1740,9 +1823,11 @@ final class NewTicketFunnel: ObservableObject {
             let parts = t.date.components(separatedBy: " · ")
             if let d = parts.first, let parsed = Self.shortDateFormatter.date(from: d) {
                 trainForm.date = parsed
+                trainForm.dateIsSet = true
             }
             if parts.count >= 2, let parsed = Self.timeFormatter.date(from: parts[1]) {
                 trainForm.departureTime = parsed
+                trainForm.departureTimeIsSet = true
             }
             trainForm.originStationLocation = ticket.originLocation
             trainForm.destinationStationLocation = ticket.destinationLocation
@@ -1755,7 +1840,9 @@ final class NewTicketFunnel: ObservableObject {
             trainForm.destinationCity = t.destinationCity
             trainForm.destinationStation = t.destinationStation
             trainForm.date = Self.postDateFormatter.date(from: t.date) ?? Date()
+            trainForm.dateIsSet = true
             trainForm.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            trainForm.departureTimeIsSet = true
             trainForm.car = t.car
             trainForm.seat = t.seat
             trainForm.originStationLocation = ticket.originLocation
@@ -1769,7 +1856,9 @@ final class NewTicketFunnel: ObservableObject {
             trainForm.destinationCity = t.destinationCity
             trainForm.destinationStation = t.destinationStation
             trainForm.date = Self.postDateFormatter.date(from: t.date) ?? Date()
+            trainForm.dateIsSet = true
             trainForm.departureTime = Self.timeFormatter.date(from: t.departureTime) ?? Date()
+            trainForm.departureTimeIsSet = true
             trainForm.car = t.car
             trainForm.seat = t.seat
             trainForm.originStationLocation = ticket.originLocation
@@ -1780,8 +1869,11 @@ final class NewTicketFunnel: ObservableObject {
             eventForm.tourName = t.tourName
             eventForm.venue = t.venue
             eventForm.date = Self.longDateFormatter.date(from: t.date) ?? Date()
+            eventForm.dateIsSet = true
             eventForm.doorsTime = Self.timeFormatter.date(from: t.doorsTime) ?? Date()
+            eventForm.doorsTimeIsSet = true
             eventForm.showTime = Self.timeFormatter.date(from: t.showTime) ?? Date()
+            eventForm.showTimeIsSet = true
             eventForm.ticketNumber = t.ticketNumber
             eventForm.venueLocation = ticket.originLocation
 
@@ -1798,6 +1890,7 @@ final class NewTicketFunnel: ObservableObject {
             undergroundForm.originStation = ticket.originLocation
             undergroundForm.destinationStation = ticket.destinationLocation
             undergroundForm.date = Self.shortDateFormatter.date(from: t.date) ?? Date()
+            undergroundForm.dateIsSet = true
             undergroundForm.ticketNumber = t.ticketNumber
             undergroundForm.zones = t.zones
             undergroundForm.fare = t.fare

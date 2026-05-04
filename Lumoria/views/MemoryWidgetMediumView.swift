@@ -46,31 +46,11 @@ struct MemoryWidgetMediumView: View {
                 .padding(.leading, 16)
                 .padding(.trailing, 12)
 
-            appIconBadge
+            WidgetBrandBadge()
                 .frame(maxWidth: .infinity, alignment: .topTrailing)
                 .padding(.top, 16)
                 .padding(.trailing, 16)
         }
-    }
-
-    private var appIconBadge: some View {
-        Group {
-            if let image = loadBrandLogomark() {
-                Image(uiImage: image)
-                    .resizable()
-                    .interpolation(.high)
-                    .aspectRatio(contentMode: .fit)
-            } else {
-                RoundedRectangle(cornerRadius: 7.2, style: .continuous)
-                    .fill(Color(red: 1.0, green: 0.988, blue: 0.941))
-            }
-        }
-        .frame(width: 24, height: 24)
-    }
-
-    private func loadBrandLogomark() -> UIImage? {
-        guard let url = WidgetSharedContainer.brandLogomarkURL else { return nil }
-        return UIImage(contentsOfFile: url.path)
     }
 
     private var ticketStack: some View {

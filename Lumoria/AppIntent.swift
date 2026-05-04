@@ -92,3 +92,32 @@ struct MemoryWidgetConfigurationIntent: WidgetConfigurationIntent {
     @Parameter(title: "Shuffle every", default: .thirtyMinutes)
     var refreshInterval: MemoryWidgetRefreshInterval
 }
+
+// MARK: - Profile stats intent
+
+/// Stats surfaced by `ProfileStatsWidget`. Mirrors the values currently
+/// shown in `ProfileView`'s stats grid; user picks one in the widget
+/// configuration sheet.
+enum ProfileStatType: String, AppEnum {
+    case memoriesCreated  = "memories_created"
+    case ticketsThisMonth = "tickets_this_month"
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        TypeDisplayRepresentation(name: "Stat")
+    }
+
+    static var caseDisplayRepresentations: [Self: DisplayRepresentation] = [
+        .memoriesCreated:  DisplayRepresentation(title: "Memories created"),
+        .ticketsThisMonth: DisplayRepresentation(title: "Tickets created this month"),
+    ]
+}
+
+struct ProfileStatsConfigurationIntent: WidgetConfigurationIntent {
+    static var title: LocalizedStringResource { "Stats Widget" }
+    static var description: IntentDescription {
+        IntentDescription("Pick which Lumoria stat to surface on your home screen.")
+    }
+
+    @Parameter(title: "Stat", default: .memoriesCreated)
+    var statType: ProfileStatType
+}

@@ -39,6 +39,7 @@ struct Lumoria_AppApp: App {
     @AppStorage("appearance.iconName") private var storedIconName: String = ""
     @AppStorage("auth.hasCache") private var authHasCache: Bool = false
     @AppStorage("auth.lastKnownAuthenticated") private var authLastKnown: Bool = false
+    @State private var splashCompleted = false
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -87,8 +88,27 @@ struct Lumoria_AppApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if shouldShowAuthedUI {
+            ZStack {
+                rootContent
+
+                if !splashCompleted {
+                    SplashView(animated: !(authHasCache && authLastKnown)) {
+                        withAnimation(.easeOut(duration: 0.35)) {
+                            splashCompleted = true
+                        }
+                    }
+                    .transition(.opacity)
+                    .zIndex(10)
+                }
+            }
+        }
+        .modelContainer(sharedModelContainer)
+    }
+
+    @ViewBuilder
+    private var rootContent: some View {
+        Group {
+            if shouldShowAuthedUI {
                     ContentView()
                         .environmentObject(authManager)
                         .environmentObject(pushService)
@@ -152,8 +172,6 @@ struct Lumoria_AppApp: App {
                 default:          break
                 }
             }
-        }
-        .modelContainer(sharedModelContainer)
     }
 
     /// Mirror of `drainPendingWalletImport` for the share extension's

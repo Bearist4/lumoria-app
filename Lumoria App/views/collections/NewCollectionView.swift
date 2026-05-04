@@ -31,7 +31,6 @@ struct NewMemoryView: View {
                 intro
                 titleField
                 emojiColorRow
-                dateRow
             }
             .padding(.horizontal, Spacing.s6)
             .padding(.top, 72)
@@ -149,21 +148,6 @@ struct NewMemoryView: View {
         }
     }
 
-    // MARK: - Start / end date row
-
-    private var dateRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top, spacing: 16) {
-                LumoriaDateField(label: "Start date", date: $startDate)
-                LumoriaDateField(label: "End date",   date: $endDate)
-            }
-
-            Text("Add a start and end date to track your memory.")
-                .font(.caption2)
-                .foregroundStyle(Color(hex: "525252"))
-        }
-    }
-
     private static func dismissKeyboard() {
         UIApplication.shared.sendAction(
             #selector(UIResponder.resignFirstResponder),
@@ -203,9 +187,10 @@ struct ColorOption: Identifiable, Equatable {
     let name: String
     let family: String
 
-    /// Soft tint used in the dropdown color well.
-    var swatchColor: Color { Color("Colors/\(family)/50") }
-    /// Saturated color used for the memory preview background.
+    /// Soft tint used in the dropdown color well + memory page background.
+    /// Resolves the Figma `Background/memory/<family>` alias.
+    var swatchColor: Color { Color.Background.memory(family) }
+    /// Saturated color used for the memory preview accent.
     var primaryColor: Color { Color("Colors/\(family)/500") }
     /// Legacy alias — some callers ask for `color`.
     var color: Color { primaryColor }

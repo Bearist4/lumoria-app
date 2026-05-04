@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.4',
+  date: '2026-05-03',
+  type: 'enhancement',
+  title: 'Recolor support for Afterglow',
+}
+
+Afterglow joins Studio in the per-element style step. The signature dawn-to-dusk gradient (Indigo/900 top-left → Blue/900 bottom-right) is now drawn in code instead of baked into an asset, and every text colour reads through the `TicketStyleVariant`. Premium users can now swap the background to a flat colour and tweak the body text — the funnel only surfaces the two controls Afterglow actually uses (Background, Text), via a new per-template `supportedOverrideElements` set on `TicketTemplateKind`. Heritage, Prism and Terminal still ship with the themes scroll only — coming next.

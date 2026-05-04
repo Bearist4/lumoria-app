@@ -43,11 +43,35 @@ struct StudioTicketView: View {
             let s = w / 455
 
             ZStack {
-                if let asset = style.backgroundAsset {
-                    Image(asset)
-                        .resizable()
-                        .frame(width: w, height: h)
+                Group {
+                    if let bg = style.backgroundColor {
+                        // Flat-color override. When the variant ships
+                        // an asset, mask the color through it so the
+                        // ticket keeps its silhouette (notches +
+                        // corners). Without an asset there's nothing
+                        // to mask against, so fall back to a plain
+                        // fill.
+                        if let asset = style.backgroundAsset {
+                            Rectangle()
+                                .fill(bg)
+                                .frame(width: w, height: h)
+                                .mask(
+                                    Image(asset)
+                                        .resizable()
+                                        .frame(width: w, height: h)
+                                )
+                        } else {
+                            Rectangle()
+                                .fill(bg)
+                                .frame(width: w, height: h)
+                        }
+                    } else if let asset = style.backgroundAsset {
+                        Image(asset)
+                            .resizable()
+                            .frame(width: w, height: h)
+                    }
                 }
+                .styleAnchor(.background)
 
                 VStack(spacing: 0) {
                     headerRow(scale: s)
@@ -96,6 +120,10 @@ struct StudioTicketView: View {
             Text(ticket.cabinClass)
                 .font(.system(size: 8 * s, weight: .bold))
                 .foregroundStyle(style.onAccent)
+                // The cabin-class tag is the canonical surface for the
+                // accent-text-color override (the airplane glyph below
+                // owns the accent color itself).
+                .styleAnchor(.onAccent)
                 .padding(.horizontal, 8 * s)
                 .padding(.vertical, 4 * s)
                 .background(
@@ -133,10 +161,12 @@ struct StudioTicketView: View {
                 Image(systemName: "airplane")
                     .font(.system(size: 16 * s, weight: .regular))
                     .foregroundStyle(style.accent)
+                    .styleAnchor(.accent)
 
                 Text(ticket.destination)
                     .font(.system(size: 40.79 * s, weight: .bold))
                     .foregroundStyle(style.textPrimary)
+                    .styleAnchor(.textPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .frame(maxWidth: .infinity, alignment: .trailing)

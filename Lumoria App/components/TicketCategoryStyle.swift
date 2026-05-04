@@ -36,12 +36,27 @@ enum TicketCategoryStyle: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Background color of the pill / pin — palette 300 weight.
-    var backgroundColor: Color { Color("Colors/\(colorFamily)/300") }
+    /// Asset slug for the Figma `Category/*/<slug>` aliases. The Figma
+    /// catalogue uses `public-transport` and `park`; the Swift enum
+    /// keeps the older `publicTransit`/`garden` cases for stability.
+    var assetSlug: String {
+        switch self {
+        case .publicTransit: return "public-transport"
+        case .garden:        return "park"
+        default:             return rawValue
+        }
+    }
 
-    /// Text/icon color on top of `backgroundColor`. Resolves to ~white in
-    /// light mode and ~black in dark mode via the inverse-95 opacity token.
-    var onColor: Color { Color("Colors/Opacity/White/inverse/95") }
+    /// Background color of the pill / pin — resolves the Figma
+    /// `Category/background/<slug>` alias (family/300 light, /400 dark,
+    /// /400 HC light, /500 HC dark). All 4 appearance modes are baked in.
+    var backgroundColor: Color { Color("Colors/category/background/\(assetSlug)") }
+
+    /// Text/icon color on top of `backgroundColor` — resolves the Figma
+    /// `Category/content/<slug>` alias (family/800 light, Gray/White
+    /// dark, Gray/Black HC light, Gray/Black HC dark; concert is white in
+    /// HC light because purple/800 is dark enough already).
+    var onColor: Color { Color("Colors/category/content/\(assetSlug)") }
 
     /// SF Symbol name for the category glyph.
     var systemImage: String {

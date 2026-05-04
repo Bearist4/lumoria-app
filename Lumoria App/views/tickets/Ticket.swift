@@ -313,6 +313,13 @@ struct Ticket: Identifiable, Hashable {
     /// Identifier of the chosen style variant from `TicketStyleCatalog`.
     /// Nil means: render with the template's default variant.
     var styleId: String?
+    /// Per-element color overrides layered on top of `styleId`'s
+    /// variant at render time. Keys come from
+    /// `TicketStyleVariant.Element` raw values (e.g. "accent",
+    /// "background"); values are 6-char uppercase hex strings.
+    /// Nil means no overrides — the resolved style equals the
+    /// catalog's variant verbatim.
+    var colorOverrides: [String: String]?
     /// Canonical event date for sort-by-event in `MemoryDetailView`.
     /// Plane/train: departure. Concert/transit: the single date field.
     /// Nil for tickets created before the column existed.
@@ -325,13 +332,21 @@ struct Ticket: Identifiable, Hashable {
     /// Nil-by-key when the membership predates a reorder; sort applier
     /// buckets those last when sort_field == .manual.
     var displayOrderByMemory: [UUID: Int]
+    /// Optional grouping key shared by tickets created together
+    /// (multi-leg trip, return + outbound, etc.). All-tickets list and
+    /// `TicketDetailView` collapse same-group tickets into a single
+    /// horizontally-paged entry; the map keeps each member as its own
+    /// pin. Nil means the ticket stands alone.
+    var groupId: UUID?
 
     var kind: TicketTemplateKind { payload.kind }
 
-    /// Style variant resolved against the template's catalog. Always
-    /// returns a renderable variant — falls back to the template's
-    /// default if `styleId` is nil or no longer present in the catalog.
-    var resolvedStyle: TicketStyleVariant { kind.resolveStyle(id: styleId) }
+    /// Style variant resolved against the template's catalog with any
+    /// `colorOverrides` layered on top. Always renderable — falls back
+    /// to the template's default when `styleId` is nil or unknown.
+    var resolvedStyle: TicketStyleVariant {
+        kind.resolveStyle(id: styleId).applying(overrides: colorOverrides)
+    }
 
     init(
         id: UUID = UUID(),
@@ -343,9 +358,11 @@ struct Ticket: Identifiable, Hashable {
         originLocation: TicketLocation? = nil,
         destinationLocation: TicketLocation? = nil,
         styleId: String? = nil,
+        colorOverrides: [String: String]? = nil,
         eventDate: Date? = nil,
         addedAtByMemory: [UUID: Date] = [:],
-        displayOrderByMemory: [UUID: Int] = [:]
+        displayOrderByMemory: [UUID: Int] = [:],
+        groupId: UUID? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -356,9 +373,11 @@ struct Ticket: Identifiable, Hashable {
         self.originLocation = originLocation
         self.destinationLocation = destinationLocation
         self.styleId = styleId
+        self.colorOverrides = colorOverrides
         self.eventDate = eventDate
         self.addedAtByMemory = addedAtByMemory
         self.displayOrderByMemory = displayOrderByMemory
+        self.groupId = groupId
     }
 
     /// Equality includes `updatedAt` so SwiftUI's view diff re-renders
@@ -370,4 +389,53 @@ struct Ticket: Identifiable, Hashable {
         lhs.id == rhs.id && lhs.updatedAt == rhs.updatedAt
     }
     func hash(into hasher: inout Hasher) { hasher.combine(id) }
+}
+
+// MARK: - Group collapsing
+
+extension Array where Element == Ticket {
+
+    /// Collapses `groupId`-bound siblings into a single representative —
+    /// the **earliest-printed** leg (smallest `createdAt`) — so the
+    /// list surface and the detail-view pager both lead with leg 1.
+    /// Source-list ordering is otherwise preserved: the representative
+    /// takes the slot of the first group member encountered. Tickets
+    /// without a `groupId` pass through untouched.
+    func collapsedToGroupRepresentatives() -> [Ticket] {
+        // Pick the earliest leg per group up-front so we don't pay an
+        // O(n) scan inside the main loop.
+        var representatives: [UUID: Ticket] = [:]
+        for ticket in self {
+            guard let gid = ticket.groupId else { continue }
+            if let existing = representatives[gid] {
+                if ticket.createdAt < existing.createdAt {
+                    representatives[gid] = ticket
+                }
+            } else {
+                representatives[gid] = ticket
+            }
+        }
+
+        var out: [Ticket] = []
+        var seen: Set<UUID> = []
+        for ticket in self {
+            if let gid = ticket.groupId {
+                if seen.insert(gid).inserted, let rep = representatives[gid] {
+                    out.append(rep)
+                }
+            } else {
+                out.append(ticket)
+            }
+        }
+        return out
+    }
+
+    /// All members of the same group as `representative`, in source
+    /// order. Returns `[representative]` when the ticket is ungrouped
+    /// or no siblings exist — callers can treat the result uniformly.
+    func groupSiblings(of representative: Ticket) -> [Ticket] {
+        guard let gid = representative.groupId else { return [representative] }
+        let members = filter { $0.groupId == gid }
+        return members.isEmpty ? [representative] : members
+    }
 }

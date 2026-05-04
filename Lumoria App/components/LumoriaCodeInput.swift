@@ -50,10 +50,10 @@ struct LumoriaCodeInput: View {
 
         return ZStack {
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color.black.opacity(0.03))
+                .fill(Color.InputField.Background.default)
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(
-                    isCursor ? Color.accentColor : Color.black.opacity(0.07),
+                    isCursor ? Color.accentColor : Color.InputField.Border.default,
                     lineWidth: isCursor ? 2 : 1
                 )
             Text(isEmpty ? "0" : String(char!))

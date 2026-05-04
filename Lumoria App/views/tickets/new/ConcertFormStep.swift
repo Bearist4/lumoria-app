@@ -5,7 +5,9 @@
 //  Step 4 — Concert variant of the form. Captures the artist, tour
 //  title, venue, a date and two time fields (doors / show), plus a
 //  ticket number. Single-venue template, so only the origin location
-//  slot is populated (the venue).
+//  slot is populated (the venue). Sections are grouped into
+//  collapsibles mirroring the Concert template's `requirements`
+//  categories.
 //
 
 import SwiftUI
@@ -15,13 +17,23 @@ struct NewConcertFormStep: View {
     @ObservedObject var funnel: NewTicketFunnel
 
     @State private var didFireSubmit = false
+    @State private var expandedItems: Set<String> = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            artistSection
-            venueSection
-            scheduleSection
-            ticketSection
+        VStack(spacing: 16) {
+            FormPreviewTile(funnel: funnel)
+
+            VStack(spacing: 8) {
+                ForEach(categories, id: \.id) { category in
+                    FormStepCollapsibleItem(
+                        title: category.label,
+                        isComplete: category.isComplete,
+                        isExpanded: binding(for: category.id)
+                    ) {
+                        category.content
+                    }
+                }
+            }
         }
         .onAppear {
             guard let template = funnel.template else { return }
@@ -39,6 +51,62 @@ struct NewConcertFormStep: View {
         }
     }
 
+    // MARK: - Categories
+
+    private struct Category {
+        let id: String
+        let label: String
+        let isComplete: Bool
+        let content: AnyView
+    }
+
+    private var categories: [Category] {
+        (funnel.template?.requirements ?? []).compactMap { req in
+            switch req.label {
+            case "Artist & tour name":
+                return Category(id: "artist", label: req.label, isComplete: hasArtist, content: AnyView(artistContent))
+            case "Venue":
+                return Category(id: "venue", label: req.label, isComplete: hasVenue, content: AnyView(venueContent))
+            case "Date, doors & showtime":
+                return Category(id: "schedule", label: req.label, isComplete: hasSchedule, content: AnyView(scheduleContent))
+            case "Ticket number":
+                return Category(id: "ticket", label: req.label, isComplete: hasTicket, content: AnyView(ticketContent))
+            default:
+                return nil
+            }
+        }
+    }
+
+    // MARK: - Completion predicates
+
+    private var hasArtist: Bool {
+        !funnel.eventForm.artist.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private var hasVenue: Bool {
+        !funnel.eventForm.venue.trimmingCharacters(in: .whitespaces).isEmpty
+            || funnel.eventForm.venueLocation != nil
+    }
+
+    private var hasSchedule: Bool {
+        let e = funnel.eventForm
+        return e.dateIsSet && e.doorsTimeIsSet && e.showTimeIsSet
+    }
+
+    private var hasTicket: Bool {
+        !funnel.eventForm.ticketNumber.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func binding(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { expandedItems.contains(id) },
+            set: { isOn in
+                if isOn { expandedItems.insert(id) }
+                else    { expandedItems.remove(id) }
+            }
+        )
+    }
+
     private func countFilledFields() -> Int {
         let e = funnel.eventForm
         var count = 0
@@ -49,12 +117,10 @@ struct NewConcertFormStep: View {
         return count
     }
 
-    // MARK: - Artist / tour
+    // MARK: - Artist content
 
-    private var artistSection: some View {
+    private var artistContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("About the show")
-
             LumoriaInputField(
                 label: "Artist",
                 placeholder: "Madison Beer",
@@ -71,22 +137,18 @@ struct NewConcertFormStep: View {
         }
     }
 
-    // MARK: - Venue
+    // MARK: - Venue content
 
-    private var venueSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Venue")
-
-            LumoriaVenueField(
-                label: "Name",
-                isRequired: true,
-                assistiveText: "We’ll auto-fill the city and drop a pin on the map.",
-                initialQuery: funnel.eventForm.venue,
-                selected: $funnel.eventForm.venueLocation
-            )
-            .onChange(of: funnel.eventForm.venueLocation) { _, new in
-                applyVenue(new)
-            }
+    private var venueContent: some View {
+        LumoriaVenueField(
+            label: "Name",
+            isRequired: true,
+            assistiveText: "We’ll auto-fill the city and drop a pin on the map.",
+            initialQuery: funnel.eventForm.venue,
+            selected: $funnel.eventForm.venueLocation
+        )
+        .onChange(of: funnel.eventForm.venueLocation) { _, new in
+            applyVenue(new)
         }
     }
 
@@ -98,88 +160,53 @@ struct NewConcertFormStep: View {
         funnel.eventForm.venue = location.name
     }
 
-    // MARK: - Schedule
+    // MARK: - Schedule content
 
-    private var scheduleSection: some View {
+    private var scheduleContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Schedule")
-
-            dateField("Date", selection: $funnel.eventForm.date)
+            LumoriaDateField(
+                label: "Date",
+                placeholder: "Pick a date",
+                date: optionalDateBinding(
+                    date: $funnel.eventForm.date,
+                    isSet: $funnel.eventForm.dateIsSet
+                ),
+                isRequired: true
+            )
 
             HStack(spacing: 12) {
-                timeField("Doors", selection: $funnel.eventForm.doorsTime)
-                timeField("Show",  selection: $funnel.eventForm.showTime)
+                LumoriaDateField(
+                    label: "Doors",
+                    placeholder: "Pick a time",
+                    date: optionalDateBinding(
+                        date: $funnel.eventForm.doorsTime,
+                        isSet: $funnel.eventForm.doorsTimeIsSet
+                    ),
+                    isRequired: true,
+                    displayedComponents: .hourAndMinute
+                )
+                LumoriaDateField(
+                    label: "Show",
+                    placeholder: "Pick a time",
+                    date: optionalDateBinding(
+                        date: $funnel.eventForm.showTime,
+                        isSet: $funnel.eventForm.showTimeIsSet
+                    ),
+                    isRequired: true,
+                    displayedComponents: .hourAndMinute
+                )
             }
         }
     }
 
-    // MARK: - Ticket number
+    // MARK: - Ticket content
 
-    private var ticketSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Ticket number")
-
-            LumoriaInputField(
-                label: "Reference",
-                placeholder: "CON-2026-000142",
-                text: $funnel.eventForm.ticketNumber,
-                isRequired: false
-            )
-        }
-    }
-
-    // MARK: - Section title
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.title2.bold())
-            .foregroundStyle(Color.Text.primary)
-    }
-
-    // MARK: - Date / time fields
-
-    private func dateField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 0) {
-                Text(label)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Text.primary)
-                Text(verbatim: "*")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Feedback.Danger.icon)
-            }
-            DatePicker("", selection: selection, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .frame(height: 50)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-    }
-
-    private func timeField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.Text.primary)
-            DatePicker("", selection: selection, displayedComponents: .hourAndMinute)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .frame(height: 50)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
+    private var ticketContent: some View {
+        LumoriaInputField(
+            label: "Reference",
+            placeholder: "CON-2026-000142",
+            text: $funnel.eventForm.ticketNumber,
+            isRequired: false
+        )
     }
 }

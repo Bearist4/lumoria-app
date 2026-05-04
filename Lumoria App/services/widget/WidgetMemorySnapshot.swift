@@ -19,6 +19,22 @@ struct WidgetSnapshot: Codable {
     let lastUpdated: Date
     /// Signed-in user's memories, most-recent first.
     let memories: [WidgetMemorySnapshot]
+    /// Aggregate counts surfaced by `ProfileStatsWidget`. Optional so the
+    /// widget can decode older snapshots written before this field shipped.
+    let profileStats: WidgetProfileStats?
+}
+
+// MARK: - Profile stats payload
+
+/// Aggregate counts derived from the user's memories + tickets — the same
+/// numbers `ProfileView` shows in its stats grid. Mirrored to the App Group
+/// so `ProfileStatsWidget` can render them without touching Supabase.
+struct WidgetProfileStats: Codable, Hashable {
+    /// Total number of memories the user has created.
+    let memoriesCount: Int
+    /// Tickets whose `createdAt` falls in the current calendar month
+    /// (device timezone, matches `ProfileView.ticketsThisMonth`).
+    let ticketsThisMonth: Int
 }
 
 // MARK: - Per-memory payload

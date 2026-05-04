@@ -18,21 +18,21 @@ enum CalloutType {
 
     var background: Color {
         switch self {
-        case .information: return Color("Colors/Blue/50")
-        case .warning:     return Color("Colors/Yellow/50")
-        case .success:     return Color("Colors/Green/50")
-        case .danger:      return Color("Colors/Red/50")
-        case .neutral:     return Color("Colors/Gray/50")
+        case .information: return Color.Feedback.Information.surface
+        case .warning:     return Color.Feedback.Warning.surface
+        case .success:     return Color.Feedback.Success.surface
+        case .danger:      return Color.Feedback.Danger.surface
+        case .neutral:     return Color.Feedback.Neutral.surface
         }
     }
 
     var foreground: Color {
         switch self {
-        case .information: return Color("Colors/Blue/700")
-        case .warning:     return Color("Colors/Yellow/700")
-        case .success:     return Color("Colors/Green/700")
-        case .danger:      return Color("Colors/Red/700")
-        case .neutral:     return Color("Colors/Gray/700")
+        case .information: return Color.Feedback.Information.text
+        case .warning:     return Color.Feedback.Warning.text
+        case .success:     return Color.Feedback.Success.text
+        case .danger:      return Color.Feedback.Danger.text
+        case .neutral:     return Color.Feedback.Neutral.text
         }
     }
 }

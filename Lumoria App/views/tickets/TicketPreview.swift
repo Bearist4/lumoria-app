@@ -38,20 +38,20 @@ struct TicketPreview: View {
         let style = ticket.resolvedStyle
 
         switch (ticket.payload, ticket.orientation) {
-        case (.afterglow(let t), .horizontal): AfterglowTicketView(ticket: t)
-        case (.afterglow(let t), .vertical):   AfterglowTicketVerticalView(ticket: t)
+        case (.afterglow(let t), .horizontal): AfterglowTicketView(ticket: t, style: style)
+        case (.afterglow(let t), .vertical):   AfterglowTicketVerticalView(ticket: t, style: style)
 
         case (.studio(let t), .horizontal):    StudioTicketView(ticket: t, style: style)
         case (.studio(let t), .vertical):      StudioTicketVerticalView(ticket: t, style: style)
 
-        case (.heritage(let t), .horizontal):  HeritageTicketView(ticket: t)
-        case (.heritage(let t), .vertical):    HeritageTicketVerticalView(ticket: t)
+        case (.heritage(let t), .horizontal):  HeritageTicketView(ticket: t, style: style)
+        case (.heritage(let t), .vertical):    HeritageTicketVerticalView(ticket: t, style: style)
 
-        case (.terminal(let t), .horizontal):  TerminalTicketView(ticket: t)
-        case (.terminal(let t), .vertical):    TerminalTicketVerticalView(ticket: t)
+        case (.terminal(let t), .horizontal):  TerminalTicketView(ticket: t, style: style)
+        case (.terminal(let t), .vertical):    TerminalTicketVerticalView(ticket: t, style: style)
 
-        case (.prism(let t), .horizontal):     PrismTicketView(ticket: t)
-        case (.prism(let t), .vertical):       PrismTicketVerticalView(ticket: t)
+        case (.prism(let t), .horizontal):     PrismTicketView(ticket: t, style: style)
+        case (.prism(let t), .vertical):       PrismTicketVerticalView(ticket: t, style: style)
 
         case (.express(let t), .horizontal):   ExpressTicketView(ticket: t, style: style)
         case (.express(let t), .vertical):     ExpressTicketVerticalView(ticket: t, style: style)

@@ -29,7 +29,9 @@ struct TicketRow: Decodable {
     let locationPrimaryEnc: String?
     let locationSecondaryEnc: String?
     let styleId: String?
+    let colorOverrides: [String: String]?
     let eventDateEnc: String?
+    let groupId: UUID?
     let createdAt: Date
     let updatedAt: Date
     let memoryTickets: [MemoryTicketLink]?
@@ -41,7 +43,9 @@ struct TicketRow: Decodable {
         case locationPrimaryEnc   = "location_primary_enc"
         case locationSecondaryEnc = "location_secondary_enc"
         case styleId              = "style_id"
+        case colorOverrides       = "color_overrides"
         case eventDateEnc         = "event_date_enc"
+        case groupId              = "group_id"
         case createdAt            = "created_at"
         case updatedAt            = "updated_at"
         case memoryTickets        = "memory_tickets"
@@ -74,7 +78,9 @@ struct NewTicketRow: Encodable {
     let locationPrimaryEnc: String?
     let locationSecondaryEnc: String?
     let styleId: String?
+    let colorOverrides: [String: String]?
     let eventDateEnc: String?
+    let groupId: UUID?
 
     enum CodingKeys: String, CodingKey {
         case userId               = "user_id"
@@ -82,7 +88,9 @@ struct NewTicketRow: Encodable {
         case locationPrimaryEnc   = "location_primary_enc"
         case locationSecondaryEnc = "location_secondary_enc"
         case styleId              = "style_id"
+        case colorOverrides       = "color_overrides"
         case eventDateEnc         = "event_date_enc"
+        case groupId              = "group_id"
         case orientation, payload
     }
 }
@@ -97,14 +105,18 @@ struct TicketUpdateRow: Encodable {
     let locationPrimaryEnc: String?
     let locationSecondaryEnc: String?
     let styleId: String?
+    let colorOverrides: [String: String]?
     let eventDateEnc: String?
+    let groupId: UUID?
 
     enum CodingKeys: String, CodingKey {
         case templateKind         = "template_kind"
         case locationPrimaryEnc   = "location_primary_enc"
         case locationSecondaryEnc = "location_secondary_enc"
         case styleId              = "style_id"
+        case colorOverrides       = "color_overrides"
         case eventDateEnc         = "event_date_enc"
+        case groupId              = "group_id"
         case orientation, payload
     }
 
@@ -116,7 +128,9 @@ struct TicketUpdateRow: Encodable {
         try c.encode(locationPrimaryEnc,   forKey: .locationPrimaryEnc)
         try c.encode(locationSecondaryEnc, forKey: .locationSecondaryEnc)
         try c.encode(styleId,              forKey: .styleId)
+        try c.encode(colorOverrides,       forKey: .colorOverrides)
         try c.encode(eventDateEnc,         forKey: .eventDateEnc)
+        try c.encode(groupId,              forKey: .groupId)
     }
 }
 
@@ -260,9 +274,11 @@ extension TicketRow {
             originLocation: origin,
             destinationLocation: destination,
             styleId: styleId,
+            colorOverrides: colorOverrides,
             eventDate: eventDate,
             addedAtByMemory: addedAtByMemory,
-            displayOrderByMemory: displayOrderByMemory
+            displayOrderByMemory: displayOrderByMemory,
+            groupId: groupId
         )
     }
 }

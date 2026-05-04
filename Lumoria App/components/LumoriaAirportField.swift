@@ -169,7 +169,7 @@ struct LumoriaAirportField: View {
             if isRequired {
                 Text(verbatim: "*")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color("Colors/Red/400"))
+                    .foregroundStyle(Color.Feedback.Danger.border)
             }
         }
     }

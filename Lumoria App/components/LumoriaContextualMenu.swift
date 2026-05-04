@@ -163,41 +163,64 @@ struct MenuPresenter: View {
     private let edgeInset: CGFloat = 16
 
     @State private var didAppear = false
+    @State private var menuHeight: CGFloat = 0
 
     var body: some View {
-        // `anchor` is captured in the source view's global window
-        // coord space. Inside the fullScreenCover, the content is
-        // laid out from the window top (thanks to `.ignoresSafeArea`)
-        // but SwiftUI still reports its origin with the top safe-area
-        // inset baked in — so offsets that use raw `anchor.maxY` land
-        // `safeAreaInsets.top` too low. Subtracting it brings the
-        // menu back to a true 8pt gap.
+        // `anchor` is captured by the trigger as `proxy.frame(in: .global)`,
+        // i.e. window coords. Inside this fullScreenCover the GeometryReader
+        // ignores safe area, so its top-leading is also at window (0,0).
+        // Position the menu by stacking `.padding(.leading, x)` and
+        // `.padding(.top, y)` from a `.topLeading` ZStack — this avoids the
+        // earlier `offset(... - topInset)` workaround, which produced
+        // different vertical positions depending on whether the trigger lived
+        // in a root view, a sheet, or a nested cover.
         GeometryReader { rootProxy in
+            let screen = rootProxy.size
             let topInset = rootProxy.safeAreaInsets.top
+            let bottomInset = rootProxy.safeAreaInsets.bottom
+
+            // Right-aligned to trigger by default; clamp inside screen.
+            let preferredX = anchor.maxX - menuWidth
+            let xMin = edgeInset
+            let xMax = max(xMin, screen.width - menuWidth - edgeInset)
+            let xPlacement = max(xMin, min(xMax, preferredX))
+
+            // Place below trigger; flip above when it would clip the bottom
+            // and there's room above. Otherwise stay below (better to clip
+            // bottom rows than to land in the status bar).
+            let belowY = anchor.maxY + gap
+            let aboveY = anchor.minY - gap - menuHeight
+            let bottomLimit = screen.height - bottomInset - edgeInset
+            let topLimit = topInset + edgeInset
+            let fitsBelow = (belowY + menuHeight) <= bottomLimit
+            let fitsAbove = aboveY >= topLimit
+            let yPlacement = (!fitsBelow && fitsAbove) ? aboveY : belowY
+
             ZStack(alignment: .topLeading) {
-                // Dismiss layer. Explicit Rectangle + .contentShape so
-                // iOS doesn't skip hit-testing on a near-transparent
-                // Color view.
+                // Dismiss layer. Explicit Rectangle + .contentShape so iOS
+                // doesn't skip hit-testing on a near-transparent Color view.
                 Rectangle()
                     .fill(Color.black.opacity(0.001))
                     .contentShape(Rectangle())
                     .ignoresSafeArea()
                     .onTapGesture { close(then: onDismiss) }
 
-                // The menu is conditionally rendered so SwiftUI runs
-                // its insertion/removal transition. Both offset + opacity
-                // ride the same spring driven by `value: didAppear`, so
-                // the menu starts at -16pt above its resting position
-                // (8pt below the trigger) at opacity 0 and animates
-                // to its final offset and opacity 1 atomically. The
-                // close transition runs the same animation in reverse.
+                // Conditionally rendered so SwiftUI runs the
+                // insertion/removal transition. Offset + opacity ride the
+                // same spring driven by `didAppear`.
                 if didAppear {
                     LumoriaContextualMenu(items: wrapped)
                         .fixedSize()
-                        .offset(
-                            x: anchor.maxX - menuWidth,
-                            y: anchor.maxY + gap - topInset
+                        .background(
+                            GeometryReader { p in
+                                Color.clear.preference(
+                                    key: MenuHeightKey.self,
+                                    value: p.size.height
+                                )
+                            }
                         )
+                        .padding(.leading, xPlacement)
+                        .padding(.top, yPlacement)
                         .transition(
                             .offset(y: -16).combined(with: .opacity)
                         )
@@ -208,6 +231,7 @@ struct MenuPresenter: View {
                 .spring(response: 0.32, dampingFraction: 0.86),
                 value: didAppear
             )
+            .onPreferenceChange(MenuHeightKey.self) { menuHeight = $0 }
         }
         .ignoresSafeArea()
         .onAppear { didAppear = true }
@@ -232,6 +256,13 @@ struct MenuPresenter: View {
                 close(then: { onSelect(item) })
             }
         }
+    }
+}
+
+private struct MenuHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 

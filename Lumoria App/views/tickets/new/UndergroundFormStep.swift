@@ -9,7 +9,8 @@
 //  and the preview updates. Multi-leg journeys (A → C requiring an
 //  A → B then B → C transfer) produce one `UndergroundTicket`
 //  payload per leg, each with the correct operator-brand line
-//  colour and stop count.
+//  colour and stop count. Sections are grouped into collapsibles
+//  mirroring the Underground template's `requirements` categories.
 //
 
 import SwiftUI
@@ -18,21 +19,32 @@ struct NewUndergroundFormStep: View {
 
     @ObservedObject var funnel: NewTicketFunnel
 
+    @State private var expandedItems: Set<String> = []
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            // Journey sits above Ticket Details in z-order so the
-            // city / route dropdowns float over the next section
-            // when opened. Without this, the expanded lists render
-            // behind the Ticket Details header (SwiftUI draws VStack
-            // children back-to-front by default).
-            journeySection.zIndex(2)
+        VStack(spacing: 16) {
+            FormPreviewTile(funnel: funnel)
 
-            detailsSection.zIndex(1)
+            VStack(spacing: 8) {
+                ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
+                    FormStepCollapsibleItem(
+                        title: category.label,
+                        isComplete: category.isComplete,
+                        isExpanded: binding(for: category.id)
+                    ) {
+                        category.content
+                    }
+                    // Earlier categories sit higher in z-order so the
+                    // city / route dropdowns float over the next
+                    // collapsible when opened.
+                    .zIndex(Double(categories.count - index))
+                }
 
-            if funnel.undergroundForm.originStation != nil
-                && funnel.undergroundForm.destinationStation != nil
-                && funnel.undergroundForm.plannedRoutes.isEmpty {
-                unresolvedBanner.zIndex(0)
+                if funnel.undergroundForm.originStation != nil
+                    && funnel.undergroundForm.destinationStation != nil
+                    && funnel.undergroundForm.plannedRoutes.isEmpty {
+                    unresolvedBanner.zIndex(0)
+                }
             }
         }
         .onAppear {
@@ -40,12 +52,66 @@ struct NewUndergroundFormStep: View {
         }
     }
 
-    // MARK: - Journey
+    // MARK: - Categories
 
-    private var journeySection: some View {
+    private struct Category {
+        let id: String
+        let label: String
+        let isComplete: Bool
+        let content: AnyView
+    }
+
+    private var categories: [Category] {
+        (funnel.template?.requirements ?? []).compactMap { req in
+            switch req.label {
+            case "Origin & destination stations":
+                return Category(id: "stations", label: req.label, isComplete: hasStations, content: AnyView(stationsContent))
+            case "Line (auto-detected)":
+                return Category(id: "line", label: req.label, isComplete: hasRoute, content: AnyView(lineContent))
+            case "Date of travel":
+                return Category(id: "date", label: req.label, isComplete: funnel.undergroundForm.dateIsSet, content: AnyView(dateContent))
+            case "Ticket number, zones, fare":
+                return Category(id: "ticket", label: req.label, isComplete: hasTicket, content: AnyView(ticketContent))
+            default:
+                return nil
+            }
+        }
+    }
+
+    // MARK: - Completion predicates
+
+    private var hasStations: Bool {
+        funnel.undergroundForm.selectedCity != nil
+            && funnel.undergroundForm.originStation != nil
+            && funnel.undergroundForm.destinationStation != nil
+    }
+
+    private var hasRoute: Bool {
+        funnel.undergroundForm.selectedRouteIndex != nil
+            && !funnel.undergroundForm.plannedRoutes.isEmpty
+    }
+
+    private var hasTicket: Bool {
+        let f = funnel.undergroundForm
+        return !f.ticketNumber.trimmingCharacters(in: .whitespaces).isEmpty
+            || !f.zones.trimmingCharacters(in: .whitespaces).isEmpty
+            || !f.fare.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func binding(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { expandedItems.contains(id) },
+            set: { isOn in
+                if isOn { expandedItems.insert(id) }
+                else    { expandedItems.remove(id) }
+            }
+        )
+    }
+
+    // MARK: - Stations content (city + from + to)
+
+    private var stationsContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Journey")
-
             cityField
 
             LumoriaSubwayStationField(
@@ -73,28 +139,30 @@ struct NewUndergroundFormStep: View {
                 catalog: cityCatalog
             )
             .disabled(cityCatalog == nil)
-
-            // Route picker — only shown once the router has something
-            // to pick from. Hidden before the two stations feed it,
-            // and hidden in the unresolved-route case (banner takes
-            // over instead).
-            if !funnel.undergroundForm.plannedRoutes.isEmpty {
-                routeField
-            }
         }
     }
 
-    private var routeField: some View {
-        LumoriaRouteDropdown(
-            label: "Route",
-            placeholder: "Select a route…",
-            isRequired: true,
-            routes: funnel.undergroundForm.plannedRoutes,
-            selectedIndex: Binding(
-                get: { funnel.undergroundForm.selectedRouteIndex },
-                set: { funnel.undergroundForm.selectedRouteIndex = $0 }
+    // MARK: - Line / route content
+
+    @ViewBuilder
+    private var lineContent: some View {
+        if funnel.undergroundForm.plannedRoutes.isEmpty {
+            Text("Pick both stations first — we’ll auto-detect the line.")
+                .font(.footnote)
+                .foregroundStyle(Color.Text.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            LumoriaRouteDropdown(
+                label: "Route",
+                placeholder: "Select a route…",
+                isRequired: true,
+                routes: funnel.undergroundForm.plannedRoutes,
+                selectedIndex: Binding(
+                    get: { funnel.undergroundForm.selectedRouteIndex },
+                    set: { funnel.undergroundForm.selectedRouteIndex = $0 }
+                )
             )
-        )
+        }
     }
 
     private var cityField: some View {
@@ -107,8 +175,6 @@ struct NewUndergroundFormStep: View {
             selection: Binding(
                 get: { funnel.undergroundForm.selectedCity },
                 set: { new in
-                    // Switching cities invalidates any already-picked
-                    // stations — they'd belong to a different network.
                     if new != funnel.undergroundForm.selectedCity {
                         funnel.undergroundForm.originStation = nil
                         funnel.undergroundForm.destinationStation = nil
@@ -174,21 +240,30 @@ struct NewUndergroundFormStep: View {
         return TransitCatalogLoader.catalog(for: city)
     }
 
-    // MARK: - Details
+    // MARK: - Date content
 
-    private var detailsSection: some View {
+    private var dateContent: some View {
+        LumoriaDateField(
+            label: "Date",
+            placeholder: "Pick a date",
+            date: optionalDateBinding(
+                date: $funnel.undergroundForm.date,
+                isSet: $funnel.undergroundForm.dateIsSet
+            ),
+            isRequired: true
+        )
+    }
+
+    // MARK: - Ticket content
+
+    private var ticketContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Ticket details")
-
-            HStack(spacing: 12) {
-                dateField("Date", selection: $funnel.undergroundForm.date)
-                LumoriaInputField(
-                    label: "Ticket number",
-                    placeholder: "Optional",
-                    text: $funnel.undergroundForm.ticketNumber,
-                    isRequired: false
-                )
-            }
+            LumoriaInputField(
+                label: "Ticket number",
+                placeholder: "Optional",
+                text: $funnel.undergroundForm.ticketNumber,
+                isRequired: false
+            )
 
             HStack(spacing: 12) {
                 LumoriaInputField(
@@ -226,38 +301,4 @@ struct NewUndergroundFormStep: View {
                 .fill(Color.Feedback.Warning.subtle)
         )
     }
-
-    // MARK: - Helpers
-
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.title2.bold())
-            .foregroundStyle(Color.Text.primary)
-    }
-
-    private func dateField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 0) {
-                Text(label)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Text.primary)
-                Text(verbatim: "*")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Feedback.Danger.icon)
-            }
-            DatePicker("", selection: selection, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 50)
-                .padding(.horizontal, 12)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-    }
 }
-

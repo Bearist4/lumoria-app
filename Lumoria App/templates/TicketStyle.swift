@@ -25,44 +25,144 @@ struct TicketStyleVariant: Identifiable {
 
     /// Stable identifier persisted on the ticket — `"<template>.<variant>"`,
     /// e.g. `"studio.light"`.
-    let id: String
+    var id: String
 
     /// Human-readable label shown under the swatch in the picker.
-    let label: String
+    var label: String
 
     /// Asset name for the template's main background / gradient image.
-    /// Nil when the template draws its background entirely in code.
-    let backgroundAsset: String?
+    /// Nil when the template draws its background entirely in code or
+    /// the variant uses a flat `backgroundColor` override instead.
+    var backgroundAsset: String?
+
+    /// Flat-fill background. When non-nil, templates render this color
+    /// behind the ticket body instead of `backgroundAsset`. Defaults
+    /// to nil so existing variants keep using their image asset.
+    var backgroundColor: Color? = nil
 
     /// Primary text color used for the ticket's main copy.
-    let textPrimary: Color
+    var textPrimary: Color
 
     /// De-emphasised text — labels, secondary location lines.
-    let textSecondary: Color
+    var textSecondary: Color
 
     /// Brand-style accent used for chevrons, pills, icon tints.
-    let accent: Color
+    var accent: Color
 
     /// Foreground color for content drawn on top of `accent` fills.
-    let onAccent: Color
+    var onAccent: Color
 
     /// Fine divider line color (Studio uses this between sections).
-    let divider: Color
+    var divider: Color
 
     /// Footer / strip fill (Studio's "Made with Lumoria" bar). Flips
     /// per variant: black in light mode, white in dark mode.
-    let footerFill: Color
+    var footerFill: Color
 
     /// Foreground color for content on top of `footerFill`.
-    let footerText: Color
+    var footerText: Color
 
     /// Color scheme used when rendering brand assets that adapt
     /// (e.g. the "Made with Lumoria" logotype) on top of `footerFill`.
     /// `.dark` for dark fills, `.light` for light fills.
-    let footerScheme: ColorScheme
+    var footerScheme: ColorScheme
 
     /// Pre-computed palette shown by `StyleTile` in the picker.
-    let swatch: StyleSwatchPalette
+    var swatch: StyleSwatchPalette
+
+    /// Decorative tint slots — used by templates whose look hinges on
+    /// stacked coloured shapes (Prism's three aurora blobs, Terminal's
+    /// five-blob field). Optional so existing variants don't have to
+    /// declare them; templates that draw multiple tint regions read
+    /// these fields directly.
+    var tint1: Color? = nil
+    var tint2: Color? = nil
+    var tint3: Color? = nil
+    var tint4: Color? = nil
+    var tint5: Color? = nil
+}
+
+// MARK: - Per-element overrides
+
+extension TicketStyleVariant {
+
+    /// The discrete recolorable regions a template can expose to the
+    /// user. Stored as the dictionary keys in `Ticket.colorOverrides`,
+    /// so the raw value MUST stay stable — renaming a case requires a
+    /// migration to rewrite saved tickets.
+    enum Element: String, CaseIterable {
+        case accent
+        case onAccent
+        case background
+        case textPrimary
+        /// Decorative tint slots. Prism wires three to its aurora
+        /// blobs; Terminal uses all five for its denser blob field;
+        /// future templates can use one or more for whatever
+        /// stacked-shape regions they expose. The label shown in the
+        /// picker is per-template (`StyleStep.title(for:)`) so the
+        /// stable enum name stays generic.
+        case tint1
+        case tint2
+        case tint3
+        case tint4
+        case tint5
+    }
+
+    /// Returns a new variant with any matching `colorOverrides` applied
+    /// on top of this variant's defaults. Studio-only V1: every
+    /// override key is rendered by `StudioTicketView`. Other templates
+    /// silently ignore unknown overrides because they read the same
+    /// fields.
+    func applying(overrides: [String: String]?) -> TicketStyleVariant {
+        guard let overrides, !overrides.isEmpty else { return self }
+        var copy = self
+
+        if let hex = overrides[Element.accent.rawValue] {
+            copy = copy.replacing(\.accent, with: Color(hex: hex))
+        }
+        if let hex = overrides[Element.onAccent.rawValue] {
+            copy = copy.replacing(\.onAccent, with: Color(hex: hex))
+        }
+        if let hex = overrides[Element.textPrimary.rawValue] {
+            copy = copy.replacing(\.textPrimary, with: Color(hex: hex))
+        }
+        if let hex = overrides[Element.background.rawValue] {
+            // Setting a flat background keeps the variant's asset
+            // around — the renderer uses it as an alpha mask so the
+            // user's color picks up the ticket's cut-corner silhouette
+            // (notches, rounded edges, footer strip cutout). When the
+            // variant has no asset to begin with, the renderer falls
+            // through to a plain rounded fill.
+            copy.backgroundColor = Color(hex: hex)
+        }
+
+        if let hex = overrides[Element.tint1.rawValue] {
+            copy.tint1 = Color(hex: hex)
+        }
+        if let hex = overrides[Element.tint2.rawValue] {
+            copy.tint2 = Color(hex: hex)
+        }
+        if let hex = overrides[Element.tint3.rawValue] {
+            copy.tint3 = Color(hex: hex)
+        }
+        if let hex = overrides[Element.tint4.rawValue] {
+            copy.tint4 = Color(hex: hex)
+        }
+        if let hex = overrides[Element.tint5.rawValue] {
+            copy.tint5 = Color(hex: hex)
+        }
+
+        return copy
+    }
+
+    /// Tiny helper that returns a new variant with one writable
+    /// keypath swapped. Lets us layer overrides without rewriting all
+    /// the fields each time.
+    private func replacing<T>(_ keyPath: WritableKeyPath<TicketStyleVariant, T>, with value: T) -> TicketStyleVariant {
+        var copy = self
+        copy[keyPath: keyPath] = value
+        return copy
+    }
 }
 
 // MARK: - Catalog
@@ -241,37 +341,235 @@ enum TicketStyleCatalog {
     // any of these arrays to expose colorways in the picker.
 
     private static let afterglow: [TicketStyleVariant] = [
-        defaultVariant(
-            id: "afterglow.default",
-            backgroundAsset: "afterglow-bg",
-            swatchBackground: Color(hex: "F2A6C8")
-        ),
+        // Five colourways for the gradient ticket. Each variant ships
+        // a distinct (start, end) pair driving the linear gradient
+        // (top-left → bottom-right). Hex literals only — NOT palette
+        // tokens — so the look is identical in light AND dark mode.
+        afterglowVariant(id: "afterglow.default", label: "Default",
+                         start: "080055", end: "001B2C"),
+        afterglowVariant(id: "afterglow.sunrise", label: "Sunrise",
+                         start: "FF8A3D", end: "5C0A3D"),
+        afterglowVariant(id: "afterglow.forest", label: "Forest",
+                         start: "003C48", end: "1F4C2C"),
+        afterglowVariant(id: "afterglow.plum", label: "Plum",
+                         start: "5C0A3D", end: "3B0764"),
+        afterglowVariant(id: "afterglow.cosmic", label: "Cosmic",
+                         start: "1E1B4B", end: "FF007E"),
     ]
+
+    /// Builder for an Afterglow variant — both gradient stops are
+    /// passed in as hex strings; everything else (text, divider,
+    /// footer) is the same dark-on-deep palette across all five.
+    private static func afterglowVariant(
+        id: String, label: String, start: String, end: String
+    ) -> TicketStyleVariant {
+        TicketStyleVariant(
+            id: id,
+            label: label,
+            backgroundAsset: nil,
+            backgroundColor: Color(hex: start),
+            textPrimary: .white,
+            textSecondary: .white.opacity(0.5),
+            accent: Color(hex: end),
+            onAccent: .white,
+            divider: Color.white.opacity(0.1),
+            footerFill: .black,
+            footerText: .white,
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: start),
+                accent: Color(hex: end),
+                background: Color(hex: start),
+                textOnSurface: .white,
+                textOnBackground: .white,
+                layout: .twoZone
+            )
+        )
+    }
 
     private static let heritage: [TicketStyleVariant] = [
-        defaultVariant(
-            id: "heritage.default",
-            backgroundAsset: "heritage-bg",
-            accent: Color(hex: "1A88C5"),
-            swatchBackground: Color(hex: "EAF4FB")
-        ),
+        // Heritage derives every blue from a single accent via the
+        // 100/400/500/700 ramp (see `HeritageRamp`). Five colourways
+        // pair an accent seed with a complementary paper background.
+        heritageVariant(id: "heritage.default",  label: "Default",
+                        accent: "1A88C5", paper: "FFFFFF",
+                        swatchBg: "EAF4FB"),
+        heritageVariant(id: "heritage.forest",   label: "Forest",
+                        accent: "2FB69A", paper: "FFFFFF",
+                        swatchBg: "DAF5EE"),
+        heritageVariant(id: "heritage.sunset",   label: "Sunset",
+                        accent: "E38233", paper: "FFFCF0",
+                        swatchBg: "FFE4D0"),
+        heritageVariant(id: "heritage.crimson",  label: "Crimson",
+                        accent: "D94544", paper: "FFF1EF",
+                        swatchBg: "FFD9D4"),
+        heritageVariant(id: "heritage.lavender", label: "Lavender",
+                        accent: "9662CC", paper: "F8F1FF",
+                        swatchBg: "E6D2FF"),
     ]
+
+    /// Builder for a Heritage variant. Accent seeds the 100/400/500/
+    /// 700 ramp; paper is the bg colour visible through the plane's
+    /// perforations.
+    private static func heritageVariant(
+        id: String, label: String,
+        accent: String, paper: String, swatchBg: String
+    ) -> TicketStyleVariant {
+        TicketStyleVariant(
+            id: id,
+            label: label,
+            backgroundAsset: nil,
+            backgroundColor: Color(hex: paper),
+            textPrimary: .black,
+            textSecondary: .black.opacity(0.4),
+            accent: Color(hex: accent),
+            onAccent: .white,
+            divider: Color.black.opacity(0.1),
+            footerFill: .black,
+            footerText: .white,
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: accent),
+                accent: Color(hex: accent),
+                background: Color(hex: swatchBg),
+                textOnSurface: .white,
+                textOnBackground: .black,
+                layout: .twoZone
+            )
+        )
+    }
 
     private static let terminal: [TicketStyleVariant] = [
-        defaultVariant(
-            id: "terminal.default",
-            backgroundAsset: "terminal-bg",
-            swatchBackground: .black
+        // Five-blob aurora over a dark paper. Each colourway swaps
+        // all 5 blob fills + paper bg for a coherent palette.
+        terminalVariant(
+            id: "terminal.default", label: "Default",
+            paper: "000000",
+            tints: ("303E57", "00EAFF", "0025CE", "BADAFF", "4D3589")
+        ),
+        terminalVariant(
+            id: "terminal.sunset", label: "Sunset",
+            paper: "1A0F0A",
+            tints: ("3D1B0E", "FFD93D", "FF8E53", "FFB55C", "C73E1D")
+        ),
+        terminalVariant(
+            id: "terminal.aurora", label: "Aurora",
+            paper: "0A0014",
+            tints: ("1B0028", "00B4D8", "2EC4B6", "A8E6CF", "7B2CBF")
+        ),
+        terminalVariant(
+            id: "terminal.magma", label: "Magma",
+            paper: "1A0014",
+            tints: ("2D0E1B", "FF006E", "C9184A", "FF8FA3", "6A040F")
+        ),
+        terminalVariant(
+            id: "terminal.forest", label: "Forest",
+            paper: "081C12",
+            tints: ("0B2818", "2D6A4F", "95D5B2", "74C69D", "1B4332")
         ),
     ]
 
+    /// Builder for a Terminal variant. `tints` is a 5-tuple of hex
+    /// strings driving the five blob slots in order.
+    private static func terminalVariant(
+        id: String, label: String,
+        paper: String,
+        tints: (String, String, String, String, String)
+    ) -> TicketStyleVariant {
+        TicketStyleVariant(
+            id: id,
+            label: label,
+            backgroundAsset: nil,
+            backgroundColor: Color(hex: paper),
+            textPrimary: .white,
+            textSecondary: .white.opacity(0.4),
+            accent: .white,
+            onAccent: .black,
+            divider: Color.white.opacity(0.07),
+            footerFill: Color(hex: paper),
+            footerText: .white,
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: tints.2),
+                accent: Color(hex: tints.1),
+                background: Color(hex: paper),
+                textOnSurface: .white,
+                textOnBackground: .white,
+                layout: .twoZone
+            ),
+            tint1: Color(hex: tints.0),
+            tint2: Color(hex: tints.1),
+            tint3: Color(hex: tints.2),
+            tint4: Color(hex: tints.3),
+            tint5: Color(hex: tints.4)
+        )
+    }
+
     private static let prism: [TicketStyleVariant] = [
-        defaultVariant(
-            id: "prism.default",
-            backgroundAsset: "prism-bg",
-            swatchBackground: Color(hex: "C8B5E8")
+        // Five colourways for the three-blob aurora. The canvas keeps
+        // its black detail bar + white-text footer across variants;
+        // only paper bg + 3 blobs swap.
+        prismVariant(
+            id: "prism.default", label: "Default",
+            paper: "FFFFFF", text: .black,
+            tints: ("EA72FF", "FF007E", "FFAA6C")
+        ),
+        prismVariant(
+            id: "prism.sunset", label: "Sunset",
+            paper: "FFF5E6", text: .black,
+            tints: ("FF6B6B", "FFD93D", "FF8E53")
+        ),
+        prismVariant(
+            id: "prism.ocean", label: "Ocean",
+            paper: "F0F8FF", text: .black,
+            tints: ("4ECDC4", "1A535C", "00B4D8")
+        ),
+        prismVariant(
+            id: "prism.forest", label: "Forest",
+            paper: "F4FAF4", text: .black,
+            tints: ("A8E6CF", "7FBC8C", "5BA876")
+        ),
+        prismVariant(
+            id: "prism.cosmic", label: "Cosmic",
+            paper: "0A0014", text: .white,
+            tints: ("7B2CBF", "FF006E", "5A189A")
         ),
     ]
+
+    /// Builder for a Prism variant. `tints` is a 3-tuple driving the
+    /// three blob slots; `text` flips primary copy black/white per
+    /// variant (Cosmic uses dark paper, so text needs to invert).
+    private static func prismVariant(
+        id: String, label: String,
+        paper: String, text: Color,
+        tints: (String, String, String)
+    ) -> TicketStyleVariant {
+        TicketStyleVariant(
+            id: id,
+            label: label,
+            backgroundAsset: "prism-bg",
+            backgroundColor: Color(hex: paper),
+            textPrimary: text,
+            textSecondary: .white,
+            accent: Color(hex: tints.0),
+            onAccent: .white,
+            divider: Color.white.opacity(0.07),
+            footerFill: Color(hex: "1A1A1A"),
+            footerText: .white,
+            footerScheme: .dark,
+            swatch: StyleSwatchPalette(
+                surface: Color(hex: "1A1A1A"),
+                accent: Color(hex: tints.0),
+                background: Color(hex: paper),
+                textOnSurface: .white,
+                textOnBackground: text,
+                layout: .twoZone
+            ),
+            tint1: Color(hex: tints.0),
+            tint2: Color(hex: tints.1),
+            tint3: Color(hex: tints.2)
+        )
+    }
 
     private static let night: [TicketStyleVariant] = [
         // Nightjet: deep navy sky + moon-blue accent. The view relies
@@ -622,6 +920,46 @@ extension TicketTemplateKind {
     /// Whether the picker step should be shown for this template.
     /// True when there is more than one variant to choose from.
     var hasStyleVariants: Bool { styles.count > 1 }
+
+    /// Per-element recolor controls this template wires up. Only the
+    /// elements in this set show up as collapsibles in the StyleStep.
+    /// Templates not listed here fall back to the themes scroll only.
+    ///
+    /// Studio supports the full grid; Afterglow exposes background +
+    /// text recolor (gradient is the look — accent is a hidden second
+    /// gradient stop, not a user-facing knob).
+    var supportedOverrideElements: Set<TicketStyleVariant.Element> {
+        switch self {
+        case .studio:
+            return [.accent, .onAccent, .background, .textPrimary]
+        case .afterglow:
+            // `background` + `accent` are repurposed as the two
+            // gradient stops (top-left / bottom-right); `textPrimary`
+            // drives every text/glyph/separator at 40% opacity inside
+            // the view.
+            return [.background, .accent, .textPrimary]
+        case .prism:
+            // Paper bg + main text plus the three aurora-blob tints.
+            // The detail-bar (footerFill) + detail-bar text stay
+            // hardcoded for now until we settle on a slot for them.
+            return [.background, .textPrimary, .tint1, .tint2, .tint3]
+        case .heritage:
+            // Heritage derives every blue tone from a single user-picked
+            // accent via a 100/400/500/700 ramp; `onAccent` colours the
+            // cabin-pill text; `textPrimary` drives the rest of the body
+            // copy (airport names + city names + stub); `background`
+            // is the colour visible through the perforation cutouts.
+            return [.accent, .onAccent, .textPrimary, .background]
+        case .terminal:
+            // Terminal — heritage envelope shape with five aurora blobs
+            // on top. Each blob gets its own colour control; the paper
+            // and the text both follow `background` + `textPrimary`.
+            return [.background, .textPrimary,
+                    .tint1, .tint2, .tint3, .tint4, .tint5]
+        default:
+            return []
+        }
+    }
 
     /// Resolves a `styleId` (possibly nil, possibly stale) into a
     /// renderable variant. Falls back to the default on miss.

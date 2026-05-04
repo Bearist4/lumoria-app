@@ -2,9 +2,12 @@
 //  FormStep.swift
 //  Lumoria App
 //
-//  Step 4 — user fills out flight info. Sections mirror the Figma screen
-//  (Departure / Arrival / About your flight) plus a template-aware Details
-//  section that only shows fields the chosen template actually uses.
+//  Step 4 — user fills out flight info. Sections are grouped into
+//  collapsible items mirroring the categories surfaced on
+//  `TemplateDetailsSheet` (`TicketTemplateKind.requirements`). All items
+//  start collapsed; the status icon flips to a green checkmark once a
+//  group's required fields are filled. Date / time fields render empty
+//  until the user picks a value (no autofill from `Date()`).
 //
 
 import SwiftUI
@@ -64,15 +67,26 @@ struct NewTicketFormStep: View {
     }
 
     @State private var didFireSubmit = false
+    @State private var expandedItems: Set<String> = []
 
     @ViewBuilder
     private var planeBody: some View {
-        VStack(alignment: .leading, spacing: 28) {
-            departureSection
-            arrivalSection
-            aboutSection
-            if shouldShowDetails {
-                detailsSection
+        VStack(spacing: 16) {
+            FormPreviewTile(funnel: funnel)
+
+            VStack(spacing: 8) {
+                ForEach(planeCategories, id: \.id) { category in
+                    FormStepCollapsibleItem(
+                        title: category.label,
+                        isComplete: category.isComplete,
+                        isExpanded: binding(for: category.id)
+                    ) {
+                        category.content
+                    }
+                    .ifThen(category.id == "airports") {
+                        $0.onboardingAnchor("funnel.firstFormField")
+                    }
+                }
             }
         }
         .onAppear {
@@ -89,6 +103,98 @@ struct NewTicketFormStep: View {
                 hasDestinationLocation: hasDestinationLocation()
             ))
         }
+    }
+
+    // MARK: - Categories
+
+    /// Categories rendered as collapsibles. Iterates the same
+    /// `template.requirements` list shown on the template-detail sheet
+    /// and skips any whose label has no matching field cluster yet.
+    private var planeCategories: [PlaneCategory] {
+        template.requirements.compactMap { req in
+            switch req.label {
+            case TemplateRequirement.airportCodesLabel:
+                return PlaneCategory(
+                    id: "airports",
+                    label: req.label,
+                    isComplete: hasAirports,
+                    content: AnyView(airportsContent)
+                )
+            case TemplateRequirement.dateAndTimeOfTravelLabel:
+                return PlaneCategory(
+                    id: "schedule",
+                    label: req.label,
+                    isComplete: hasSchedule,
+                    content: AnyView(scheduleContent)
+                )
+            case TemplateRequirement.flightDetailsLabel:
+                return PlaneCategory(
+                    id: "flight",
+                    label: req.label,
+                    isComplete: hasFlightDetails,
+                    content: AnyView(flightContent)
+                )
+            case TemplateRequirement.aircraftDetailsLabel:
+                return PlaneCategory(
+                    id: "aircraft",
+                    label: req.label,
+                    isComplete: hasAircraft,
+                    content: AnyView(aircraftContent)
+                )
+            case TemplateRequirement.passengerDetailsLabel:
+                // No passenger fields exist on FlightFormInput today;
+                // skip so we don't surface an empty collapsible.
+                return nil
+            default:
+                return nil
+            }
+        }
+    }
+
+    private struct PlaneCategory {
+        let id: String
+        let label: String
+        let isComplete: Bool
+        let content: AnyView
+    }
+
+    // MARK: - Completion predicates
+
+    private var hasAirports: Bool {
+        let f = funnel.form
+        let hasOrigin = !f.originCode.trimmingCharacters(in: .whitespaces).isEmpty
+                        || f.originAirport != nil
+        let hasDestination = !f.destinationCode.trimmingCharacters(in: .whitespaces).isEmpty
+                             || f.destinationAirport != nil
+        return hasOrigin && hasDestination
+    }
+
+    private var hasSchedule: Bool {
+        funnel.form.departureDateIsSet && funnel.form.departureTimeIsSet
+    }
+
+    private var hasFlightDetails: Bool {
+        let f = funnel.form
+        let hasAirline = !f.airline.trimmingCharacters(in: .whitespaces).isEmpty
+                         || f.selectedAirline != nil
+        let hasFlightNumber = !f.composedFlightNumber
+            .trimmingCharacters(in: .whitespaces)
+            .isEmpty
+        return hasAirline && hasFlightNumber
+    }
+
+    private var hasAircraft: Bool {
+        !funnel.form.aircraft.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func binding(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { expandedItems.contains(id) },
+            set: { isOn in
+                if isOn { expandedItems.insert(id) }
+                else    { expandedItems.remove(id) }
+            }
+        )
     }
 
     private func countFilledFields() -> Int {
@@ -116,38 +222,22 @@ struct NewTicketFormStep: View {
         funnel.form.destinationAirport != nil
     }
 
-    // MARK: - Departure
+    // MARK: - Airports content
 
-    private var departureSection: some View {
+    private var airportsContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Departure")
-
             LumoriaAirportField(
-                label: "Airport",
+                label: "Departure airport",
                 placeholder: "Search an airport",
                 assistiveText: "We’ll auto-fill the code, name, and city from your pick.",
                 selected: $funnel.form.originAirport
             )
-            .onboardingAnchor("funnel.firstFormField")
             .onChange(of: funnel.form.originAirport) { _, new in
                 applyAirport(new, toOriginFields: true)
             }
 
-            HStack(spacing: 12) {
-                dateField("Date", selection: $funnel.form.departureDate)
-                timeField("Time", selection: $funnel.form.departureTime)
-            }
-        }
-    }
-
-    // MARK: - Arrival
-
-    private var arrivalSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Arrival")
-
             LumoriaAirportField(
-                label: "Airport",
+                label: "Arrival airport",
                 placeholder: "Search an airport",
                 assistiveText: "We’ll auto-fill the code, name, and city from your pick.",
                 selected: $funnel.form.destinationAirport
@@ -178,18 +268,10 @@ struct NewTicketFormStep: View {
                 // the payload — feed it the city, not the airport name.
                 return location.city ?? location.name
             case .studio, .heritage, .terminal, .prism, .express, .orient, .night, .post, .glow, .concert, .eurovision, .underground, .sign, .infoscreen, .grid:
-                // Train / concert / underground templates never reach
-                // this codepath (their form doesn't call applyAirport),
-                // but the switch must be exhaustive.
                 return location.name
             }
         }()
 
-        // Always overwrite — picking a new airport should never inherit
-        // the previous airport's code. `location.subtitle` carries the
-        // cascaded IATA resolution (DB match → regex → first-three-letter
-        // fallback), so it is reliably non-nil for anything resolvable;
-        // the `?? ""` only triggers on search failures.
         if toOriginFields {
             funnel.form.originCode = location.subtitle ?? ""
             funnel.form.originName = name
@@ -201,30 +283,114 @@ struct NewTicketFormStep: View {
         }
     }
 
-    // MARK: - About the flight
+    // MARK: - Schedule content
 
-    private var aboutSection: some View {
+    private var scheduleContent: some View {
+        HStack(spacing: 12) {
+            LumoriaDateField(
+                label: "Date",
+                placeholder: "Pick a date",
+                date: optionalDateBinding(
+                    date: $funnel.form.departureDate,
+                    isSet: $funnel.form.departureDateIsSet
+                ),
+                isRequired: true
+            )
+
+            LumoriaDateField(
+                label: "Time",
+                placeholder: "Pick a time",
+                date: optionalDateBinding(
+                    date: $funnel.form.departureTime,
+                    isSet: $funnel.form.departureTimeIsSet
+                ),
+                isRequired: true,
+                displayedComponents: .hourAndMinute
+            )
+        }
+    }
+
+    // MARK: - Flight details content
+
+    private var flightContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("About your flight")
-
             LumoriaAirlineField(
                 text: $funnel.form.airline,
                 selected: $funnel.form.selectedAirline
             )
 
-            HStack(spacing: 12) {
-                flightNumberField
+            flightNumberField
 
-                if template == .heritage || template == .terminal {
-                    LumoriaInputField(
-                        label: "Aircraft",
-                        placeholder: "Airbus A330-XLR",
-                        text: $funnel.form.aircraft,
-                        isRequired: false
-                    )
+            HStack(spacing: 12) {
+                LumoriaInputField(
+                    label: "Gate",
+                    placeholder: "F32",
+                    text: $funnel.form.gate,
+                    isRequired: false
+                )
+                LumoriaInputField(
+                    label: "Seat",
+                    placeholder: "1A",
+                    text: $funnel.form.seat,
+                    isRequired: false
+                )
+            }
+
+            if needsCabinClass {
+                LumoriaDropdown(
+                    label: "Cabin class",
+                    placeholder: "Choose a class",
+                    isRequired: false,
+                    options: CabinClassOption.all,
+                    selection: cabinClassBinding,
+                    selectedLabel: { $0.name }
+                ) { option in
+                    Text(option.name)
+                        .font(.body)
+                        .foregroundStyle(Color.Text.primary)
                 }
             }
+
+            if needsCabinDetail {
+                LumoriaInputField(
+                    label: "Cabin detail",
+                    placeholder: "Business · The Pier",
+                    text: $funnel.form.cabinDetail,
+                    isRequired: false
+                )
+            }
+
+            if needsDuration {
+                LumoriaInputField(
+                    label: "Flight duration",
+                    placeholder: "9h 40m · Non-stop",
+                    text: $funnel.form.flightDuration,
+                    isRequired: false
+                )
+            }
+
+            if needsTerminal {
+                LumoriaInputField(
+                    label: "Terminal",
+                    placeholder: "T3",
+                    text: $funnel.form.terminal,
+                    isRequired: false
+                )
+            }
         }
+    }
+
+    // MARK: - Aircraft content
+
+    /// Heritage / Terminal templates surface aircraft model on the
+    /// rendered ticket; everything else hides this collapsible.
+    private var aircraftContent: some View {
+        LumoriaInputField(
+            label: "Aircraft",
+            placeholder: "Airbus A330-XLR",
+            text: $funnel.form.aircraft,
+            isRequired: false
+        )
     }
 
     // MARK: - Flight number (prefix + digits)
@@ -286,75 +452,6 @@ struct NewTicketFormStep: View {
         }
     }
 
-    // MARK: - Template-specific details
-
-    private var shouldShowDetails: Bool {
-        needsCabinClass || needsCabinDetail || needsTerminal || needsDuration || true // always show gate/seat
-    }
-
-    private var detailsSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Boarding details")
-
-            HStack(spacing: 12) {
-                LumoriaInputField(
-                    label: "Gate",
-                    placeholder: "F32",
-                    text: $funnel.form.gate,
-                    isRequired: false
-                )
-                LumoriaInputField(
-                    label: "Seat",
-                    placeholder: "1A",
-                    text: $funnel.form.seat,
-                    isRequired: false
-                )
-            }
-
-            if needsCabinClass {
-                LumoriaDropdown(
-                    label: "Cabin class",
-                    placeholder: "Choose a class",
-                    isRequired: false,
-                    options: CabinClassOption.all,
-                    selection: cabinClassBinding,
-                    selectedLabel: { $0.name }
-                ) { option in
-                    Text(option.name)
-                        .font(.body)
-                        .foregroundStyle(Color.Text.primary)
-                }
-            }
-
-            if needsCabinDetail {
-                LumoriaInputField(
-                    label: "Cabin detail",
-                    placeholder: "Business · The Pier",
-                    text: $funnel.form.cabinDetail,
-                    isRequired: false
-                )
-            }
-
-            if needsDuration {
-                LumoriaInputField(
-                    label: "Flight duration",
-                    placeholder: "9h 40m · Non-stop",
-                    text: $funnel.form.flightDuration,
-                    isRequired: false
-                )
-            }
-
-            if needsTerminal {
-                LumoriaInputField(
-                    label: "Terminal",
-                    placeholder: "T3",
-                    text: $funnel.form.terminal,
-                    isRequired: false
-                )
-            }
-        }
-    }
-
     // MARK: - Helpers
 
     private var template: TicketTemplateKind { funnel.template ?? .afterglow }
@@ -384,64 +481,80 @@ struct NewTicketFormStep: View {
             }
         )
     }
+}
 
-    private func sectionTitle(_ text: String) -> some View {
-        Text(text)
-            .font(.title2.bold())
-            .foregroundStyle(Color.Text.primary)
+// MARK: - Preview tile
+
+/// Static ticket preview shown above the collapsible items on every form
+/// step. Reuses `OrientationTile` in non-interactive mode so it picks up
+/// the same chrome the orientation step shows.
+struct FormPreviewTile: View {
+    @ObservedObject var funnel: NewTicketFunnel
+
+    var body: some View {
+        OrientationTile(
+            orientation: funnel.orientation,
+            previewPayload: payload,
+            isInteractive: false
+        )
     }
 
-    // MARK: - Date / time fields
+    private var payload: TicketPayload {
+        funnel.buildPayload()
+            ?? NewTicketFunnel.previewPayload(for: funnel.template ?? .afterglow)
+    }
+}
 
-    private func dateField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 0) {
-                Text(label)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Text.primary)
-                Text(verbatim: "*")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Feedback.Danger.icon)
+// MARK: - Optional date binding helper
+
+/// Bridges a `(Date, Bool)` storage pair into the `Binding<Date?>` shape
+/// expected by `LumoriaDateField`. Reading returns nil when the IsSet
+/// flag is false (placeholder shown); writing flips IsSet on/off and
+/// stores the picked date. Lets us keep `Date` defaults in the model
+/// (so `buildPayload` and `prefill` stay simple) while the form UI
+/// behaves as if the field were nullable.
+func optionalDateBinding(date: Binding<Date>, isSet: Binding<Bool>) -> Binding<Date?> {
+    Binding(
+        get: { isSet.wrappedValue ? date.wrappedValue : nil },
+        set: { newValue in
+            if let new = newValue {
+                date.wrappedValue = new
+                isSet.wrappedValue = true
+            } else {
+                isSet.wrappedValue = false
             }
+        }
+    )
+}
 
-            DatePicker("", selection: selection, displayedComponents: .date)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 50)
-                .padding(.horizontal, 12)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+// MARK: - Conditional modifier helper
+
+extension View {
+    /// Apply `transform` to the view only when `condition` is true.
+    /// Lets us conditionally attach `.onboardingAnchor` (or any view
+    /// modifier) without breaking the opaque-return-type contract.
+    @ViewBuilder
+    func ifThen<Transformed: View>(
+        _ condition: Bool,
+        transform: (Self) -> Transformed
+    ) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
         }
     }
+}
 
-    private func timeField(_ label: String, selection: Binding<Date>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(spacing: 0) {
-                Text(label)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Text.primary)
-                Text(verbatim: "*")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.Feedback.Danger.icon)
-            }
+// MARK: - Template requirement labels
 
-            DatePicker("", selection: selection, displayedComponents: .hourAndMinute)
-                .labelsHidden()
-                .datePickerStyle(.compact)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: 50)
-                .padding(.horizontal, 12)
-                .background(Color.Background.fieldFill)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.Border.hairline, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-        }
-    }
+extension TemplateRequirement {
+    /// Canonical label strings for the plane-template requirements. Kept
+    /// here so the form step can switch on them without re-typing the
+    /// strings (which would diverge under translation).
+    static let airportCodesLabel        = "Airport codes"
+    static let dateAndTimeOfTravelLabel = "Date & time of travel"
+    static let flightDetailsLabel       = "Flight details"
+    static let aircraftDetailsLabel     = "Aircraft details"
+    static let passengerDetailsLabel    = "Passenger details"
 }

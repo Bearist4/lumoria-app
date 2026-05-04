@@ -164,7 +164,10 @@ struct NewTicketSuccessStep: View {
             let preview = Ticket(
                 orientation: funnel.orientation,
                 payload: payload,
-                styleId: funnel.selectedStyleId
+                styleId: funnel.selectedStyleId,
+                colorOverrides: funnel.colorOverrides.isEmpty
+                    ? nil
+                    : funnel.colorOverrides
             )
             TicketPreview(ticket: preview, isCentered: true)
                 .padding(preview.orientation == .horizontal ? 16 : 64)
@@ -172,16 +175,19 @@ struct NewTicketSuccessStep: View {
     }
 
     /// Fallback preview while the Supabase insert is in-flight. Must
-    /// carry the picked `styleId` so the preview matches the final
-    /// saved ticket immediately — otherwise the default style renders
-    /// first and flashes to the selected one when `createdTicket`
-    /// arrives.
+    /// carry the picked `styleId` AND `colorOverrides` so the preview
+    /// matches the final saved ticket immediately — otherwise the
+    /// default style renders first and flashes to the selected one
+    /// when `createdTicket` arrives.
     private var livePreviewTicket: Ticket? {
         guard let payload = funnel.buildPayload() else { return nil }
         return Ticket(
             orientation: funnel.orientation,
             payload: payload,
-            styleId: funnel.selectedStyleId
+            styleId: funnel.selectedStyleId,
+            colorOverrides: funnel.colorOverrides.isEmpty
+                ? nil
+                : funnel.colorOverrides
         )
     }
 

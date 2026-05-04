@@ -28,6 +28,12 @@ struct TicketDetailView: View {
     @EnvironmentObject private var memoriesStore: MemoriesStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
+    /// Which leg of a multi-leg group is currently focused. Drives the
+    /// horizontal pager + the details card below. Initialised to the
+    /// ticket the navigation was opened with so single-ticket entries
+    /// behave the same as before.
+    @State private var focusedTicketId: UUID
+
     @State private var showNewMemory = false
     @State private var showAddToMemory = false
     @State private var inRemoveMode = false
@@ -36,6 +42,15 @@ struct TicketDetailView: View {
     @State private var showExport = false
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
+
+    init(
+        ticket: Ticket,
+        openedFromSource: TicketSourceProp = .gallery
+    ) {
+        self.ticket = ticket
+        self.openedFromSource = openedFromSource
+        _focusedTicketId = State(initialValue: ticket.id)
+    }
     /// Bumped after the edit flow dismisses so the scroll container
     /// rebuilds with the refreshed store data. SwiftUI's `.id` change
     /// is the most reliable way to drop cached sub-view state.
@@ -61,8 +76,7 @@ struct TicketDetailView: View {
             header
         } content: {
             VStack(alignment: .leading, spacing: 24) {
-                TicketPreview(ticket: currentTicket, isCentered: true)
-                    .padding(.horizontal, currentTicket.orientation == .horizontal ? 16 : 64)
+                previewSection
 
                 detailsCard
                     .padding(.horizontal, 16)
@@ -218,6 +232,67 @@ struct TicketDetailView: View {
         ]
     }
 
+    // MARK: - Preview section (single ticket or paged group)
+
+    @ViewBuilder
+    private var previewSection: some View {
+        let group = groupTickets
+        if group.count > 1 {
+            VStack(spacing: 12) {
+                TabView(selection: $focusedTicketId) {
+                    ForEach(group) { leg in
+                        TicketPreview(ticket: leg, isCentered: focusedTicketId == leg.id)
+                            .padding(
+                                .horizontal,
+                                leg.orientation == .horizontal ? 16 : 64
+                            )
+                            .tag(leg.id)
+                    }
+                }
+                // System dots are hidden — we render our own capsule
+                // indicator below so the active page reads as a
+                // stretched pill, matching `TicketStackCarousel`.
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(height: pagerHeight(for: group))
+
+                pageDots(for: group)
+            }
+        } else {
+            TicketPreview(ticket: currentTicket, isCentered: true)
+                .padding(
+                    .horizontal,
+                    currentTicket.orientation == .horizontal ? 16 : 64
+                )
+        }
+    }
+
+    /// Picks a fixed pager height per orientation. Mixed-orientation
+    /// groups (rare but possible) fall back to the taller value so
+    /// neither leg gets clipped.
+    private func pagerHeight(for group: [Ticket]) -> CGFloat {
+        let hasVertical = group.contains { $0.orientation == .vertical }
+        return hasVertical ? 600 : 360
+    }
+
+    private func pageDots(for group: [Ticket]) -> some View {
+        HStack(spacing: 6) {
+            ForEach(group) { leg in
+                let active = leg.id == focusedTicketId
+                Capsule()
+                    .fill(
+                        active
+                            ? Color.Text.primary
+                            : Color.Text.primary.opacity(0.25)
+                    )
+                    .frame(width: active ? 16 : 6, height: 6)
+                    .animation(
+                        .spring(response: 0.35, dampingFraction: 0.85),
+                        value: focusedTicketId
+                    )
+            }
+        }
+    }
+
     // MARK: - Details card
 
     @ViewBuilder
@@ -305,10 +380,24 @@ struct TicketDetailView: View {
 
     // MARK: - Derived state
 
-    /// Live snapshot of the ticket, so memory edits propagate without
-    /// forcing the view to re-init.
+    /// Live snapshot of the focused leg, so memory edits propagate
+    /// without forcing the view to re-init. Falls back to the ticket
+    /// the navigation opened with if the store hasn't caught up yet
+    /// (e.g. mid-edit reload).
     private var currentTicket: Ticket {
-        ticketsStore.ticket(with: ticket.id) ?? ticket
+        ticketsStore.ticket(with: focusedTicketId)
+            ?? ticketsStore.ticket(with: ticket.id)
+            ?? ticket
+    }
+
+    /// All tickets that share `ticket.groupId`, in leg order
+    /// (createdAt ascending = order in which the funnel persisted them).
+    /// Returns `[ticket]` when the ticket is ungrouped or no siblings
+    /// have loaded yet — callers can render unconditionally.
+    private var groupTickets: [Ticket] {
+        ticketsStore.tickets
+            .groupSiblings(of: ticket)
+            .sorted { $0.createdAt < $1.createdAt }
     }
 
     private var associatedMemories: [Memory] {
