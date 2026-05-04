@@ -300,10 +300,14 @@ struct MemoriesView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(alignment: .center) {
-            Text("Memories")
-                .font(.largeTitle.bold())
-                .foregroundStyle(Color.Text.primary)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Memories")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Color.Text.primary)
+
+                slotIndicator
+            }
 
             Spacer()
 
@@ -323,6 +327,33 @@ struct MemoriesView: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 8)
+    }
+
+    @ViewBuilder
+    private var slotIndicator: some View {
+        // hasPremium already returns true when the kill-switch is off,
+        // so this single guard hides the indicator for premium /
+        // grandfathered users *and* during free-for-all mode.
+        if !entitlement.hasPremium {
+            let cap = FreeCaps.memoryCap(rewardKind: entitlement.inviteRewardKind)
+            let remaining = max(0, cap - store.memories.count)
+            if remaining == 0 {
+                Button {
+                    Paywall.present(
+                        for: .memoryLimit,
+                        entitlement: entitlement,
+                        state: paywallState
+                    )
+                } label: {
+                    LumoriaUpgradeIncentive(resource: .memory)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("\(remaining) available slots")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.Text.tertiary)
+            }
+        }
     }
 
     // MARK: - Empty copy
