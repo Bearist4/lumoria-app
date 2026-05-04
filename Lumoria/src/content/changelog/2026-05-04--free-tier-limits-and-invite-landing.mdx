@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.7',
+  date: '2026-05-04',
+  type: 'new-features',
+  title: 'Free-tier limits and invite-only paywall',
+}
+
+Lumoria now ships with explicit free-tier caps and an invite-only "More from Lumoria" landing in place of the StoreKit paywall. Free accounts can create up to **3 memories** and **10 tickets**; redeeming an invite lifts that to either 4 memories or 12 tickets, your pick. Early adopters who registered on the website keep their unlimited Premium status — no change for them. The Memories tab now shows "X available slots" 4pt under the title, and once you're at the cap the new `LumoriaUpgradeIncentive` pill replaces it. Tapping the pill (or the `+` button at the cap) opens the invite landing where you can share your one-time invite link via the iOS share sheet. Once your invite is redeemed and you're at the cap again, the landing prompts you to delete a memory or ticket to free a slot. Settings → Plan now renders a read-only status row: a crown badge for early adopters, a plain "Free plan, 3 memories, 10 tickets" blurb for everyone else. The StoreKit paywall, plan tiles, and purchase service stay in the tree behind a single `kPaymentsEnabled` flag, ready to switch back on the day payments ship.
