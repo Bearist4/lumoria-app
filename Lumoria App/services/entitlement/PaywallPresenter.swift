@@ -34,7 +34,10 @@ enum Paywall {
         entitlement: EntitlementStore,
         state: PresentationState
     ) {
-        guard !entitlement.hasPremium else { return }
+        // tier-level hasPremium so limit triggers still fire when the
+        // kill-switch is off (the kill-switch only applies to
+        // premium-feature gates, not hard caps).
+        guard !entitlement.tier.hasPremium else { return }
         if !EntitlementStore.kPaymentsEnabled, !trigger.isLimitReached {
             return
         }

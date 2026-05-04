@@ -73,7 +73,10 @@ final class MemoriesStore: ObservableObject {
     /// cap. Premium / grandfathered / lifetime / active subscriber →
     /// always true. Mirrors the enforce_memory_cap trigger.
     func canCreate(entitlement: EntitlementStore) -> Bool {
-        if entitlement.hasPremium { return true }
+        // Cap enforcement uses tier-level hasPremium so the kill-switch
+        // (which flips store-level hasPremium for premium-feature gates)
+        // doesn't open the floodgates on memory/ticket caps.
+        if entitlement.tier.hasPremium { return true }
         let cap = FreeCaps.memoryCap(rewardKind: entitlement.inviteRewardKind)
         return memories.count < cap
     }

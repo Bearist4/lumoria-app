@@ -25,7 +25,10 @@ final class TicketsStore: ObservableObject {
     /// cap. Premium / grandfathered / lifetime / active subscriber →
     /// always true. Mirrors the enforce_ticket_cap trigger.
     func canCreate(entitlement: EntitlementStore) -> Bool {
-        if entitlement.hasPremium { return true }
+        // Cap enforcement uses tier-level hasPremium so the kill-switch
+        // (which flips store-level hasPremium for premium-feature gates)
+        // doesn't open the floodgates on memory/ticket caps.
+        if entitlement.tier.hasPremium { return true }
         let cap = FreeCaps.ticketCap(rewardKind: entitlement.inviteRewardKind)
         return tickets.count < cap
     }

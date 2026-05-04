@@ -331,10 +331,10 @@ struct MemoriesView: View {
 
     @ViewBuilder
     private var slotIndicator: some View {
-        // hasPremium already returns true when the kill-switch is off,
-        // so this single guard hides the indicator for premium /
-        // grandfathered users *and* during free-for-all mode.
-        if !entitlement.hasPremium {
+        // Tier-level hasPremium so we always show slots for free users,
+        // even while the kill-switch is off (the kill-switch only
+        // applies to premium-feature gates, not hard caps).
+        if !entitlement.tier.hasPremium {
             let cap = FreeCaps.memoryCap(rewardKind: entitlement.inviteRewardKind)
             let remaining = max(0, cap - store.memories.count)
             if remaining == 0 {
