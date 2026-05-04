@@ -21,6 +21,8 @@ struct AllTicketsView: View {
     @EnvironmentObject private var store: TicketsStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @EnvironmentObject private var sortPresenter: AllTicketsSortPresenter
+    @Environment(EntitlementStore.self) private var entitlement
+    @Environment(Paywall.PresentationState.self) private var paywallState
     @State private var showFunnel = false
     /// Primes `NewTicketFunnelView.initialImportSource` before presenting
     /// the fullScreenCover. Reset to `nil` inside the cover's onDismiss
@@ -86,10 +88,14 @@ struct AllTicketsView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(alignment: .center) {
-            Text("All tickets")
-                .font(.largeTitle.bold())
-                .foregroundStyle(Color.Text.primary)
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("All tickets")
+                    .font(.largeTitle.bold())
+                    .foregroundStyle(Color.Text.primary)
+
+                slotIndicator
+            }
 
             Spacer()
 
@@ -121,6 +127,32 @@ struct AllTicketsView: View {
         // this header).
         .background(Color.Background.default.ignoresSafeArea(edges: .top))
         .zIndex(1)
+    }
+
+    @ViewBuilder
+    private var slotIndicator: some View {
+        // Tier-level hasPremium so we always show slots for free users,
+        // even while the kill-switch is off.
+        if !entitlement.tier.hasPremium {
+            let cap = FreeCaps.ticketCap(rewardKind: entitlement.inviteRewardKind)
+            let remaining = max(0, cap - store.tickets.count)
+            if remaining == 0 {
+                Button {
+                    Paywall.present(
+                        for: .ticketLimit,
+                        entitlement: entitlement,
+                        state: paywallState
+                    )
+                } label: {
+                    LumoriaUpgradeIncentive(resource: .tickets)
+                }
+                .buttonStyle(.plain)
+            } else {
+                Text("\(remaining) available slots")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.Text.tertiary)
+            }
+        }
     }
 
     // MARK: - Empty state
@@ -393,6 +425,10 @@ enum TicketGrouping {
     AllTicketsView()
         .environmentObject(TicketsStore())
         .environmentObject(MemoriesStore())
+        .environmentObject(AllTicketsSortPresenter())
+        .environmentObject(OnboardingCoordinator())
+        .environment(EntitlementStore.previewInstance(tier: .free, monetisationEnabled: true))
+        .environment(Paywall.PresentationState())
 }
 
 #Preview("Populated") {
@@ -401,4 +437,8 @@ enum TicketGrouping {
     return AllTicketsView()
         .environmentObject(store)
         .environmentObject(MemoriesStore())
+        .environmentObject(AllTicketsSortPresenter())
+        .environmentObject(OnboardingCoordinator())
+        .environment(EntitlementStore.previewInstance(tier: .free, monetisationEnabled: true))
+        .environment(Paywall.PresentationState())
 }
