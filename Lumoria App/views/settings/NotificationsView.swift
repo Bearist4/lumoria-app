@@ -171,7 +171,7 @@ struct NotificationsView: View {
 
     @ViewBuilder
     private func section<Content: View>(
-        title: String,
+        title: LocalizedStringKey,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -186,8 +186,8 @@ struct NotificationsView: View {
     // MARK: - Toggle row
 
     private func toggleRow(
-        title: String,
-        subtitle: String,
+        title: LocalizedStringKey,
+        subtitle: LocalizedStringKey,
         isOn: Binding<Bool>
     ) -> some View {
         HStack(alignment: .top, spacing: 12) {

@@ -112,25 +112,55 @@ struct AddExistingTicketSheet: View {
     private func ticketTile(_ ticket: Ticket) -> some View {
         Button {
             Task {
-                await ticketsStore.toggleMembership(
-                    ticketId: ticket.id,
-                    memoryId: memoryId
-                )
+                let siblings = ticketsStore.tickets.groupSiblings(of: ticket)
+                let missing = siblings.filter { !$0.memoryIds.contains(memoryId) }
+                for sibling in missing {
+                    await ticketsStore.toggleMembership(
+                        ticketId: sibling.id,
+                        memoryId: memoryId
+                    )
+                }
                 dismiss()
             }
         } label: {
-            TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
-                .trackCenteredRow(id: ticket.id, into: $centredId)
+            ZStack(alignment: .topTrailing) {
+                TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
+                    .trackCenteredRow(id: ticket.id, into: $centredId)
+
+                if let count = groupCount(for: ticket) {
+                    LumoriaGroupBadge(count: count)
+                        .padding(12)
+                        .allowsHitTesting(false)
+                }
+            }
         }
         .buttonStyle(.plain)
     }
 
+    /// Leg count when `ticket` heads a group; nil for solo tickets.
+    /// Mirrors `MemoryDetailView.groupCount` so the same multi-leg
+    /// affordance reads in both surfaces.
+    private func groupCount(for ticket: Ticket) -> Int? {
+        guard ticket.groupId != nil else { return nil }
+        let count = ticketsStore.tickets.groupSiblings(of: ticket).count
+        return count > 1 ? count : nil
+    }
+
     // MARK: - Data
 
-    /// Tickets not already in this memory — the picker should only show
-    /// things the user can actually add.
+    /// Tickets the user can still attach to this memory. Group siblings
+    /// collapse to a single representative (same shape as the gallery),
+    /// and a group remains in the list as long as *any* leg is missing
+    /// from the memory — tap then attaches the still-missing siblings
+    /// in one go so groups behave as one unit.
     private var availableTickets: [Ticket] {
-        ticketsStore.tickets.filter { !$0.memoryIds.contains(memoryId) }
+        let all = ticketsStore.tickets
+        return all
+            .collapsedToGroupRepresentatives()
+            .filter { rep in
+                all.groupSiblings(of: rep)
+                    .contains { !$0.memoryIds.contains(memoryId) }
+            }
     }
 
     // MARK: - Row partitioning (mirrors AllTicketsView)

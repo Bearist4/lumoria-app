@@ -42,6 +42,7 @@ struct AddToMemorySheet: View {
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
 
     @State private var toastMessage: String? = nil
+    @State private var showNewMemory: Bool = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 24),
@@ -97,6 +98,40 @@ struct AddToMemorySheet: View {
         .presentationDragIndicator(.visible)
         .presentationDetents([.medium, .large])
         .lumoriaToast($toastMessage)
+        .sheet(isPresented: $showNewMemory) {
+            NewMemoryView { name, color, emoji, startDate, endDate in
+                guard let color else { return }
+                // Same auto-attach behaviour the ticket-detail header
+                // gives the + button: a memory created from this sheet
+                // adopts the tracked tickets immediately.
+                let ticketIds = currentTickets.map(\.id)
+                Task {
+                    guard let memory = await memories.create(
+                        name: name,
+                        colorFamily: color.family,
+                        emoji: emoji,
+                        startDate: startDate,
+                        endDate: endDate
+                    ) else { return }
+                    for ticketId in ticketIds {
+                        await ticketsStore.toggleMembership(
+                            ticketId: ticketId,
+                            memoryId: memory.id
+                        )
+                    }
+                    Analytics.track(.ticketAddedToMemory(
+                        memoryIdHash: AnalyticsIdentity.hashUUID(memory.id),
+                        newTicketCount: ticketIds.count
+                    ))
+                    toastMessage = ticketIds.count == 1
+                        ? "Ticket added to \(memory.name)"
+                        : "\(ticketIds.count) tickets added to \(memory.name)"
+                    try? await Task.sleep(nanoseconds: 1_200_000_000)
+                    onCompleted?()
+                    dismiss()
+                }
+            }
+        }
         .onboardingOverlay(
             step: .exportOrAddMemory,
             coordinator: onboardingCoordinator,
@@ -119,6 +154,7 @@ struct AddToMemorySheet: View {
             HStack {
                 LumoriaIconButton(systemImage: "xmark") { dismiss() }
                 Spacer()
+                LumoriaIconButton(systemImage: "plus") { showNewMemory = true }
             }
         }
         .padding(.horizontal, 16)

@@ -63,16 +63,20 @@ struct ColorListField: View {
         Button {
             attemptPick(hex)
         } label: {
-            ColorWell(color: Color(hex: hex), size: CGSize(width: 80, height: 80))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(
-                            isSelected(hex)
-                                ? Color("Colors/Opacity/Black/inverse/40")
-                                : Color("Colors/Opacity/Black/inverse/7"),
-                            lineWidth: isSelected(hex) ? 2 : 1
-                        )
-                )
+            ColorWell(
+                color: Color(hex: hex),
+                size: CGSize(width: 56, height: 56),
+                cornerRadius: 16
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                        isSelected(hex)
+                            ? Color("Colors/Opacity/Black/inverse/40")
+                            : Color("Colors/Opacity/Black/inverse/7"),
+                        lineWidth: isSelected(hex) ? 2 : 1
+                    )
+            )
         }
         .buttonStyle(.plain)
     }
@@ -88,9 +92,9 @@ struct ColorListField: View {
             supportsOpacity: false
         )
         .labelsHidden()
-        .frame(width: 80, height: 80)
+        .frame(width: 56, height: 56)
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(
                     Color("Colors/Opacity/Black/inverse/7"),
                     lineWidth: 1

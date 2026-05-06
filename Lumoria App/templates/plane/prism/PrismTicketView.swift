@@ -273,7 +273,8 @@ struct PrismTicketView: View {
                     .tracking(0.5 * s)
                     .foregroundStyle(style.textPrimary)
 
-                Text("Boarding pass".uppercased())
+                Text(verbatim: "Boarding pass")
+                    .textCase(.uppercase)
                     .font(.system(size: 8 * s, weight: .bold))
                     .tracking(1.5 * s)
                     .foregroundStyle(style.textPrimary.opacity(0.55))
@@ -378,7 +379,7 @@ struct PrismTicketView: View {
             }
 
             VStack(spacing: 3 * s) {
-                Text(label.uppercased())
+                Text(label).textCase(.uppercase)
                     .font(.system(size: 6 * s, weight: .regular))
                     .tracking(1.32 * s)
                     .foregroundStyle(style.textSecondary.opacity(0.3))

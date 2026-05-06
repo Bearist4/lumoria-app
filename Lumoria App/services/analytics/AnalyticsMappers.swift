@@ -47,6 +47,7 @@ extension TicketTemplateKind {
         case .sign:        return .sign
         case .infoscreen:  return .infoscreen
         case .grid:        return .grid
+        case .lumiere:     return .lumiere
         }
     }
 
@@ -63,6 +64,8 @@ extension TicketTemplateKind {
             return .event
         case .underground, .sign, .infoscreen, .grid:
             return .public_transit
+        case .lumiere:
+            return .movie
         }
     }
 }

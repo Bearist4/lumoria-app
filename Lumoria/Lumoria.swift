@@ -195,27 +195,29 @@ struct MemoryWidgetEntryView: View {
     let entry: MemoryWidgetEntry
 
     var body: some View {
-        ZStack {
-            if let memory = entry.memory {
-                MemoryWidgetBackground(
-                    memory: memory,
-                    variant: family == .systemMedium ? .medium : .small
-                )
+        EarlyAdopterWidgetGate {
+            ZStack {
+                if let memory = entry.memory {
+                    MemoryWidgetBackground(
+                        memory: memory,
+                        variant: family == .systemMedium ? .medium : .small
+                    )
 
-                switch family {
-                case .systemMedium:
-                    MemoryWidgetMediumView(memory: memory, featuredTicketIds: entry.featuredTicketIds)
-                default:
-                    MemoryWidgetSmallView(memory: memory)
+                    switch family {
+                    case .systemMedium:
+                        MemoryWidgetMediumView(memory: memory, featuredTicketIds: entry.featuredTicketIds)
+                    default:
+                        MemoryWidgetSmallView(memory: memory)
+                    }
+                } else {
+                    EmptyMemoryState()
                 }
-            } else {
-                EmptyMemoryState()
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .widgetURL(entry.memory.flatMap {
+                URL(string: "lumoria://memory/\($0.id.uuidString)")
+            })
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .widgetURL(entry.memory.flatMap {
-            URL(string: "lumoria://memory/\($0.id.uuidString)")
-        })
     }
 }
 

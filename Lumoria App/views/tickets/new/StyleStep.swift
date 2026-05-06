@@ -24,16 +24,21 @@ struct NewTicketStyleStep: View {
     @Environment(Paywall.PresentationState.self) private var paywallState
 
     @State private var expandedItems: Set<String> = []
+    /// Per-element color picks are gated to early adopters. Free
+    /// users see the promo sheet on first tap; the sheet shares
+    /// presentation state across pick attempts so rapid taps don't
+    /// stack copies of the modal.
+    @State private var showEarlyAdopterPromo: Bool = false
 
     var body: some View {
         // Whole step scrolls together — the preview tile keeps its
-        // fixed 370pt height (so opening a collapsible can't squish
+        // fixed 225pt height (so opening a collapsible can't squish
         // it) but it scrolls off-screen along with the collapsibles
         // below it.
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
                 StylePreviewTile(funnel: funnel)
-                    .frame(height: 370)
+                    .frame(height: 225)
 
                 collapsibles
                     .padding(.bottom, 16)
@@ -48,6 +53,10 @@ struct NewTicketStyleStep: View {
             if onboardingCoordinator.currentStep == .pickStyle {
                 Task { await onboardingCoordinator.advance(from: .pickStyle) }
             }
+        }
+        .sheet(isPresented: $showEarlyAdopterPromo) {
+            EarlyAdopterPromoSheet()
+                .environment(entitlement)
         }
     }
 
@@ -90,6 +99,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .background),
                         isComplete: hasOverride(.background),
                         isExpanded: binding(for: "background"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .background, presets: presets(for: .background))
@@ -101,6 +111,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .accent),
                         isComplete: hasOverride(.accent),
                         isExpanded: binding(for: "accent"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .accent, presets: presets(for: .accent))
@@ -112,6 +123,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .textPrimary),
                         isComplete: hasOverride(.textPrimary),
                         isExpanded: binding(for: "textPrimary"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .textPrimary, presets: presets(for: .textPrimary))
@@ -123,6 +135,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .onAccent),
                         isComplete: hasOverride(.onAccent),
                         isExpanded: binding(for: "onAccent"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .onAccent, presets: presets(for: .onAccent))
@@ -137,6 +150,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .tint1),
                         isComplete: hasOverride(.tint1),
                         isExpanded: binding(for: "tint1"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .tint1, presets: presets(for: .tint1))
@@ -148,6 +162,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .tint2),
                         isComplete: hasOverride(.tint2),
                         isExpanded: binding(for: "tint2"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .tint2, presets: presets(for: .tint2))
@@ -159,6 +174,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .tint3),
                         isComplete: hasOverride(.tint3),
                         isExpanded: binding(for: "tint3"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .tint3, presets: presets(for: .tint3))
@@ -170,6 +186,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .tint4),
                         isComplete: hasOverride(.tint4),
                         isExpanded: binding(for: "tint4"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .tint4, presets: presets(for: .tint4))
@@ -181,6 +198,7 @@ struct NewTicketStyleStep: View {
                         title: title(for: .tint5),
                         isComplete: hasOverride(.tint5),
                         isExpanded: binding(for: "tint5"),
+                        proBadge: true,
                         showsStatusIcon: false
                     ) {
                         colorList(for: .tint5, presets: presets(for: .tint5))
@@ -243,18 +261,15 @@ struct NewTicketStyleStep: View {
     }
 
     /// Returns true when the pick should go through, false when the
-    /// paywall was presented instead. `Paywall.present` is a no-op for
-    /// premium users so this returns true on premium without showing.
+    /// early-adopter promo was shown instead. Pre-made themes stay
+    /// open to everyone (handled at the StyleTile picker layer);
+    /// per-element color tweaks are early-adopter-only because the
+    /// monetisation kill-switch leaves `hasPremium` true for the
+    /// whole free tier — a tier-level gate is the right grain here.
     private func attemptColorPick() -> Bool {
-        guard entitlement.hasPremium else {
-            Paywall.present(
-                for: .styleCustomisation,
-                entitlement: entitlement,
-                state: paywallState
-            )
-            return false
-        }
-        return true
+        if entitlement.isEarlyAdopter { return true }
+        showEarlyAdopterPromo = true
+        return false
     }
 
     private func hasOverride(_ element: TicketStyleVariant.Element) -> Bool {
@@ -506,11 +521,12 @@ private struct StylePreviewTile: View {
     @ObservedObject var funnel: NewTicketFunnel
 
     var body: some View {
-        // Elevated card fills the entire 370pt slot the parent
-        // reserves; the ticket render is overlaid centered inside.
-        // This decouples the card chrome from the ticket's intrinsic
-        // size so expanding/collapsing items below never reflows the
-        // preview area.
+        // Elevated card fills the entire 225pt slot the parent
+        // reserves; the ticket render is overlaid centered inside at
+        // a fixed dominant-axis size (252pt wide horizontal, 189pt
+        // tall vertical) per Figma 982-28862. This decouples the card
+        // chrome from the ticket's intrinsic size so expanding /
+        // collapsing items below never reflow the preview area.
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(Color.Background.elevated)
             .overlay {
@@ -521,8 +537,16 @@ private struct StylePreviewTile: View {
                         styleId: funnel.selectedStyleId,
                         colorOverrides: funnel.colorOverrides.isEmpty ? nil : funnel.colorOverrides
                     )
-                    TicketPreview(ticket: ticket, isCentered: true)
-                        .padding(funnel.orientation == .horizontal ? 16 : 64)
+                    Group {
+                        switch funnel.orientation {
+                        case .horizontal:
+                            TicketPreview(ticket: ticket, isCentered: true)
+                                .frame(width: 252)
+                        case .vertical:
+                            TicketPreview(ticket: ticket, isCentered: true)
+                                .frame(height: 189)
+                        }
+                    }
                 }
             }
             .overlayPreferenceValue(StyleAnchorKey.self) { anchors in

@@ -17,7 +17,7 @@ struct TicketDetailItem: View {
     var body: some View {
         VStack(spacing: 4) {
             Text(label)
-                .font(.headline)
+                .font(.subheadline.bold())
                 .foregroundStyle(Color.Text.secondary)
                 .lineLimit(1)
 
@@ -32,7 +32,11 @@ struct TicketDetailItem: View {
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color.Background.default)
+     
         )
+        
+
+        
     }
 }
 
@@ -41,8 +45,8 @@ struct TicketDetailItem: View {
 #Preview("Ticket detail items") {
     VStack(spacing: 8) {
         HStack(spacing: 8) {
-            TicketDetailItem(label: "Created on",  sublabel: "03 January 2025")
-            TicketDetailItem(label: "Last edited", sublabel: "15 January 2025")
+            TicketDetailItem(label: "Created", sublabel: "03 January 2025")
+            TicketDetailItem(label: "Edited",  sublabel: "15 January 2025")
         }
         TicketDetailItem(label: "✈︎", sublabel: "Plane ticket")
     }

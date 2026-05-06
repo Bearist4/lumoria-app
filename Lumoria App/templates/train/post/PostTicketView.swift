@@ -137,7 +137,7 @@ struct PostTicketView: View {
         scale s: CGFloat
     ) -> some View {
         VStack(alignment: alignment, spacing: 3 * s) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.custom("TimesNewRomanPSMT", size: 6.3 * s))
                 .tracking(0.88 * s)
                 .foregroundStyle(style.textSecondary)
@@ -186,7 +186,7 @@ struct PostTicketView: View {
                     .frame(width: 1, height: 27 * s)
             }
             VStack(spacing: 3 * s) {
-                Text(label.uppercased())
+                Text(label).textCase(.uppercase)
                     .font(.custom("TimesNewRomanPSMT", size: 6 * s))
                     .tracking(1.32 * s)
                     .foregroundStyle(style.textSecondary)

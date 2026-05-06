@@ -16,10 +16,11 @@ struct InviteLandingView: View {
     let trigger: PaywallTrigger
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.brandSlug) private var brandSlug
     @StateObject private var store: InvitesStore
 
     @State private var showShareSheet = false
-    @State private var shareURL: URL?
+    @State private var shareItems: [Any] = []
     @State private var showExplanation = false
     @State private var error: String? = nil
 
@@ -29,52 +30,117 @@ struct InviteLandingView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        ZStack(alignment: .top) {
+            Color.Background.default
+                .ignoresSafeArea()
+
+            ScrollView {
+                VStack(spacing: 0) {
+                    pinkHeader
+                    contentBlock
+                }
+            }
+            .scrollIndicators(.hidden)
+
+            // Toolbar overlays the pink wash so the X / ? buttons line
+            // up exactly with the EarlyAdopterPromo / NoSlotsSheet
+            // family. Sits above the scroll layer so taps register.
             toolbar
                 .padding(.horizontal, 16)
                 .padding(.top, 16)
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    titleBlock
-                    bodyBlock
-                    if let invite = currentInvite {
-                        linkField(invite.shareURL)
-                    }
-                    if let error {
-                        Text(error)
-                            .font(.footnote)
-                            .foregroundStyle(Color.Feedback.Danger.text)
-                    }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 24)
-                .padding(.bottom, 32)
-            }
-
-            Spacer(minLength: 0)
-
-            primaryCTA
-                .padding(.horizontal, 24)
-                .padding(.bottom, 8)
-
-            footnote
-                .padding(.horizontal, 24)
-                .padding(.bottom, 16)
         }
-        .background(promotionBackdrop.ignoresSafeArea())
         .task {
             await store.load()
+            // Materialise a shareable token up-front so the link field
+            // can render its real URL on first paint instead of waiting
+            // for the user to tap "Share my link". Idempotent against
+            // existing rows (load() already pulled them).
+            if case .notSent = store.state {
+                _ = await store.sendInvite()
+            }
             Analytics.track(.invitePageViewed(state: invitePageStateProp))
         }
         .sheet(isPresented: $showShareSheet) {
-            if let url = shareURL {
-                ShareSheet(items: [url])
+            if !shareItems.isEmpty {
+                ShareSheet(items: shareItems)
             }
         }
         .sheet(isPresented: $showExplanation) {
             InviteExplanationView()
         }
+    }
+
+    // MARK: - Pink header (figma 2146:159625)
+
+    /// 300pt blurred pink wash that anchors the "More from Lumoria"
+    /// pitch — same shape as the purple seat-counter on the early-
+    /// adopter promo and the yellow warning on NoSlotsSheet, just
+    /// without a glyph (the Invite landing leans on the title block
+    /// alone for hierarchy).
+    private var pinkHeader: some View {
+        // Temporarily Colors/Blue/50 to make the cover area visible
+        // during layout review — swap back to Colors/pink/50 to match
+        // the Figma when the placement is approved.
+        Color("Colors/Blue/50")
+            .blur(radius: 50)
+            .frame(height: 300)
+            .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Content
+
+    @ViewBuilder
+    private var contentBlock: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            titleBlock
+            bodyBlock
+            // Link field always renders for non-redeemed states. While
+            // the invite is being created (the auto-send on appear),
+            // we paint a redacted placeholder so the row doesn't pop
+            // in once the network call resolves.
+            if !isRedeemed {
+                if let invite = currentInvite {
+                    linkField(invite.shareURL)
+                } else {
+                    linkPlaceholder
+                }
+            }
+            primaryCTA
+            footnote
+            if let error {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(Color.Feedback.Danger.text)
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 24)
+        .padding(.bottom, 32)
+    }
+
+    private var linkPlaceholder: some View {
+        HStack {
+            Text("getlumoria.app/loading")
+                .font(.body)
+                .foregroundStyle(Color.Text.tertiary)
+                .redacted(reason: .placeholder)
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 50)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.InputField.Background.default)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.InputField.Border.default, lineWidth: 1)
+                )
+        )
+    }
+
+    private var isRedeemed: Bool {
+        if case .redeemed = store.state { return true }
+        return false
     }
 
     // MARK: - Toolbar
@@ -181,12 +247,7 @@ struct InviteLandingView: View {
             shareButton(label: "Share my link", disabled: false) {
                 Task {
                     if let invite = await store.sendInvite() {
-                        shareURL = invite.shareURL
-                        showShareSheet = true
-                        Analytics.track(.inviteShared(
-                            channel: .system_share,
-                            inviteTokenHash: AnalyticsIdentity.hashString(invite.token)
-                        ))
+                        presentShare(for: invite)
                     } else if let message = store.errorMessage {
                         error = message
                     }
@@ -194,14 +255,31 @@ struct InviteLandingView: View {
             }
         case .sent(let invite):
             shareButton(label: "Share my link", disabled: false) {
-                shareURL = invite.shareURL
-                showShareSheet = true
-                Analytics.track(.inviteShared(
-                    channel: .system_share,
-                    inviteTokenHash: AnalyticsIdentity.hashString(invite.token)
-                ))
+                presentShare(for: invite)
             }
         }
+    }
+
+    /// Builds the rich share payload — pitch text + a
+    /// `InviteShareItem` carrying the URL plus `LPLinkMetadata` so the
+    /// share sheet renders the Lumoria icon + "Join Lumoria" preview
+    /// row instead of a bare URL chip.
+    private func presentShare(for invite: Invite) {
+        let icon = UIImage(named: "brand/\(brandSlug)/logomark")
+        let item = InviteShareItem(
+            url: invite.shareURL,
+            title: String(localized: "Join Lumoria"),
+            icon: icon
+        )
+        let pitch = String(
+            localized: "I've been making beautiful ticket stubs with Lumoria. Join me:"
+        )
+        shareItems = [pitch, item]
+        showShareSheet = true
+        Analytics.track(.inviteShared(
+            channel: .system_share,
+            inviteTokenHash: AnalyticsIdentity.hashString(invite.token)
+        ))
     }
 
     private func shareButton(
@@ -231,21 +309,6 @@ struct InviteLandingView: View {
             .foregroundStyle(Color.Text.tertiary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Backdrop (pink-tinted blur from figma)
-
-    private var promotionBackdrop: some View {
-        ZStack(alignment: .top) {
-            Color.Background.default
-            LinearGradient(
-                colors: [Color("Colors/pink/50"), Color.Background.default],
-                startPoint: .top,
-                endPoint: .center
-            )
-            .frame(height: 300)
-            .blur(radius: 50)
-        }
     }
 
     // MARK: - Helpers

@@ -24,13 +24,17 @@ final class TicketsStore: ObservableObject {
     /// Whether the user can create another ticket under the free-tier
     /// cap. Premium / grandfathered / lifetime / active subscriber →
     /// always true. Mirrors the enforce_ticket_cap trigger.
-    func canCreate(entitlement: EntitlementStore) -> Bool {
+    ///
+    /// `adding` lets multi-leg public-transport flows pre-flight the
+    /// whole trip (e.g. a 4-leg journey would push 8 → 12 well over a
+    /// 10-cap). Defaults to 1 for single-ticket creators.
+    func canCreate(entitlement: EntitlementStore, adding count: Int = 1) -> Bool {
         // Cap enforcement uses tier-level hasPremium so the kill-switch
         // (which flips store-level hasPremium for premium-feature gates)
         // doesn't open the floodgates on memory/ticket caps.
         if entitlement.tier.hasPremium { return true }
         let cap = FreeCaps.ticketCap(rewardKind: entitlement.inviteRewardKind)
-        return tickets.count < cap
+        return tickets.count + count <= cap
     }
 
     // MARK: - Load

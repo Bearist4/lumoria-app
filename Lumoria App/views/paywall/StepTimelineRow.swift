@@ -16,13 +16,13 @@ import SwiftUI
 /// row terminates cleanly.
 struct StepTimelineRow<Icon: View>: View {
     let icon: Icon
-    let heading: String
-    let bodyText: String
+    let heading: LocalizedStringKey
+    let bodyText: LocalizedStringKey
     let isLast: Bool
 
     init(
-        heading: String,
-        body: String,
+        heading: LocalizedStringKey,
+        body: LocalizedStringKey,
         isLast: Bool = false,
         @ViewBuilder icon: () -> Icon
     ) {

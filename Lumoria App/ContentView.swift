@@ -23,8 +23,15 @@ struct ContentView: View {
     @EnvironmentObject private var shareImport: ShareImportCoordinator
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
     @EnvironmentObject private var widgetRouter: WidgetDeepLinkRouter
+    @Environment(EntitlementStore.self) private var entitlement
+    @Environment(Paywall.PresentationState.self) private var paywallState
+    @Environment(InviteRewardCoordinator.self) private var inviteRewardCoordinator
 
     @State private var selectedTab: Int = 0
+    /// Chained from `NoSlotsSheet` — when the user picks
+    /// "Become an early adopter" we dismiss the paywall sheet, wait a
+    /// beat for SwiftUI to settle, and then present the promo sheet.
+    @State private var showEarlyAdopterPromoChained: Bool = false
     /// `.pkpass` bytes delivered via the share extension. When non-nil
     /// the funnel is presented over whatever tab the user is on, so the
     /// import flow doesn't depend on `AllTicketsView` being visible.
@@ -217,6 +224,96 @@ struct ContentView: View {
             .environmentObject(notificationsStore)
             .environmentObject(onboardingCoordinator)
         }
+        // Paywall router. Branches on (kPaymentsEnabled, trigger,
+        // invite-redeemed) to pick between the StoreKit paywall, the
+        // invite-bonus landing, and the early-adopter NoSlotsSheet for
+        // users who've already redeemed their invite reward. Lives on
+        // ContentView (not the App root) so the NoSlotsSheet can read
+        // live ticket / memory counts and chain into
+        // `EarlyAdopterPromoSheet`.
+        .sheet(isPresented: Binding(
+            get: { paywallState.isPresented },
+            set: { paywallState.isPresented = $0 }
+        )) {
+            if let trigger = paywallState.trigger {
+                paywallContent(for: trigger)
+            }
+        }
+        .sheet(isPresented: $showEarlyAdopterPromoChained) {
+            EarlyAdopterPromoSheet()
+                .environment(entitlement)
+        }
+        // Invite-reward sheet (referrer + referree). Coordinator drives
+        // presentation — see `InviteRewardCoordinator` for the trigger
+        // matrix (onboarding done, first-ticket fallback, app launch,
+        // live push / claim signal).
+        .sheet(isPresented: inviteRewardSheetBinding) {
+            inviteRewardSheetContent
+        }
+        .onChange(of: ticketsStore.tickets.count) { oldCount, newCount in
+            // Invitee fallback: when the user creates their first
+            // ticket OUTSIDE the onboarding flow, fire the reward
+            // sheet 2 s after the success animation lands. The
+            // coordinator no-ops if onboarding is active (that path
+            // fires from the .done step transition below).
+            guard oldCount == 0, newCount == 1 else { return }
+            inviteRewardCoordinator.handleFirstTicketCreated(
+                skipIfOnboardingActive: onboardingCoordinator.showOnboarding
+            )
+        }
+        .onChange(of: onboardingCoordinator.currentStep) { oldStep, newStep in
+            // Invitee primary path: tutorial wraps up, end-cover
+            // dismisses, currentStep flips to .done — at which point
+            // the user has already created their first ticket as
+            // part of the onboarding. Re-evaluate so the reward
+            // sheet pops over Memories.
+            guard newStep == .done, oldStep != .done else { return }
+            inviteRewardCoordinator.evaluateAfterOnboardingDone()
+        }
+        .modifier(NotificationSignalListeners(
+            onInviteRewardSignal: {
+                Task { await inviteRewardCoordinator.evaluate() }
+            },
+            onShowEarlyAdopterPromo: {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showEarlyAdopterPromoChained = true
+                }
+            }
+        ))
+    }
+
+    @ViewBuilder
+    private func paywallContent(for trigger: PaywallTrigger) -> some View {
+        if EntitlementStore.kPaymentsEnabled {
+            PaywallView(trigger: trigger, entitlement: entitlement)
+        } else if trigger.isLimitReached, entitlement.inviteRewardKind != nil {
+            // Invite already redeemed — invite-based bonus is exhausted.
+            // Pitch the early-adopter seat instead.
+            NoSlotsSheet(
+                trigger: trigger,
+                currentCount: currentCount(for: trigger),
+                onBecomeEarlyAdopter: {
+                    paywallState.isPresented = false
+                    // Wait for the dismiss animation so SwiftUI doesn't
+                    // drop the second sheet on top of an in-flight one.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        showEarlyAdopterPromoChained = true
+                    }
+                }
+            )
+        } else {
+            InviteLandingView(trigger: trigger)
+        }
+    }
+
+    /// Live count of the resource the trigger refers to. Used by
+    /// `NoSlotsSheet` to render "You have currently X tickets…".
+    private func currentCount(for trigger: PaywallTrigger) -> Int {
+        switch trigger.limitedResource {
+        case .memories: return memoriesStore.memories.count
+        case .tickets:  return ticketsStore.tickets.count
+        case .none:     return 0
+        }
     }
 
     /// Binding that maps the sort presenter's memoryId to a Bool the
@@ -242,6 +339,44 @@ struct ContentView: View {
             get: { emojiPresenter.isPresented },
             set: { if !$0 { emojiPresenter.dismiss() } }
         )
+    }
+
+    private var inviteRewardSheetBinding: Binding<Bool> {
+        Binding(
+            get: { inviteRewardCoordinator.pending != nil },
+            set: { if !$0 { inviteRewardCoordinator.dismiss() } }
+        )
+    }
+
+    @ViewBuilder
+    private var inviteRewardSheetContent: some View {
+        if let role = inviteRewardCoordinator.pending {
+            InviteRewardSheet(role: role) {
+                inviteRewardCoordinator.consume()
+            }
+            .environment(entitlement)
+        }
+    }
+}
+
+/// Wraps the two NotificationCenter listeners ContentView relies on
+/// — extracted as a ViewModifier so SwiftUI's body type-check stays
+/// inside its budget. Both signals fire from outside the SwiftUI
+/// tree (push handler, claim RPC, widget deep link).
+private struct NotificationSignalListeners: ViewModifier {
+    let onInviteRewardSignal: () -> Void
+    let onShowEarlyAdopterPromo: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(
+                NotificationCenter.default
+                    .publisher(for: .lumoriaInviteRewardSignal)
+            ) { _ in onInviteRewardSignal() }
+            .onReceive(
+                NotificationCenter.default
+                    .publisher(for: .lumoriaShowEarlyAdopterPromo)
+            ) { _ in onShowEarlyAdopterPromo() }
     }
 }
 

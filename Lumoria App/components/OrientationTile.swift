@@ -32,8 +32,9 @@ struct OrientationTile: View {
             Button(action: onTap) {
                 SelectionTile(isSelected: isSelected, verticalPadding: 32) {
                     VStack(spacing: 16) {
+                        Spacer(minLength: 0)
                         preview
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        Spacer(minLength: 0)
 
                         SelectionTileLabel(text: title, isSelected: isSelected)
                     }
@@ -65,13 +66,18 @@ struct OrientationTile: View {
 
     // MARK: - Preview thumbnail
 
-    /// Scales to the available space while keeping the template's own aspect
-    /// ratio. Horizontal previews fit by width, vertical by height — the
-    /// `aspectRatio(.fit)` inside each template view handles the rest.
+    /// Fixed 180pt on the dominant axis per Figma 982-28859 — horizontal
+    /// previews are 180pt wide, vertical previews 180pt tall, with the
+    /// template's intrinsic aspect ratio sizing the cross axis.
+    @ViewBuilder
     private var preview: some View {
-        TicketPreview(
-            ticket: Ticket(orientation: orientation, payload: previewPayload)
-        )
+        let ticket = Ticket(orientation: orientation, payload: previewPayload)
+        switch orientation {
+        case .horizontal:
+            TicketPreview(ticket: ticket).frame(width: 180)
+        case .vertical:
+            TicketPreview(ticket: ticket).frame(height: 180)
+        }
     }
 }
 

@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.4',
+  date: '2026-05-04',
+  type: 'enhancement',
+  title: 'Reset to default in the style step',
+}
+
+A red reset button now sits next to Next on the styling sheet whenever the user has wandered off the template's default — either by picking a non-default theme or by tweaking a per-element colour. Tapping prompts a destructive confirm, then drops the chosen theme and every colour override in one shot, so undoing a fiddly recolouring run no longer means walking the controls back one by one. The pill stays hidden while the funnel sits on the default style, so first-time users only see it once they have something worth resetting.

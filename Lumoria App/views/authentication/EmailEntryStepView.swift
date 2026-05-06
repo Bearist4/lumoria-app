@@ -33,7 +33,8 @@ struct EmailEntryStepView: View {
                     placeholder: "Your email address",
                     text: $email,
                     contentType: .emailAddress,
-                    keyboardType: .emailAddress
+                    keyboardType: .emailAddress,
+                    inputIdentifier: "auth_email_field"
                 )
 
                 if let errorMessage {

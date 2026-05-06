@@ -40,9 +40,9 @@ enum CalloutType {
 // MARK: - Callout
 
 struct LumoriaCallout: View {
-    let title: String
-    var description: String? = nil
-    var subtext: String? = nil
+    let title: LocalizedStringKey
+    var description: LocalizedStringKey? = nil
+    var subtext: LocalizedStringKey? = nil
     var type: CalloutType = .information
 
     var body: some View {

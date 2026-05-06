@@ -1,5 +1,5 @@
 appId: bearista.Lumoria-App
-name: S03 · Login sheet opens
+name: S03 · Login sheet opens via email morph
 tags:
   - smoke
   - auth
@@ -11,13 +11,26 @@ tags:
 - extendedWaitUntil:
     visible: "Tickets that last forever"
     timeout: 10000
-- tapOn:
-    text: "^Log in$"
+- tapOn: "Get started"
 - extendedWaitUntil:
-    visible: "Welcome back!"
+    visible: "Continue with Email"
     timeout: 5000
+- assertVisible: "Continue with Apple"
+- assertVisible: "Continue with Google"
+- tapOn: "Continue with Email"
+- extendedWaitUntil:
+    visible:
+      id: "auth_email_field"
+    timeout: 5000
+- tapOn:
+    id: "auth_email_field"
+- inputText: ${TEST_EMAIL}
+- tapOn:
+    text: "^Continue$"
+- extendedWaitUntil:
+    visible:
+      id: "auth_login_password"
+    timeout: 10000
 - assertVisible: "Log in to Lumoria"
-- assertVisible: "Email address"
-- assertVisible: "Password"
 - assertVisible: "Forgot password?"
 - takeScreenshot: login_sheet

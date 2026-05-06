@@ -7,6 +7,8 @@ tags:
     clearState: true
     arguments:
       uitest: "YES"
-- assertVisible: "Log in"
-- assertVisible: "Sign up"
+- extendedWaitUntil:
+    visible: "Tickets that last forever"
+    timeout: 10000
+- assertVisible: "Get started"
 - takeScreenshot: landing

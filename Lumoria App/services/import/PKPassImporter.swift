@@ -140,6 +140,10 @@ enum PKPassImporter {
         // in the PKPass wallet ecosystem either; same `.other` bypass
         // applies.
         case .underground, .sign, .infoscreen, .grid:               return .other
+        // Movie tickets are created via the in-app form (no PKPass),
+        // so the same `.other` bypass applies — the wallet entry
+        // point never routes here.
+        case .lumiere:                                              return .other
         }
     }
 

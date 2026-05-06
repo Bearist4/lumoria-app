@@ -48,7 +48,8 @@ struct InSheetLoginView: View {
                     text: $email,
                     state: .disabled,
                     contentType: .emailAddress,
-                    keyboardType: .emailAddress
+                    keyboardType: .emailAddress,
+                    inputIdentifier: "auth_login_email"
                 )
 
                 LumoriaInputField(
@@ -56,7 +57,8 @@ struct InSheetLoginView: View {
                     placeholder: "Your password",
                     text: $password,
                     isSecure: true,
-                    contentType: .password
+                    contentType: .password,
+                    inputIdentifier: "auth_login_password"
                 )
 
                 if let errorMessage {

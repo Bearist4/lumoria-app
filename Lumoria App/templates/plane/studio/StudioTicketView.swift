@@ -239,7 +239,7 @@ struct StudioTicketView: View {
 
     private func detailCell(label: String, value: String, scale s: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 5.49 * s, weight: .regular))
                 .tracking(1.1 * s)
                 .foregroundStyle(style.textSecondary)

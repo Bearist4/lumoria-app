@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.4',
+  date: '2026-05-05',
+  type: 'feature',
+  title: 'Free-tier locks for over-cap memories and tickets',
+}
+
+When a former early adopter revokes their seat — or any free-tier user finds themselves above the 3-memory / 10-ticket cap (4 / 12 with the invite bonus) — the items beyond the cap now render at 30% opacity with a non-interactive black lock badge in the top-right. The "oldest survives" policy mirrors the user's original quota: the first 3 memories and 10 tickets they ever created stay unlocked, everything else falls behind the lock until they free up room. Tapping a locked item triggers an alert that branches on what the user can do: if their invite reward is still available, the CTA is "Invite a friend" (routes to the existing `InviteLandingView`); if they've already redeemed it, the CTA becomes "Become an early adopter" — opening the new `EarlyAdopterPromoSheet` — and the message tells them to also delete an older item to free a slot. The All tickets header swaps the purple "Unlock 2 new slots" pill for a yellow ⚠︎ "No slots available" subhead in the redeemed state. Trying to create a new ticket while at the cap with no remaining invite bonus opens a new `NoSlotsSheet` (yellow blurred warning header, "No slot available" title, copy explaining the count + the oldest-first policy, primary CTA "Become an early adopter") instead of the invite landing. The router lives on `ContentView` so the sheet can read live counts and chain into the early-adopter promo after dismissing.

@@ -95,28 +95,30 @@ struct ProfileStatsWidgetEntryView: View {
     let entry: ProfileStatsEntry
 
     var body: some View {
-        ZStack(alignment: .center) {
-            glow
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+        EarlyAdopterWidgetGate {
+            ZStack(alignment: .center) {
+                glow
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
 
-            VStack(alignment: .leading, spacing: 0) {
-                Text(primaryValue)
-                    .font(.system(size: 44, weight: .bold, design: .rounded))
-                    .foregroundStyle(accentColor)
-                    .lineLimit(1)
-                Text(caption)
-                    .font(.system(size: 19, weight: .medium, design: .rounded))
-                    .foregroundStyle(Color.Text.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(primaryValue)
+                        .font(.system(size: 44, weight: .bold, design: .rounded))
+                        .foregroundStyle(accentColor)
+                        .lineLimit(1)
+                    Text(caption)
+                        .font(.system(size: 19, weight: .medium, design: .rounded))
+                        .foregroundStyle(Color.Text.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                WidgetBrandBadge()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            WidgetBrandBadge()
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            .padding(.vertical, 29)
+            .padding(.horizontal,24)
+            .widgetURL(URL(string: "lumoria://profile"))
         }
-        .padding(.vertical, 29)
-        .padding(.horizontal,24)
-        .widgetURL(URL(string: "lumoria://profile"))
     }
 
     // MARK: Subviews

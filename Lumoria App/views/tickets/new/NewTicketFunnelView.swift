@@ -47,9 +47,15 @@ struct NewTicketFunnelView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var ticketsStore: TicketsStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
+    @Environment(Paywall.PresentationState.self) private var paywallState
     @StateObject private var funnel = NewTicketFunnel()
 
     @State private var showAbandonAlert = false
+    /// Confirmation alert for the style-step reset affordance. The
+    /// reset wipes the user's theme + per-element colour picks, so we
+    /// gate it behind a destructive confirm.
+    @State private var showStyleResetAlert: Bool = false
     /// Sheet bindings for success-step actions. Held at the funnel
     /// level so the actions can live in the shared bottom bar instead
     /// of inside the success step body.
@@ -295,6 +301,17 @@ struct NewTicketFunnelView: View {
         } message: {
             Text("Leave now? Your ticket won't be saved.")
         }
+        .alert(
+            "Reset style?",
+            isPresented: $showStyleResetAlert
+        ) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                funnel.resetStyleToDefault()
+            }
+        } message: {
+            Text("Your theme and colour picks will revert to the template's default.")
+        }
         .sheet(isPresented: $showAddToMemory) {
             if !funnel.createdTickets.isEmpty {
                 AddToMemorySheet(
@@ -484,6 +501,43 @@ struct NewTicketFunnelView: View {
         )
     }
 
+    // MARK: - Advance gating
+
+    /// Wraps `funnel.advance()` so the final hop into the success step
+    /// can't blow the free-tier ticket cap. Multi-leg public-transport
+    /// trips persist N rows in one go — without this gate a free user
+    /// at 8 tickets could pick a 4-leg journey and silently land at 12.
+    /// Edit flow + premium / grandfathered users skip the check; if it
+    /// fires, the paywall router presents (InviteLanding or NoSlotsSheet).
+    private func advanceOrPaywall() {
+        guard !funnel.isEditing,
+              advancingLandsOnSuccess,
+              !ticketsStore.canCreate(
+                  entitlement: entitlement,
+                  adding: funnel.pendingTicketCount
+              )
+        else {
+            funnel.advance()
+            return
+        }
+        Paywall.present(
+            for: .ticketLimit,
+            entitlement: entitlement,
+            state: paywallState
+        )
+    }
+
+    /// True when the *next* `advance()` would land the funnel on
+    /// `.success` — i.e. style step always, or form step when the
+    /// chosen template skips the style step.
+    private var advancingLandsOnSuccess: Bool {
+        switch funnel.step {
+        case .style: return true
+        case .form:  return !funnel.hasStylesStep
+        default:     return false
+        }
+    }
+
     // MARK: - Bottom bar
 
     @ViewBuilder
@@ -529,12 +583,25 @@ struct NewTicketFunnelView: View {
                 }
 
                 Button {
-                    funnel.advance()
+                    advanceOrPaywall()
                 } label: {
                     Text("Next")
                 }
                 .lumoriaButtonStyle(.primary, size: .medium)
                 .disabled(!funnel.canAdvance)
+
+                // Style step only — reset to the template's default
+                // appears once the user has touched a theme or any
+                // per-element colour. Confirms via destructive alert
+                // because the wipe can't be undone in-funnel.
+                if funnel.step == .style, funnel.isStyleModifiedFromDefault {
+                    LumoriaIconButton(
+                        systemImage: "arrow.counterclockwise",
+                        position: .danger
+                    ) {
+                        showStyleResetAlert = true
+                    }
+                }
             }
         }
     }

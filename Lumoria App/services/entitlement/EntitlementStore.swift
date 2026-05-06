@@ -20,6 +20,8 @@
 import Foundation
 import StoreKit
 import Observation
+import Supabase
+import WidgetKit
 
 private let kLifetimeProductId = "app.lumoria.premium.lifetime"
 private let kMonthlyProductId  = "app.lumoria.premium.monthly"
@@ -41,6 +43,38 @@ final class EntitlementStore {
     private(set) var monetisationEnabled: Bool = false
     private(set) var trialAvailable: Bool = false
     private(set) var inviteRewardKind: InviteRewardKind? = nil
+    /// Last-known seats remaining (0..300). Nil before the first
+    /// `loadEarlyAdopterSeats()` resolves. Refreshed eagerly when the
+    /// promo sheet appears and after every successful claim/revoke.
+    private(set) var earlyAdopterSeatsRemaining: Int? = nil
+    /// Hard cap baked into the migration RPC. Mirrored client-side so
+    /// callers can render "X / 300" without an extra round trip.
+    static let earlyAdopterSeatCap: Int = 300
+    /// "Early adopter" is the user-facing name for a grandfathered
+    /// seat — same column (`profiles.grandfathered_at`), same caps
+    /// bypass, just self-claimed instead of admin-issued. Drives the
+    /// plan badge label, the Settings row swap (Become → Manage), and
+    /// the Research entry's visibility.
+    var isEarlyAdopter: Bool { tier == .grandfathered }
+
+    /// Mirrors `isEarlyAdopter` into the App Group `UserDefaults` so
+    /// the widget process can gate its own content. Called from
+    /// `refresh()` (and the claim / revoke paths via refresh) — every
+    /// path that mutates `tier` flows through here. Also bumps
+    /// `WidgetCenter` so any installed widgets re-render against the
+    /// new value immediately.
+    private func mirrorEarlyAdopterToWidgets() {
+        let current = isEarlyAdopter
+        let stored = WidgetSharedContainer.sharedDefaults.bool(
+            forKey: WidgetSharedContainer.DefaultsKey.isEarlyAdopter
+        )
+        guard stored != current else { return }
+        WidgetSharedContainer.sharedDefaults.set(
+            current,
+            forKey: WidgetSharedContainer.DefaultsKey.isEarlyAdopter
+        )
+        WidgetCenter.shared.reloadAllTimelines()
+    }
 
     private let profileService: ProfileServicing
     private let appSettingsService: AppSettingsServicing
@@ -92,6 +126,74 @@ final class EntitlementStore {
             self.tier = .free
             self.inviteRewardKind = nil
         }
+        mirrorEarlyAdopterToWidgets()
+    }
+
+    // MARK: - Early-adopter seat
+
+    /// Errors surfaced from the early-adopter RPCs. Mapped from the
+    /// PostgREST error string so callers can branch on the cap-reached
+    /// case without inspecting raw error text.
+    enum EarlyAdopterError: Error, Equatable {
+        case seatsExhausted
+        case underlying(String)
+    }
+
+    /// Pull the current seat count from
+    /// `early_adopter_seats_remaining()`. Cheap — runs a single
+    /// COUNT(*) on profiles. Call when the promo sheet appears.
+    func loadEarlyAdopterSeats() async {
+        do {
+            let remaining: Int = try await supabase
+                .rpc("early_adopter_seats_remaining")
+                .execute()
+                .value
+            self.earlyAdopterSeatsRemaining = remaining
+        } catch {
+            print("[EntitlementStore] loadEarlyAdopterSeats failed:", error)
+        }
+    }
+
+    /// Claim a seat for the signed-in user. Idempotent server-side, so
+    /// double-tap is safe. Throws `.seatsExhausted` when the cap is
+    /// full so the UI can swap to a sold-out state. On success the
+    /// tier flips to `.grandfathered` after a `refresh()` round trip.
+    func claimEarlyAdopterSeat() async throws {
+        do {
+            _ = try await supabase
+                .rpc("claim_early_adopter_seat")
+                .execute()
+            await refresh()
+            await loadEarlyAdopterSeats()
+        } catch {
+            if Self.isSeatsExhausted(error) {
+                await loadEarlyAdopterSeats()
+                throw EarlyAdopterError.seatsExhausted
+            }
+            throw EarlyAdopterError.underlying(error.localizedDescription)
+        }
+    }
+
+    /// Revoke the caller's seat — frees it for someone else and flips
+    /// the badge / Research row back off. RPC clears `grandfathered_at`
+    /// server-side; `refresh()` re-resolves the tier client-side.
+    func revokeEarlyAdopterSeat() async throws {
+        do {
+            _ = try await supabase
+                .rpc("revoke_early_adopter_seat")
+                .execute()
+            await refresh()
+            await loadEarlyAdopterSeats()
+        } catch {
+            throw EarlyAdopterError.underlying(error.localizedDescription)
+        }
+    }
+
+    private static func isSeatsExhausted(_ error: Error) -> Bool {
+        // Supabase wraps Postgres `RAISE EXCEPTION 'no_seats_remaining'`
+        // into a localizedDescription that contains the literal string.
+        // Cheaper than parsing the JSON envelope.
+        error.localizedDescription.contains("no_seats_remaining")
     }
 
     /// Resolved view for tests — pure, no I/O.

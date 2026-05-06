@@ -53,7 +53,7 @@ struct HelpCenterView: View {
     @ViewBuilder
     private func sectionGroup(_ section: HelpSection) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(section.rawValue)
+            Text(LocalizedStringKey(section.rawValue))
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(Color.Text.primary)
 
@@ -77,7 +77,7 @@ struct HelpCenterView: View {
             onArticleSelected(article)
         } label: {
             HStack(spacing: 12) {
-                Text(article.title)
+                Text(LocalizedStringKey(article.title))
                     .font(.body)
                     .foregroundStyle(Color.Text.primary)
                     .multilineTextAlignment(.leading)

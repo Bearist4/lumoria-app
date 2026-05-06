@@ -19,6 +19,7 @@ enum TicketTemplateProp: String, CaseIterable {
     case concert
     case eurovision
     case underground, sign, infoscreen, grid
+    case lumiere
 }
 
 enum OrientationProp: String, CaseIterable {

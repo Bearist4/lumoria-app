@@ -19,7 +19,7 @@ struct HelpArticleView: View {
                 topBar
                     .padding(.top, 6)
 
-                Text(article.title)
+                Text(LocalizedStringKey(article.title))
                     .font(.largeTitle.bold())
                     .foregroundStyle(Color.Text.primary)
                     .padding(.top, 8)
@@ -27,7 +27,7 @@ struct HelpArticleView: View {
 
                 videoHero
 
-                Text(article.intro)
+                Text(LocalizedStringKey(article.intro))
                     .font(.body)
                     .foregroundStyle(Color.Text.primary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -37,7 +37,7 @@ struct HelpArticleView: View {
                 }
 
                 if let outro = article.outro {
-                    Text(outro)
+                    Text(LocalizedStringKey(outro))
                         .font(.subheadline)
                         .foregroundStyle(Color.Text.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -113,13 +113,13 @@ struct HelpArticleView: View {
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.Text.primary)
 
-                Text(step.title)
+                Text(LocalizedStringKey(step.title))
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.Text.primary)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            Text(step.body)
+            Text(LocalizedStringKey(step.body))
                 .font(.body)
                 .foregroundStyle(Color.Text.primary)
                 .fixedSize(horizontal: false, vertical: true)

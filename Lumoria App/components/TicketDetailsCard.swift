@@ -25,6 +25,11 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
     var title: LocalizedStringKey = "About this ticket"
     let creationDate: String
     let lastEditDate: String
+    /// Display name of the active template (e.g. "Afterglow",
+    /// "Eurovision"). Rendered in the bottom-left tile next to the
+    /// category pill so the user can spot at a glance which template
+    /// the ticket was built on.
+    let templateName: String
     let category: TicketCategoryStyle
     /// Primary location of the ticket. Hidden when nil. Ignored when
     /// `transitRoute` is non-nil — that overrides the single-pin map
@@ -57,8 +62,7 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
                 .font(.title.bold())
                 .foregroundStyle(Color.Text.primary)
 
-            metadataRow
-            categoryRow
+            metadataGrid
             if let transitRoute {
                 transitRouteCard(transitRoute)
             } else if let location {
@@ -74,19 +78,22 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
         )
     }
 
-    // MARK: Metadata row
+    // MARK: Metadata grid
 
-    private var metadataRow: some View {
-        HStack(spacing: 8) {
-            TicketDetailItem(label: "Created on",  sublabel: creationDate)
-            TicketDetailItem(label: "Last edited", sublabel: lastEditDate)
+    /// 2×2 grid: dates on top (Created / Edited), template + category
+    /// on the bottom. Both rows share the same column rhythm so the
+    /// tiles stack flush on the divider.
+    private var metadataGrid: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                TicketDetailItem(label: "Created", sublabel: creationDate)
+                TicketDetailItem(label: "Edited",  sublabel: lastEditDate)
+            }
+            HStack(spacing: 8) {
+                TicketDetailItem(label: "Template", sublabel: templateName)
+                TicketDetailsCategoryTile(category: category)
+            }
         }
-    }
-
-    // MARK: Category tile
-
-    private var categoryRow: some View {
-        TicketDetailsCategoryTile(category: category)
     }
 
     // MARK: Location card
@@ -297,6 +304,7 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
     TicketDetailsCard(
         creationDate: "03 January 2025",
         lastEditDate: "15 January 2025",
+        templateName: "Afterglow",
         category: .plane,
         location: TicketLocation(
             name: "Tokyo Narita",
@@ -326,6 +334,7 @@ struct TicketDetailsCard<MemoriesContent: View>: View {
     TicketDetailsCard(
         creationDate: "03 January 2025",
         lastEditDate: "15 January 2025",
+        templateName: "Afterglow",
         category: .plane,
         location: nil,
         menuItems: [

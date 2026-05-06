@@ -23,7 +23,7 @@ struct NewTicketCategoryStep: View {
             ForEach(TicketCategory.allCases.filter(\.isAvailable)) { category in
                 let tile = CategoryTile(
                     title: category.title,
-                    imageName: category.imageName,
+                    emoji: category.emoji,
                     isSelected: funnel.category == category,
                     isAvailable: category.isAvailable,
                     onTap: { funnel.category = category }

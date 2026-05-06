@@ -129,14 +129,27 @@ struct MemoryDetailView: View {
     @ViewBuilder
     private var readingModeBody: some View {
         ZStack(alignment: .top) {
-            Color.Background.default
-                .ignoresSafeArea()
-
+            // Memory tint fills the whole screen now — the previous
+            // 420pt cap left a hard seam where the tint stopped and
+            // the default background took over. The content card on
+            // top still uses `Color.Background.default`, so the tint
+            // only shows above and around the card edges.
             tintBackground
-                .frame(height: 420)
-                .frame(maxWidth: .infinity, alignment: .top)
-                .ignoresSafeArea(edges: [.top, .horizontal])
+                .ignoresSafeArea()
                 .animation(.easeInOut(duration: 0.35), value: activeColorFamily)
+
+            // Bottom floor — same colour as the content card, anchored
+            // to the screen bottom and extended past the tab-bar safe
+            // area. Sits between the tint and the scrolling card so
+            // the tint can never peek through under the tickets, even
+            // during overscroll or when the card has scrolled up.
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                Color.Background.default
+                    .frame(height: 240)
+            }
+            .ignoresSafeArea(edges: .bottom)
+            .allowsHitTesting(false)
 
             StickyBlurHeader(
                 maxBlurRadius: 8,
@@ -158,7 +171,24 @@ struct MemoryDetailView: View {
                     contentCard
                 }
             }
+            // Scroll only when there's actually content that needs
+            // scrolling. With no tickets there's nothing to bounce
+            // past, so disabling the gesture eliminates the overscroll
+            // that exposes the tint at the bottom — exactly the
+            // behaviour the gallery has on All tickets.
+            .scrollDisabled(scrollNotNeeded)
         }
+    }
+
+    /// True when the visible memory has no scrollable content — used
+    /// to suppress rubber-band overscroll that would otherwise reveal
+    /// the tint underneath the card. Today the card's `minHeight`
+    /// already fills the viewport for empty memories, so the simple
+    /// "no tickets" check is enough.
+    private var scrollNotNeeded: Bool {
+        ticketsStore.tickets(in: memory.id)
+            .collapsedToGroupRepresentatives()
+            .isEmpty
     }
 
     // MARK: - Map availability
@@ -318,6 +348,11 @@ struct MemoryDetailView: View {
                 style: .continuous
             )
             .fill(Color.Background.default)
+            // Bleed the card's white past the bottom safe area so the
+            // ticket area visually runs under the tab bar — combined
+            // with the bottom floor in `readingModeBody`, this makes
+            // the tint impossible to see at the screen bottom.
+            .ignoresSafeArea(edges: .bottom)
         )
     }
 
@@ -344,8 +379,7 @@ struct MemoryDetailView: View {
             .multilineTextAlignment(.center)
         }
         .padding(.horizontal, 40)
-        .padding(.top, 48)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
     }
 
     // MARK: - Grid

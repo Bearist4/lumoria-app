@@ -24,6 +24,11 @@ enum WidgetSharedContainer {
     enum DefaultsKey {
         /// Raw value of `MapDistanceUnit`. `"km"` (default) or `"mi"`.
         static let distanceUnit = "map.distanceUnit"
+        /// Mirror of `EntitlementStore.isEarlyAdopter`. The widget
+        /// process can't read the in-memory store, so the main app
+        /// pushes the bool here on every `refresh()`. Widgets gate
+        /// their rendered content on this — false → upsell placeholder.
+        static let isEarlyAdopter = "user.isEarlyAdopter"
     }
 
     /// Filename of the JSON snapshot at the root of the shared container.

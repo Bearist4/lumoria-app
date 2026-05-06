@@ -17,6 +17,11 @@ struct TemplateTile: View {
     /// Ticket payload rendered as the tile thumbnail (horizontal orientation).
     let previewPayload: TicketPayload
     var isSelected: Bool = false
+    /// When true, paints the purple `LumoriaPremiumBadge` over the
+    /// thumbnail's top-right corner. Marks templates that sit behind
+    /// the early-adopter gate so users know the feature exists before
+    /// the gate fires on tap.
+    var showsPremiumBadge: Bool = false
     var onTap: () -> Void = {}
     var onInfoTap: () -> Void = {}
 
@@ -51,7 +56,13 @@ struct TemplateTile: View {
                         )
                         .animation(.easeInOut(duration: 0.26), value: isGreeting)
 
-                        SelectionTileLabel(text: title, isSelected: isSelected)
+                        HStack(spacing: 8) {
+                            if showsPremiumBadge {
+                                LumoriaPremiumBadge(style: .crown)
+                                    .allowsHitTesting(false)
+                            }
+                            SelectionTileLabel(text: title, isSelected: isSelected)
+                        }
                     }
                     .frame(maxWidth: .infinity)
 

@@ -31,6 +31,10 @@ struct TicketPreview: View {
                     }
                     .allowsHitTesting(false)
             }
+            // Tickets are designed in English and stay in English regardless
+            // of device locale — keeps SwiftUI Text("…") inside templates
+            // from being localized.
+            .environment(\.locale, .ticket)
     }
 
     @ViewBuilder
@@ -85,6 +89,9 @@ struct TicketPreview: View {
 
         case (.grid(let t), .horizontal):         GridTicketView(ticket: t)
         case (.grid(let t), .vertical):           GridTicketVerticalView(ticket: t)
+
+        case (.lumiere(let t), .horizontal):      LumiereTicketView(ticket: t, style: style)
+        case (.lumiere(let t), .vertical):        LumiereTicketVerticalView(ticket: t, style: style)
         }
     }
 }

@@ -17,11 +17,11 @@ import SwiftUI
 enum LumoriaDataCardContent {
     /// A single big value (number or short text) + a small caption.
     /// Example: "3" / "memories created".
-    case value(String, caption: String)
+    case value(String, caption: LocalizedStringKey)
 
     /// A big value followed by an inline suffix + a caption below.
     /// Example: "3" "months" / "Longest gap between tickets".
-    case valueWithSuffix(String, suffix: String, caption: String)
+    case valueWithSuffix(String, suffix: LocalizedStringKey, caption: LocalizedStringKey)
 }
 
 // MARK: - Card
@@ -129,14 +129,14 @@ struct LumoriaDataCard: View {
         }
     }
 
-    private var valueSuffix: String? {
+    private var valueSuffix: LocalizedStringKey? {
         switch content {
         case .value:                           return nil
         case .valueWithSuffix(_, let s, _):    return s
         }
     }
 
-    private var caption: String {
+    private var caption: LocalizedStringKey {
         switch content {
         case .value(_, let c):                 return c
         case .valueWithSuffix(_, _, let c):    return c

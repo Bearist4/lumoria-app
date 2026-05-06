@@ -34,7 +34,7 @@ struct TemplateDetailsSheet: View {
                         .foregroundStyle(Color.Text.primary)
                         .padding(.top, 24)
 
-                    Text("The following information is needed in order to generate the ticket.")
+                    Text("Here's what this template needs.")
                         .font(.body)
                         .foregroundStyle(Color.Text.secondary)
 
@@ -45,7 +45,7 @@ struct TemplateDetailsSheet: View {
                     }
                     .padding(.top, 4)
 
-                    Text("This info doesn't need to be accurate — you're not making a real ticket. Only airport codes must be real, to draw the path.")
+                    Text("Some information is required to edit your ticket. We can fill optional data for you to make the ticket look more realistic.")
                         .font(.footnote)
                         .foregroundStyle(Color.Text.secondary)
                         .padding(.top, 4)

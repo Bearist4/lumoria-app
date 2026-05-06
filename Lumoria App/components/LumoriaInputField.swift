@@ -41,22 +41,32 @@ struct LumoriaInputField: View {
     var assistiveText: LocalizedStringKey? = nil
     var contentType: UITextContentType? = nil
     var keyboardType: UIKeyboardType = .default
+    var inputIdentifier: String? = nil
 
     private var kind: LumoriaInputFieldKind = .text
 
     @State private var isRevealed = false
     @FocusState private var isFocused: Bool
 
-    // Nulls contentType under Maestro so iOS autofill / strong-password
-    // takeover doesn't intercept keystrokes on SecureField.
+    // Under Maestro, swap SecureField → TextField and null contentType so
+    // iOS autofill / strong-password takeover doesn't intercept keystrokes
+    // (otherwise only the first character lands in the field).
     // Accepts the signal via any of: launch args (`-uitest`/`--uitest`),
     // UserDefaults (`-uitest YES`), or env var (`UITEST=1`).
-    private var effectiveContentType: UITextContentType? {
+    private static var isUITest: Bool {
         let args = CommandLine.arguments
         let hasArg = args.contains("-uitest") || args.contains("--uitest")
         let inDefaults = UserDefaults.standard.bool(forKey: "uitest")
         let inEnv = ProcessInfo.processInfo.environment["UITEST"] == "1"
-        return (hasArg || inDefaults || inEnv) ? nil : contentType
+        return hasArg || inDefaults || inEnv
+    }
+
+    private var effectiveContentType: UITextContentType? {
+        Self.isUITest ? nil : contentType
+    }
+
+    private var effectiveIsSecure: Bool {
+        Self.isUITest ? false : isSecure
     }
 
     // MARK: - Inits
@@ -71,7 +81,8 @@ struct LumoriaInputField: View {
         state: LumoriaInputFieldState = .default,
         assistiveText: LocalizedStringKey? = nil,
         contentType: UITextContentType? = nil,
-        keyboardType: UIKeyboardType = .default
+        keyboardType: UIKeyboardType = .default,
+        inputIdentifier: String? = nil
     ) {
         self.label = label
         self.placeholder = placeholder
@@ -83,6 +94,7 @@ struct LumoriaInputField: View {
         self.assistiveText = assistiveText
         self.contentType = contentType
         self.keyboardType = keyboardType
+        self.inputIdentifier = inputIdentifier
         self.kind = .text
     }
 
@@ -174,7 +186,7 @@ struct LumoriaInputField: View {
     private var singleLineInput: some View {
         HStack(spacing: 8) {
             Group {
-                if isSecure && !isRevealed {
+                if effectiveIsSecure && !isRevealed {
                     SecureField(placeholder, text: $text)
                 } else {
                     TextField(placeholder, text: $text)
@@ -187,6 +199,7 @@ struct LumoriaInputField: View {
             .foregroundStyle(textColor)
             .textContentType(effectiveContentType)
             .focused($isFocused)
+            .accessibilityIdentifier(inputIdentifier ?? "")
 
             if isSecure {
                 revealButton

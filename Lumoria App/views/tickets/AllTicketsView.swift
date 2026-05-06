@@ -14,6 +14,7 @@
 //  relative-time or category header, and the icon gets a red badge dot.
 //
 
+import ProgressiveBlurHeader
 import SwiftUI
 
 struct AllTicketsView: View {
@@ -31,6 +32,12 @@ struct AllTicketsView: View {
     /// ID of the ticket closest to vertical centre of the screen. Drives
     /// the shimmer's `isActive` so only the focused card consumes motion.
     @State private var centredId: UUID?
+    /// Drives the per-card locked alert when the user taps a ticket
+    /// beyond the Free-tier cap (former early adopter who revoked).
+    @State private var showLockedAlert: Bool = false
+    /// Drives the early-adopter promo sheet route from the locked
+    /// alert when the user has already claimed their invite reward.
+    @State private var showEarlyAdopterPromo: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -41,10 +48,11 @@ struct AllTicketsView: View {
                         emptyState
                     }
                 } else {
-                    ScrollFadingBlurHeader(
-                        fadeExtension: 0,
-                        tintOpacityTop: 1.0,
-                        tintOpacityMiddle: 1.0
+                    StickyBlurHeader(
+                        maxBlurRadius: 8,
+                        fadeExtension: 56,
+                        tintOpacityTop: 0,
+                        tintOpacityMiddle: 0
                     ) {
                         header
                     } content: {
@@ -82,6 +90,31 @@ struct AllTicketsView: View {
                     .environmentObject(store)
                     .environmentObject(onboardingCoordinator)
             }
+            .sheet(isPresented: $showEarlyAdopterPromo) {
+                EarlyAdopterPromoSheet()
+                    .environment(entitlement)
+            }
+            .alert(
+                "Ticket locked",
+                isPresented: $showLockedAlert
+            ) {
+                Button("Cancel", role: .cancel) { }
+                if entitlement.inviteRewardKind == nil {
+                    Button("Invite a friend") {
+                        Paywall.present(
+                            for: .ticketLimit,
+                            entitlement: entitlement,
+                            state: paywallState
+                        )
+                    }
+                } else {
+                    Button("Become an early adopter") {
+                        showEarlyAdopterPromo = true
+                    }
+                }
+            } message: {
+                Text(lockedTicketAlertMessage)
+            }
         }
     }
 
@@ -110,23 +143,16 @@ struct AllTicketsView: View {
                 }
                 LumoriaIconButton(
                     systemImage: "plus",
-                    action: {
-                        pendingImportSource = nil
-                        showFunnel = true
-                    }
+                    action: { presentNewTicketOrPaywall() }
                 )
             }
         }
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 16)
-        // Always-on solid backdrop so content scrolling behind the
-        // title and icon buttons is fully covered, independent of
-        // the progressive blur underneath (which only fades in on
-        // scroll and lives in the fadeExtension region *below*
-        // this header).
-        .background(Color.Background.default.ignoresSafeArea(edges: .top))
-        .zIndex(1)
+        // Header must stay transparent — the StickyBlurHeader's blur
+        // IS the background. An opaque fill here would hide the
+        // progressive blur of content scrolling underneath.
     }
 
     @ViewBuilder
@@ -137,16 +163,33 @@ struct AllTicketsView: View {
             let cap = FreeCaps.ticketCap(rewardKind: entitlement.inviteRewardKind)
             let remaining = max(0, cap - store.tickets.count)
             if remaining == 0 {
-                Button {
-                    Paywall.present(
-                        for: .ticketLimit,
-                        entitlement: entitlement,
-                        state: paywallState
-                    )
-                } label: {
-                    LumoriaUpgradeIncentive(resource: .tickets)
+                if entitlement.inviteRewardKind == nil {
+                    // User can still claim a +2 ticket bonus by inviting.
+                    Button {
+                        Paywall.present(
+                            for: .ticketLimit,
+                            entitlement: entitlement,
+                            state: paywallState
+                        )
+                    } label: {
+                        LumoriaUpgradeIncentive(resource: .tickets)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    // Invite already redeemed — no more slots to earn,
+                    // surface the warning subheadline. Tapping a ticket
+                    // creation triggers the NoSlotsSheet via the same
+                    // `Paywall.present` path (router branches on
+                    // `inviteRewardKind != nil`).
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.Feedback.Warning.icon)
+                        Text("No slots available")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.Feedback.Warning.text)
+                    }
                 }
-                .buttonStyle(.plain)
             } else {
                 Text("\(remaining) available slots")
                     .font(.system(size: 15))
@@ -274,7 +317,8 @@ struct AllTicketsView: View {
     }
 
     private func ticketLink(_ ticket: Ticket) -> some View {
-        NavigationLink(value: ticket) {
+        let isLocked = lockedTicketIds.contains(ticket.id)
+        return NavigationLink(value: ticket) {
             ZStack(alignment: .topTrailing) {
                 TicketPreview(ticket: ticket, isCentered: centredId == ticket.id)
                     .trackCenteredRow(id: ticket.id, into: $centredId)
@@ -288,6 +332,47 @@ struct AllTicketsView: View {
             }
         }
         .buttonStyle(TicketCardButtonStyle())
+        .freeTierLocked(isLocked) { showLockedAlert = true }
+    }
+
+    /// Gated entry to the new-ticket funnel. Free-tier users at the
+    /// cap see the paywall router instead — same pattern as
+    /// MemoriesView. Without this gate the + button would happily
+    /// open the funnel and the user only hits the wall at commit.
+    private func presentNewTicketOrPaywall() {
+        if store.canCreate(entitlement: entitlement) {
+            pendingImportSource = nil
+            showFunnel = true
+        } else {
+            Paywall.present(
+                for: .ticketLimit,
+                entitlement: entitlement,
+                state: paywallState
+            )
+        }
+    }
+
+    /// IDs of tickets locked under the current Free-tier cap. Empty
+    /// for premium / grandfathered users. Used by `ticketLink` to dim
+    /// + gate items beyond the cap after a former early adopter
+    /// revokes their seat.
+    private var lockedTicketIds: Set<UUID> {
+        FreeCaps.lockedTicketIDs(
+            tickets: store.tickets,
+            cap: FreeCaps.ticketCap(rewardKind: entitlement.inviteRewardKind),
+            isPremium: entitlement.tier.hasPremium
+        )
+    }
+
+    /// Body copy for the per-ticket locked alert. Same branching as
+    /// the memory side: invite path if still claimable, otherwise
+    /// delete-or-become-early-adopter.
+    private var lockedTicketAlertMessage: String {
+        let cap = FreeCaps.ticketCap(rewardKind: entitlement.inviteRewardKind)
+        if entitlement.inviteRewardKind == nil {
+            return String(localized: "You're at the Free tier limit of \(cap) tickets. Invite a friend to unlock 2 more slots.")
+        }
+        return String(localized: "You're at the Free tier limit of \(cap) tickets. Delete an older ticket to free this one up, or become an early adopter for unlimited slots.")
     }
 
     /// Number of legs in the ticket's group, or nil when the ticket

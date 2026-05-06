@@ -164,7 +164,7 @@ struct NightTicketView: View {
 
     private func fieldCard(label: String, value: String, scale s: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 6 * s, weight: .regular))
                 .tracking(1.44 * s)
                 .foregroundStyle(style.textSecondary)

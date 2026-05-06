@@ -3,7 +3,7 @@
 //  Lumoria App
 //
 //  Modal sheet presented from `ProfileView` for editing the signed-in
-//  user's name, username, and avatar.
+//  user's name and avatar.
 //
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=2058-20895
 //
@@ -17,9 +17,9 @@ struct EditProfileView: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var profileStore: ProfileStore
+    @Environment(EntitlementStore.self) private var entitlement
 
     @State private var draftName: String = ""
-    @State private var draftUsername: String = ""
     /// JPEG bytes of the (cropped) image waiting for save.
     @State private var draftAvatarData: Data? = nil
     @State private var avatarPickerItem: PhotosPickerItem? = nil
@@ -29,10 +29,9 @@ struct EditProfileView: View {
     @State private var isSaving = false
     @State private var saveError: String? = nil
 
-    private var isNameDirty: Bool     { draftName != profileStore.name }
-    private var isUsernameDirty: Bool { draftUsername != profileStore.username }
-    private var isAvatarDirty: Bool   { draftAvatarData != nil }
-    private var hasChanges: Bool      { isNameDirty || isUsernameDirty || isAvatarDirty }
+    private var isNameDirty: Bool   { draftName != profileStore.name }
+    private var isAvatarDirty: Bool { draftAvatarData != nil }
+    private var hasChanges: Bool    { isNameDirty || isAvatarDirty }
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -67,7 +66,6 @@ struct EditProfileView: View {
         }
         .onAppear {
             draftName = profileStore.name
-            draftUsername = profileStore.username
             Analytics.track(.profileEditStarted)
         }
         .sheet(isPresented: Binding(
@@ -109,15 +107,8 @@ struct EditProfileView: View {
                     : nil
             )
 
-            LumoriaInputField(
-                label: "Username",
-                placeholder: "@username",
-                text: $draftUsername,
-                isRequired: false,
-                state: isUsernameDirty ? .warning : .default,
-                assistiveText: isUsernameDirty
-                    ? "You edited this field but it has not been saved yet."
-                    : nil
+            LumoriaPlanBadge(
+                tier: entitlement.isEarlyAdopter ? .earlyAdopter : .free
             )
 
             if let saveError {
@@ -215,10 +206,10 @@ struct EditProfileView: View {
         .disabled(!hasChanges || isSaving)
     }
 
-    /// Pushes name + username + avatar changes to Supabase. Mirrors the
-    /// previous in-place save flow on `ProfileView` — encrypted-blob
-    /// upload to the private `avatars` bucket plus best-effort deletion
-    /// of the prior file.
+    /// Pushes name + avatar changes to Supabase. Mirrors the previous
+    /// in-place save flow on `ProfileView` — encrypted-blob upload to
+    /// the private `avatars` bucket plus best-effort deletion of the
+    /// prior file.
     private func save() async {
         guard hasChanges, !isSaving else { return }
         isSaving = true
@@ -254,12 +245,6 @@ struct EditProfileView: View {
                 )
             }
 
-            if isUsernameDirty {
-                updates["username"] = .string(
-                    sanitizedUsername(draftUsername)
-                )
-            }
-
             if !updates.isEmpty {
                 _ = try await supabase.auth.update(
                     user: UserAttributes(data: updates)
@@ -292,16 +277,6 @@ struct EditProfileView: View {
         }
     }
 
-    /// Strip a leading "@" the user might type, trim whitespace.
-    /// Keeps the stored value canonical so the display layer can prepend
-    /// "@" without doubling it.
-    private func sanitizedUsername(_ raw: String) -> String {
-        var trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.hasPrefix("@") {
-            trimmed.removeFirst()
-        }
-        return trimmed
-    }
 }
 
 // MARK: - Preview
@@ -309,4 +284,8 @@ struct EditProfileView: View {
 #Preview {
     EditProfileView()
         .environmentObject(ProfileStore())
+        .environment(EntitlementStore.previewInstance(
+            tier: .free,
+            monetisationEnabled: false
+        ))
 }

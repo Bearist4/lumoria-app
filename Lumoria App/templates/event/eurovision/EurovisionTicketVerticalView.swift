@@ -147,7 +147,7 @@ struct EurovisionTicketVerticalView: View {
         scale s: CGFloat
     ) -> some View {
         VStack(alignment: .leading, spacing: 6 * s) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 7 * s, weight: .regular))
                 .tracking(1.05 * s)
                 .foregroundStyle(style.textPrimary.opacity(0.85))

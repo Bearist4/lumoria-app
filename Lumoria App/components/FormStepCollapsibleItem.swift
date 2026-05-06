@@ -70,7 +70,7 @@ struct FormStepCollapsibleItem<Content: View>: View {
                         .frame(width: 44, height: 44)
                 }
 
-                Text(title)
+                Text(LocalizedStringKey(title))
                     .font(.headline)
                     .foregroundStyle(Color.Text.primary)
                     .frame(maxWidth: .infinity, alignment: .leading)

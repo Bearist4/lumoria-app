@@ -34,6 +34,7 @@ struct Lumoria_AppApp: App {
         appSettingsService: AppSettingsService()
     )
     @State private var paywallState = Paywall.PresentationState()
+    @State private var inviteRewardCoordinator = InviteRewardCoordinator()
     @AppStorage("appearance.mode") private var storedMode: String = AppearanceMode.system.rawValue
     @AppStorage("appearance.highContrast") private var highContrast: Bool = false
     @AppStorage("appearance.iconName") private var storedIconName: String = ""
@@ -119,18 +120,12 @@ struct Lumoria_AppApp: App {
                         .environmentObject(widgetRouter)
                         .environment(entitlement)
                         .environment(paywallState)
-                        .sheet(isPresented: Binding(
-                            get: { paywallState.isPresented },
-                            set: { paywallState.isPresented = $0 }
-                        )) {
-                            if let trigger = paywallState.trigger {
-                                if EntitlementStore.kPaymentsEnabled {
-                                    PaywallView(trigger: trigger, entitlement: entitlement)
-                                } else {
-                                    InviteLandingView(trigger: trigger)
-                                }
-                            }
-                        }
+                        .environment(inviteRewardCoordinator)
+                        // Note: the paywall `.sheet` lives inside
+                        // `ContentView` (which owns `TicketsStore` /
+                        // `MemoriesStore`) so the cap-reached
+                        // `NoSlotsSheet` can read live counts and chain
+                        // into `EarlyAdopterPromoSheet` after dismiss.
                 } else if shouldShowLanding {
                     AuthNavigationView()
                         .environmentObject(authManager)
@@ -152,6 +147,7 @@ struct Lumoria_AppApp: App {
                 if authManager.isAuthenticated {
                     await onboardingCoordinator.loadOnAuth()
                     await entitlement.refresh()
+                    await inviteRewardCoordinator.evaluate()
                 }
             }
             .onChange(of: authManager.isAuthenticated) { _, isAuthed in
@@ -161,6 +157,7 @@ struct Lumoria_AppApp: App {
                         await notificationPrefs.load()
                         await onboardingCoordinator.loadOnAuth()
                         await entitlement.refresh()
+                        await inviteRewardCoordinator.evaluate()
                     }
                 } else {
                     Task { await pushService.signedOut() }
@@ -265,6 +262,20 @@ struct Lumoria_AppApp: App {
         let isImportCustom = url.scheme == "lumoria"
             && url.host == "import"
             && url.path == "/pkpass"
+        // Widget upsell — `lumoria://promo/early-adopter` lands here when
+        // a free-tier user taps a gated widget. Just post the signal;
+        // ContentView observes and presents `EarlyAdopterPromoSheet` over
+        // whatever tab is active.
+        if url.scheme == "lumoria",
+           url.host == "promo",
+           url.lastPathComponent == "early-adopter" {
+            NotificationCenter.default.post(
+                name: .lumoriaShowEarlyAdopterPromo,
+                object: nil
+            )
+            Analytics.track(.deepLinkOpened(scheme: "lumoria", host: "promo", kind: .other))
+            return
+        }
         // Widget tap — `lumoria://memory/<uuid>` opens the memory's detail
         // view. Handler stashes the id; MemoriesView pushes it once the
         // memories store has finished its initial load.

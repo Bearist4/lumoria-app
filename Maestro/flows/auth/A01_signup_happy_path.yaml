@@ -5,6 +5,7 @@ tags:
   - regression
 env:
   TEST_NAME: "QA Bot"
+  TEST_EMAIL_FRESH: "qa@getlumoria.app"
   TEST_SIGNUP_PASSWORD: "Test123!abc"
 ---
 - launchApp:
@@ -16,37 +17,45 @@ env:
     timeout: 10000
 - tapOn: "Get started"
 - extendedWaitUntil:
-    visible: "Continue with email"
+    visible: "Continue with Email"
     timeout: 5000
-- tapOn: "Continue with email"
+- tapOn: "Continue with Email"
+# Email step
 - extendedWaitUntil:
-    visible: "We'll check if you already have an account"
+    visible:
+      id: "auth_email_field"
     timeout: 5000
-- tapOn: "Your email address"
+- tapOn:
+    id: "auth_email_field"
 - inputText: ${TEST_EMAIL_FRESH}
-- hideKeyboard
-- tapOn: "Continue"
+- tapOn:
+    text: "^Continue$"
+# Morph → signup
 - extendedWaitUntil:
     visible: "Let's create your account"
     timeout: 10000
-- tapOn: "Your name"
+- tapOn:
+    id: "auth_signup_name"
 - inputText: ${TEST_NAME}
-- hideKeyboard
-- tapOn: "Your password"
-# Belt-and-suspenders: if the uitest launch arg didn't reach the app, iOS
-# shows "Use Strong Password?" here. Dismiss to "Choose My Own Password".
 - tapOn:
-    text: "Choose My Own Password"
-    optional: true
+    id: "auth_signup_password"
 - inputText: ${TEST_SIGNUP_PASSWORD}
-- hideKeyboard
-- tapOn: "Confirm your password"
-- tapOn:
-    text: "Choose My Own Password"
-    optional: true
-- inputText: ${TEST_SIGNUP_PASSWORD}
-- hideKeyboard
 - assertVisible: "Strong"
+# Confirm field is below the keyboard. The signup ScrollView has
+# .scrollDismissesKeyboard(.immediately) — a swipe dismisses the
+# keyboard so the rest of the form (confirm field + Create account
+# button) becomes reachable.
+- swipe:
+    start: "50%,40%"
+    end: "50%,15%"
+    duration: 400
+- tapOn:
+    id: "auth_signup_confirm_password"
+- inputText: ${TEST_SIGNUP_PASSWORD}
+- swipe:
+    start: "50%,40%"
+    end: "50%,15%"
+    duration: 400
 - tapOn: "Create account"
 - extendedWaitUntil:
     visible: "Check your email"

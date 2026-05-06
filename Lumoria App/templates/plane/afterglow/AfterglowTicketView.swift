@@ -247,7 +247,7 @@ struct AfterglowTicketView: View {
 
     private func detailCell(label: String, value: String, scale: CGFloat, showDivider: Bool) -> some View {
         VStack(spacing: 4 * scale) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 8 * scale, weight: .regular))
                 .tracking(1.06 * scale)
                 .foregroundStyle(secondary.opacity(0.4))

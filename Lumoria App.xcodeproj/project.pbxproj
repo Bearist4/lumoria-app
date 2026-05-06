@@ -130,6 +130,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				DesignTokens.swift,
+				Localizable.xcstrings,
 				services/widget/WidgetMemorySnapshot.swift,
 				services/widget/WidgetSharedContainer.swift,
 			);
@@ -145,6 +146,7 @@
 		69C0694B2FA4ABCB006E0561 /* Exceptions for "Lumoria App" folder in "LumoriaShareImport" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Localizable.xcstrings,
 				services/import/ShareCategoryClassifier.swift,
 				services/import/ShareConcertExtractor.swift,
 				services/import/SharePayload.swift,
@@ -849,7 +851,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Lumoria App/Lumoria App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = UV5KDNCKWS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -887,7 +889,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = "Lumoria App/Lumoria App.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 7;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = UV5KDNCKWS;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;

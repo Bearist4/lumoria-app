@@ -1,0 +1,12 @@
+export const meta = {
+  version: '1.0.4',
+  date: '2026-05-05',
+  type: 'feature',
+  title: 'Invite-reward sheets — pick your bonus',
+}
+
+The invite loop closes with two new sheets. When the invitee creates their first ticket, two things happen server-side: the `fire_link_on_first_ticket` Postgres trigger stamps `invites.redeemed_at`, and on the client the new `InviteRewardCoordinator` polls a fresh `pending_invite_reward()` RPC that returns either `referrer`, `referree`, or null based on which side of the invite the signed-in user sits on. The matching sheet then presents — both share a blue/50 cover, a title block, body copy, two `InviteChoiceCard`s (memory bonus vs ticket bonus, with the selected card outlined and bumped to semibold), a Confirm CTA wired to `claim_invite_reward(p_kind:)`, and the "once selected, can't change" footnote. Confirm refreshes `EntitlementStore` so the `+1` memory or `+2` ticket bonus picks up immediately on the next FreeCaps lookup.
+
+Trigger timing follows the spec: invitee on the onboarding path lands on the sheet when `OnboardingCoordinator.currentStep` flips to `.done` (the end-cover dismiss), invitee who skipped onboarding gets it 2 s after `TicketsStore.tickets.count` transitions 0 → 1, and the inviter gets it the next time the app runs `evaluate()` after their invitee redeemed (app launch, sign-in). The coordinator latches the first-ticket path so a subsequent ticket creation in the same session can't re-fire, and dismissing without claiming clears `pending` for this session only — the next `evaluate()` will surface it again so the user isn't nagged immediately but doesn't lose the bonus either.
+
+The new column-protect / claim path ships as `supabase/migrations/20260517000000_pending_invite_reward.sql`; apply via Supabase MCP before the client goes out — without it the client sees a 404 on the RPC and silently shows nothing.

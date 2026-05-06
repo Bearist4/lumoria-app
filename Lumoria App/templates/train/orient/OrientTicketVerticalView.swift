@@ -76,7 +76,7 @@ struct OrientTicketVerticalView: View {
     private func citiesColumn(scale s: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 16 * s) {
             cityBlock(
-                label: "DEPARTS",
+                label: "Departs",
                 city: ticket.originCity,
                 station: ticket.originStation,
                 alignment: .leading,
@@ -84,7 +84,7 @@ struct OrientTicketVerticalView: View {
             )
 
             cityBlock(
-                label: "ARRIVES",
+                label: "Arrives",
                 city: ticket.destinationCity,
                 station: ticket.destinationStation,
                 alignment: .trailing,
@@ -171,12 +171,12 @@ struct OrientTicketVerticalView: View {
     private func detailsGrid(scale s: CGFloat) -> some View {
         VStack(spacing: 12 * s) {
             HStack(alignment: .top, spacing: 0) {
-                detailCell(label: "DATE",    value: ticket.date,          scale: s, alignment: .leading)
-                detailCell(label: "DEPARTS", value: ticket.departureTime, scale: s, alignment: .trailing)
+                detailCell(label: "Date",    value: ticket.date,          scale: s, alignment: .leading)
+                detailCell(label: "Departs", value: ticket.departureTime, scale: s, alignment: .trailing)
             }
             HStack(alignment: .top, spacing: 0) {
-                detailCell(label: "CARRIAGE", value: ticket.carriage, scale: s, alignment: .leading)
-                detailCell(label: "SEAT",     value: ticket.seat,     scale: s, alignment: .trailing)
+                detailCell(label: "Carriage", value: ticket.carriage, scale: s, alignment: .leading)
+                detailCell(label: "Seat",     value: ticket.seat,     scale: s, alignment: .trailing)
             }
         }
     }

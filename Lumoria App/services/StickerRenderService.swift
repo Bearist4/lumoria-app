@@ -86,6 +86,15 @@ final class StickerRenderService {
         let filename = "\(ticket.id.uuidString).png"
         let url = dir.appendingPathComponent(filename)
 
+        // Lumiere posters live in `MoviePosterImageCache` — pre-warm
+        // before snapshotting so the sticker has the artwork baked in
+        // (AsyncImage doesn't load inside `ImageRenderer`).
+        if case .lumiere(let payload) = ticket.payload,
+           !payload.posterUrl.isEmpty,
+           let posterUrl = URL(string: payload.posterUrl) {
+            await MoviePosterImageCache.shared.load(from: posterUrl)
+        }
+
         let data = try pngData(for: ticket)
         try data.write(to: url, options: .atomic)
 

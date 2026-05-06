@@ -4,7 +4,6 @@ tags:
   - auth
   - smoke
 ---
-# Existing email morphs to Welcome back (login).
 - launchApp:
     clearState: true
     arguments:
@@ -14,18 +13,21 @@ tags:
     timeout: 10000
 - tapOn: "Get started"
 - extendedWaitUntil:
-    visible: "Continue with email"
+    visible: "Continue with Email"
     timeout: 5000
-- tapOn: "Continue with email"
+- tapOn: "Continue with Email"
 - extendedWaitUntil:
-    visible: "We'll check if you already have an account"
+    visible:
+      id: "auth_email_field"
     timeout: 5000
-- tapOn: "Your email address"
+- tapOn:
+    id: "auth_email_field"
 - inputText: ${TEST_EMAIL}
-- hideKeyboard
-- tapOn: "Continue"
+- tapOn:
+    text: "^Continue$"
 - extendedWaitUntil:
-    visible: "Welcome back"
+    visible:
+      id: "auth_login_password"
     timeout: 10000
 - takeScreenshot: morph_to_login
 
@@ -33,15 +35,19 @@ tags:
 - tapOn:
     id: "chevron.left"
 - extendedWaitUntil:
-    visible: "We'll check if you already have an account"
+    visible:
+      id: "auth_email_field"
     timeout: 5000
 - assertVisible: ${TEST_EMAIL}
+- assertNotVisible: "Forgot password?"
 
-# Brand new email morphs to Let's create your account (signup).
-- tapOn: "Your email address"
+# Brand new email morphs to the Signup step.
+- tapOn:
+    id: "auth_email_field"
+- eraseText: 64
 - inputText: "newuser-${MAESTRO_RUN_ID}@maestro-test.invalid"
-- hideKeyboard
-- tapOn: "Continue"
+- tapOn:
+    text: "^Continue$"
 - extendedWaitUntil:
     visible: "Let's create your account"
     timeout: 10000

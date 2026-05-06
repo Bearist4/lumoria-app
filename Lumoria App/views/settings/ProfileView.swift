@@ -16,6 +16,7 @@ struct ProfileView: View {
     @EnvironmentObject private var memoriesStore: MemoriesStore
     @EnvironmentObject private var profileStore: ProfileStore
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
 
     @State private var showMenu = false
     @State private var showEdit = false
@@ -144,19 +145,16 @@ struct ProfileView: View {
     }
 
     private var infoCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(profileStore.name)
                 .font(.title2.bold())
                 .foregroundStyle(Color.Text.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
 
-            if !profileStore.username.isEmpty {
-                Text("@\(profileStore.username)")
-                    .font(.body)
-                    .foregroundStyle(Color.Text.secondary)
-                    .lineLimit(1)
-            }
+            LumoriaPlanBadge(
+                tier: entitlement.isEarlyAdopter ? .earlyAdopter : .free
+            )
 
             Spacer(minLength: 8)
 
@@ -373,4 +371,8 @@ struct ProfileView: View {
     .environmentObject(TicketsStore())
     .environmentObject(MemoriesStore())
     .environmentObject(ProfileStore())
+    .environment(EntitlementStore.previewInstance(
+        tier: .free,
+        monetisationEnabled: false
+    ))
 }

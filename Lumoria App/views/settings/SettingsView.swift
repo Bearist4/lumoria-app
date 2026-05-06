@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Auth
 import ProgressiveBlurHeader
 import Supabase
 
@@ -17,6 +16,8 @@ enum SettingsDestination: Hashable {
     case map
     case referral
     case plan
+    case manageEarlyAdopter
+    case research
     case helpCenter
     case helpArticle(String)
 }
@@ -24,13 +25,12 @@ enum SettingsDestination: Hashable {
 struct SettingsView: View {
 
     @EnvironmentObject private var profileStore: ProfileStore
-    @EnvironmentObject private var authManager: AuthManager
     @Environment(EntitlementStore.self) private var entitlement
     @Environment(\.brandSlug) private var brandSlug
     @State private var path: [SettingsDestination] = []
     @State private var showLogoutConfirm = false
     @State private var isSigningOut = false
-    @State private var showBetaRedemption = false
+    @State private var showEarlyAdopterPromo = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -52,10 +52,21 @@ struct SettingsView: View {
                         }
                     }
 
-                    if !authManager.isBetaSubscriber {
-                        sectionCard {
-                            settingsRow(icon: "ticket",     title: "Redeem beta code", right: .chevron) {
-                                showBetaRedemption = true
+                    // Early-adopter rows. Pre-claim: a single CTA that
+                    // opens the promo sheet. Post-claim: row swaps to
+                    // "Manage my status" and a sibling "Research" row
+                    // appears so the user can opt out of surveys etc.
+                    sectionCard {
+                        if entitlement.isEarlyAdopter {
+                            settingsRow(icon: "heart",                   title: "Manage my status",       right: .chevron) {
+                                path.append(.manageEarlyAdopter)
+                            }
+                            settingsRow(icon: "doc.text.magnifyingglass", title: "Research",               right: .chevron) {
+                                path.append(.research)
+                            }
+                        } else {
+                            settingsRow(icon: "heart",                   title: "Become an early adopter", right: .chevron) {
+                                showEarlyAdopterPromo = true
                             }
                         }
                     }
@@ -81,6 +92,13 @@ struct SettingsView: View {
             .background(Color.Background.default.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .onAppear { Analytics.track(.settingsOpened) }
+            .task {
+                // Pull a fresh entitlement snapshot so the plan badge
+                // reflects the current `grandfathered_at` even if the
+                // app-launch refresh raced sign-in or the row was
+                // updated server-side mid-session.
+                await entitlement.refresh()
+            }
             .alert(
                 "Log out of Lumoria?",
                 isPresented: $showLogoutConfirm
@@ -93,18 +111,20 @@ struct SettingsView: View {
             } message: {
                 Text("You can log back in anytime with the same email.")
             }
-            .sheet(isPresented: $showBetaRedemption) {
-                BetaCodeRedemptionView()
-                    .environmentObject(authManager)
+            .sheet(isPresented: $showEarlyAdopterPromo) {
+                EarlyAdopterPromoSheet()
+                    .environment(entitlement)
             }
             .navigationDestination(for: SettingsDestination.self) { dest in
                 switch dest {
-                case .profile:       ProfileView()
-                case .notifications: NotificationsView()
-                case .appearance:    AppearanceView()
-                case .map:           MapPreferencesView()
-                case .referral:      InviteView()
-                case .plan:          PlanManagementView()
+                case .profile:            ProfileView()
+                case .notifications:      NotificationsView()
+                case .appearance:         AppearanceView()
+                case .map:                MapPreferencesView()
+                case .referral:           InviteView()
+                case .plan:               PlanManagementView()
+                case .manageEarlyAdopter: ManageEarlyAdopterStatusView()
+                case .research:           ResearchView()
                 case .helpCenter:
                     HelpCenterView { article in
                         path.append(.helpArticle(article.id))
@@ -182,10 +202,16 @@ struct SettingsView: View {
                     .frame(width: 56, height: 56)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(profileName)
-                        .font(.body)
-                        .foregroundStyle(Color.Text.primary)
-                        .lineLimit(1)
+                    HStack(spacing: 8) {
+                        Text(profileName)
+                            .font(.body)
+                            .foregroundStyle(Color.Text.primary)
+                            .lineLimit(1)
+
+                        LumoriaPlanBadge(
+                            tier: entitlement.isEarlyAdopter ? .earlyAdopter : .free
+                        )
+                    }
 
                     Text("Show profile")
                         .font(.subheadline)

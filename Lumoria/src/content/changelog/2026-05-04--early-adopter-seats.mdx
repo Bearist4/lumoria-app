@@ -1,0 +1,8 @@
+export const meta = {
+  version: '1.0.4',
+  date: '2026-05-04',
+  type: 'feature',
+  title: 'Self-service early adopter seats',
+}
+
+Settings now ships a "Become an early adopter" entry that opens a modal pitching the deal — a giant, live count of remaining seats up top (capped at 300), the ask in plain English, and a primary CTA gated behind a destructive-style confirm alert. Confirming hits a new `claim_early_adopter_seat` Supabase RPC that takes the same `lumoria_grandfather_seat` advisory lock as the waitlist auto-stamp, so the two paths share one pool and two simultaneous calls can't both squeak past the ceiling. Under the hood "early adopter" and "grandfathered" are the same column (`profiles.grandfathered_at`); the RPC is just the self-claimed entry point. Once stamped, the plan badge next to the user's name flips from "Free" (grey pill) to "Early adopter" (blue pill), the original Settings row swaps to "Manage my status", and a sibling "Research" entry appears in the same group. The Manage screen re-states the deal, surfaces the user's memories + tickets-this-month as stat cards, and ends with a red "Revoke my status" button — also confirm-gated — that calls the `revoke_early_adopter_seat` RPC and frees the seat for someone else. The matching RPCs ship as `supabase/migrations/20260516000000_early_adopter.sql` and also bump the existing waitlist auto-grandfather cap from 100 → 300; apply via Supabase MCP before the client goes out.

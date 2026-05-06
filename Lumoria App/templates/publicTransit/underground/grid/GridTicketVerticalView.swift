@@ -152,15 +152,15 @@ struct GridTicketVerticalView: View {
             // below. Mirrors the Figma `grid-cols-2 grid-rows-2`.
             VStack(spacing: 16 * s) {
                 HStack(alignment: .top, spacing: 16 * s) {
-                    metaCell(label: "TICKET",   value: ticket.ticketNumber, scale: s)
+                    metaCell(label: "Ticket",   value: ticket.ticketNumber, scale: s)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    metaCell(label: "DATE",     value: ticket.date,         scale: s)
+                    metaCell(label: "Date",     value: ticket.date,         scale: s)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 HStack(alignment: .top, spacing: 16 * s) {
-                    metaCell(label: "ZONE", value: ticket.zones, scale: s)
+                    metaCell(label: "Zone", value: ticket.zones, scale: s)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    metaCell(label: "FARE", value: ticket.fare,  scale: s)
+                    metaCell(label: "Fare", value: ticket.fare,  scale: s)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 

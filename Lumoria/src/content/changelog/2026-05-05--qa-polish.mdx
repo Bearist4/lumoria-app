@@ -1,0 +1,12 @@
+export const meta = {
+  version: '1.0.5',
+  date: '2026-05-05',
+  type: 'fix',
+  title: 'QA polish — beta-code row gone, grouped tickets act as one, plan badge in edit profile',
+}
+
+Three small but visible cleanups land together. The "Redeem beta code" row in Settings is gone — the row, its sheet wiring, and the now-orphaned `AuthManager` injection on `SettingsView` were all unhooked since `BetaCodeRedemptionView` is no longer part of the supported entry path. `import Auth` followed it out.
+
+Multi-leg ticket groups now behave as a single unit when a memory's "Add existing ticket…" picker or a ticket's delete/remove-from-memory paths come into play. `AddExistingTicketSheet` collapses siblings to one representative tile, decorates it with `LumoriaGroupBadge`, and on tap attaches every still-missing leg to the memory in one go — the picker also hides the group entirely once all legs are attached. `TicketDetailView`'s "Delete ticket" alert iterates over `tickets.groupSiblings(of:)` and deletes every leg, and "Remove from memory" mirrors that by toggling membership for any sibling currently in the memory. The single-row analytics events still fire once per action, since the user perceives one logical operation.
+
+`EditProfileView` drops the unused `Username` field and slots a static `LumoriaPlanBadge(tier:)` in its place — driven by the env-injected `EntitlementStore` so it shows "Early adopter" or "Free" without round-tripping. The save method, dirty-state checks, and `sanitizedUsername` helper got pruned along with the field, and the `#Preview` now seeds an `EntitlementStore.previewInstance(...)` so the canvas keeps rendering.

@@ -168,7 +168,7 @@ struct GlowTicketView: View {
         scale s: CGFloat
     ) -> some View {
         VStack(alignment: alignment, spacing: 3 * s) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 6.3 * s, weight: .regular))
                 .tracking(0.88 * s)
                 .foregroundStyle(Color.white.opacity(0.5))
@@ -213,7 +213,7 @@ struct GlowTicketView: View {
                     .frame(width: 1, height: 27 * s)
             }
             VStack(alignment: .leading, spacing: 3 * s) {
-                Text(label.uppercased())
+                Text(label).textCase(.uppercase)
                     .font(.system(size: 6 * s, weight: .regular))
                     .tracking(1.32 * s)
                     .foregroundStyle(Color.white.opacity(0.75))
@@ -271,7 +271,7 @@ struct GlowTicketView: View {
         scale s: CGFloat
     ) -> some View {
         VStack(alignment: .trailing, spacing: 3 * s) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 6 * s, weight: .regular))
                 .tracking(1.32 * s)
                 .foregroundStyle(Color.white.opacity(0.75))

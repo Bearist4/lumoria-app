@@ -1,0 +1,12 @@
+export const meta = {
+  version: '1.0.4',
+  date: '2026-05-05',
+  type: 'fix',
+  title: 'Free-tier cap edge cases — multi-leg trips and the + button',
+}
+
+The + button on All tickets now routes through the same paywall gate as the Memories tab — a free-tier user already at the cap would previously land in an empty funnel and only hit the wall on commit. That gate also handles the obvious case of someone above the cap (which shouldn't happen anymore but still earns a redirect to InviteLanding / NoSlotsSheet rather than a half-broken creation flow).
+
+Lock detection on All tickets is now group-aware. Multi-leg public-transport trips share a `groupId` and read as a single trip in the UI, so splitting "legs 1–2 unlocked, 3–4 locked" looked broken. The new policy buckets tickets by `groupId` (lone tickets become singleton groups), sorts buckets oldest-first by their oldest leg, and includes each bucket whose leg count fits the remaining budget — overshooting groups lock as a unit. The walk is lenient: a too-big group is skipped but smaller later groups can still slot in, so a 9-single + 4-leg + 1-single pile leaves all 10 singles visible and only the 4-leg locked.
+
+The funnel itself now pre-flights the cap by leg count before letting the user onto the success step. `pendingTicketCount` reads from `undergroundForm.legPayloads` for transit templates and falls back to 1 for everything else; if `tickets.count + pendingTicketCount` would exceed the cap, the Next button on the form / style step routes to the paywall instead of advancing. This closes the reported case where 8 tickets + a 4-leg trip silently landed at 12.

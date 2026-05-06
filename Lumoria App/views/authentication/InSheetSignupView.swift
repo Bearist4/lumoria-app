@@ -90,7 +90,8 @@ struct InSheetSignupView: View {
                             label: "Name",
                             placeholder: "Your name",
                             text: $name,
-                            contentType: .name
+                            contentType: .name,
+                            inputIdentifier: "auth_signup_name"
                         )
 
                         LumoriaInputField(
@@ -99,7 +100,8 @@ struct InSheetSignupView: View {
                             text: $email,
                             state: .disabled,
                             contentType: .emailAddress,
-                            keyboardType: .emailAddress
+                            keyboardType: .emailAddress,
+                            inputIdentifier: "auth_signup_email"
                         )
 
                         VStack(alignment: .leading, spacing: 8) {
@@ -108,7 +110,8 @@ struct InSheetSignupView: View {
                                 placeholder: "Your password",
                                 text: $password,
                                 isSecure: true,
-                                contentType: .newPassword
+                                contentType: .newPassword,
+                                inputIdentifier: "auth_signup_password"
                             )
 
                             HStack(spacing: 2) {
@@ -139,7 +142,8 @@ struct InSheetSignupView: View {
                             placeholder: "Confirm your password",
                             text: $confirmPassword,
                             isSecure: true,
-                            contentType: .newPassword
+                            contentType: .newPassword,
+                            inputIdentifier: "auth_signup_confirm_password"
                         )
 
                         if let errorMessage {
@@ -164,6 +168,7 @@ struct InSheetSignupView: View {
             .padding(.top, 24)
             .padding(.bottom, 32)
         }
+        .scrollDismissesKeyboard(.immediately)
         .alert("Check your email", isPresented: $showConfirmation) {
             Button("OK", role: .cancel) { onSuccess() }
         } message: {

@@ -12,7 +12,13 @@ struct NewTicketTemplateStep: View {
 
     @ObservedObject var funnel: NewTicketFunnel
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
     @State private var detailsFor: TicketTemplateKind?
+    /// Drives the early-adopter promo when a free user taps a gated
+    /// template (plane: prism / heritage / terminal). Tap is captured
+    /// before `funnel.template` is set so the picker doesn't latch
+    /// onto a template the user can't actually use.
+    @State private var showEarlyAdopterPromo: Bool = false
 
     var body: some View {
         VStack(spacing: 16) {
@@ -21,7 +27,8 @@ struct NewTicketTemplateStep: View {
                     title: kind.displayName,
                     previewPayload: NewTicketFunnel.previewPayload(for: kind),
                     isSelected: funnel.template == kind,
-                    onTap: { funnel.template = kind },
+                    showsPremiumBadge: kind.isEarlyAdopterOnly,
+                    onTap: { handleTap(kind) },
                     onInfoTap: { detailsFor = kind }
                 )
                 .onboardingAnchor(
@@ -31,6 +38,10 @@ struct NewTicketTemplateStep: View {
         }
         .sheet(item: $detailsFor) { kind in
             TemplateDetailsSheet(kind: kind)
+        }
+        .sheet(isPresented: $showEarlyAdopterPromo) {
+            EarlyAdopterPromoSheet()
+                .environment(entitlement)
         }
         .onChange(of: funnel.template) { _, newValue in
             guard let newValue else { return }
@@ -47,5 +58,16 @@ struct NewTicketTemplateStep: View {
 
     private var availableTemplates: [TicketTemplateKind] {
         funnel.category?.templates ?? []
+    }
+
+    /// Selection gate. Early-adopter templates fire the promo for
+    /// non-adopters; everything else flows straight through to
+    /// `funnel.template = kind` exactly like before.
+    private func handleTap(_ kind: TicketTemplateKind) {
+        if kind.isEarlyAdopterOnly, !entitlement.isEarlyAdopter {
+            showEarlyAdopterPromo = true
+            return
+        }
+        funnel.template = kind
     }
 }

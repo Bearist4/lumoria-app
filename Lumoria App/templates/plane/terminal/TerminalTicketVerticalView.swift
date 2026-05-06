@@ -121,7 +121,7 @@ struct TerminalTicketVerticalView: View {
 
     private func detailCell(label: String, value: String, scale s: CGFloat, showDivider: Bool) -> some View {
         VStack(spacing: 4 * s) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 4.59 * s, weight: .medium))
                 .tracking(1 * s)
                 .foregroundStyle(style.textPrimary)

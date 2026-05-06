@@ -64,14 +64,15 @@ struct TicketDetailView: View {
     @State private var pendingEdit: Ticket? = nil
 
     var body: some View {
-        // Scroll-fading blur so the header dim is invisible until the
-        // user actually scrolls content behind it — avoids a
-        // permanent dark band when opened as a sheet from the map.
-        ScrollFadingBlurHeader(
+        // Match the memory-detail blur: always-on progressive 8pt
+        // blur with a 56pt fade extension and zero white tint, so
+        // the header reads as a soft seam over scrolled content
+        // rather than a tinted bar.
+        StickyBlurHeader(
             maxBlurRadius: 8,
-            fadeExtension: 0,
-            tintOpacityTop: 1.0,
-            tintOpacityMiddle: 1.0
+            fadeExtension: 56,
+            tintOpacityTop: 0,
+            tintOpacityMiddle: 0
         ) {
             header
         } content: {
@@ -105,14 +106,28 @@ struct TicketDetailView: View {
         .sheet(isPresented: $showNewMemory) {
             NewMemoryView { name, color, emoji, startDate, endDate in
                 guard let color else { return }
+                // Memories created from the ticket-detail view auto-
+                // attach the current ticket (and any of its grouped
+                // siblings — e.g. round-trip flight legs) so the user
+                // doesn't have to follow up with a separate "add to
+                // memory" tap.
+                let legIds = ticketsStore.tickets
+                    .groupSiblings(of: currentTicket)
+                    .map(\.id)
                 Task {
-                    await memoriesStore.create(
+                    guard let memory = await memoriesStore.create(
                         name: name,
                         colorFamily: color.family,
                         emoji: emoji,
                         startDate: startDate,
                         endDate: endDate
-                    )
+                    ) else { return }
+                    for ticketId in legIds {
+                        await ticketsStore.toggleMembership(
+                            ticketId: ticketId,
+                            memoryId: memory.id
+                        )
+                    }
                 }
             }
         }
@@ -154,8 +169,11 @@ struct TicketDetailView: View {
             Button("Delete ticket", role: .destructive) {
                 UINotificationFeedbackGenerator().notificationOccurred(.warning)
                 Task {
-                    let wasInMemory = !currentTicket.memoryIds.isEmpty
-                    await ticketsStore.delete(currentTicket)
+                    let group = ticketsStore.tickets.groupSiblings(of: currentTicket)
+                    let wasInMemory = group.contains { !$0.memoryIds.isEmpty }
+                    for leg in group {
+                        await ticketsStore.delete(leg)
+                    }
                     Analytics.track(.ticketDeleted(
                         category: ticket.kind.analyticsCategory,
                         template: ticket.kind.analyticsTemplate,
@@ -179,10 +197,13 @@ struct TicketDetailView: View {
         ) { memory in
             Button("Remove from memory", role: .destructive) {
                 Task {
-                    await ticketsStore.toggleMembership(
-                        ticketId: currentTicket.id,
-                        memoryId: memory.id
-                    )
+                    let group = ticketsStore.tickets.groupSiblings(of: currentTicket)
+                    for leg in group where leg.memoryIds.contains(memory.id) {
+                        await ticketsStore.toggleMembership(
+                            ticketId: leg.id,
+                            memoryId: memory.id
+                        )
+                    }
                     Analytics.track(.ticketRemovedFromMemory(
                         memoryIdHash: AnalyticsIdentity.hashUUID(memory.id)
                     ))
@@ -200,7 +221,7 @@ struct TicketDetailView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack {
+        HStack(spacing: 8) {
             LumoriaIconButton(systemImage: "chevron.left") { dismiss() }
             Spacer()
             LumoriaContextualMenuButton(items: headerMenuItems) {
@@ -219,17 +240,26 @@ struct TicketDetailView: View {
     // MARK: - Header menu
 
     private var headerMenuItems: [LumoriaMenuItem] {
-        [
+        var out: [LumoriaMenuItem] = [
             .init(title: "Edit") {
                 showEdit = true
             },
             .init(title: "Export…") {
                 showExport = true
             },
-            .init(title: "Delete ticket…", kind: .destructive) {
-                showDeleteConfirm = true
-            },
         ]
+        // Hide "Add to a memory…" when there's nothing to add to —
+        // the + icon next to the ellipsis is the create-and-attach
+        // entry point for the empty case.
+        if !memoriesStore.memories.isEmpty {
+            out.append(.init(title: "Add to a memory…") {
+                showAddToMemory = true
+            })
+        }
+        out.append(.init(title: "Delete ticket…", kind: .destructive) {
+            showDeleteConfirm = true
+        })
+        return out
     }
 
     // MARK: - Preview section (single ticket or paged group)
@@ -300,6 +330,7 @@ struct TicketDetailView: View {
         TicketDetailsCard(
             creationDate: Self.formatted(currentTicket.createdAt),
             lastEditDate: Self.formatted(currentTicket.updatedAt),
+            templateName: currentTicket.kind.displayName,
             category: currentTicket.kind.categoryStyle,
             location: currentTicket.originLocation,
             transitRoute: TransitRouteResolver.resolve(for: currentTicket),

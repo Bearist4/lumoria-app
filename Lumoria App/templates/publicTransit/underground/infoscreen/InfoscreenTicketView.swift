@@ -210,8 +210,8 @@ struct InfoscreenTicketView: View {
 
     private var stopsLabel: String {
         ticket.stopsCount == 1
-            ? String(localized: "1 STOP")
-            : String(localized: "\(ticket.stopsCount) STOPS")
+            ? String(localized: "1 STOP", locale: .ticket)
+            : String(localized: "\(ticket.stopsCount) STOPS", locale: .ticket)
     }
 
     private func blade(scale s: CGFloat) -> some View {
@@ -264,22 +264,22 @@ struct InfoscreenTicketView: View {
                 .frame(height: 1)
 
             HStack(alignment: .top, spacing: 16 * s) {
-                metaCell(label: "TICKET",
+                metaCell(label: "Ticket",
                          value: ticket.ticketNumber,
                          scale: s)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                metaCell(label: "DATE",
+                metaCell(label: "Date",
                          value: ticket.date,
                          scale: s)
                     .frame(width: 72 * s, alignment: .leading)
 
-                metaCell(label: "ZONE",
+                metaCell(label: "Zone",
                          value: ticket.zones,
                          scale: s)
                     .frame(width: 60 * s, alignment: .leading)
 
-                metaCell(label: "FARE",
+                metaCell(label: "Fare",
                          value: ticket.fare,
                          valueColor: amber,
                          scale: s)

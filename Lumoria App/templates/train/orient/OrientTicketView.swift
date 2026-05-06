@@ -94,7 +94,7 @@ struct OrientTicketView: View {
     private func journeyRow(scale s: CGFloat) -> some View {
         HStack(alignment: .top, spacing: 0) {
             cityBlock(
-                label: "DEPARTS",
+                label: "Departs",
                 city: ticket.originCity,
                 station: ticket.originStation,
                 alignment: .leading,
@@ -102,7 +102,7 @@ struct OrientTicketView: View {
             )
 
             cityBlock(
-                label: "ARRIVES",
+                label: "Arrives",
                 city: ticket.destinationCity,
                 station: ticket.destinationStation,
                 alignment: .trailing,
@@ -170,10 +170,10 @@ struct OrientTicketView: View {
 
     private func detailsBar(scale s: CGFloat) -> some View {
         HStack(alignment: .center, spacing: 0) {
-            detailCell(label: "DATE",     value: ticket.date,          scale: s)
-            detailCell(label: "DEPARTS",  value: ticket.departureTime, scale: s)
-            detailCell(label: "CARRIAGE", value: ticket.carriage,      scale: s)
-            detailCell(label: "SEAT",     value: ticket.seat,          scale: s)
+            detailCell(label: "Date",     value: ticket.date,          scale: s)
+            detailCell(label: "Departs",  value: ticket.departureTime, scale: s)
+            detailCell(label: "Carriage", value: ticket.carriage,      scale: s)
+            detailCell(label: "Seat",     value: ticket.seat,          scale: s)
         }
         .padding(.horizontal, 28 * s)
         .padding(.vertical, 12 * s)

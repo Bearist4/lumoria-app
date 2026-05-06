@@ -208,8 +208,19 @@ extension PushNotificationService: UNUserNotificationCenterDelegate {
             default:           return .news
             }
         }()
+        let isLink = (kindRaw == "link")
         Task { @MainActor in
             Analytics.track(.pushReceived(notificationKind: kindProp, inForeground: true))
+            // Live trigger for the inviter's reward sheet — fires
+            // before the banner so by the time the user dismisses
+            // the banner, evaluate() has settled and the sheet is
+            // ready to present.
+            if isLink {
+                NotificationCenter.default.post(
+                    name: .lumoriaInviteRewardSignal,
+                    object: nil
+                )
+            }
         }
         completionHandler([.banner, .sound, .badge])
     }
@@ -234,9 +245,18 @@ extension PushNotificationService: UNUserNotificationCenterDelegate {
         }()
         let target = userInfo["deep_link"] as? String
             ?? userInfo["memory_id"] as? String
+        let isLink = (kindRaw == "link")
         Task { @MainActor in
             Analytics.track(.pushOpened(notificationKind: kindProp, deepLinkTarget: target))
             PushNotificationService.shared.ingestTappedPayload(userInfo)
+            // Same live trigger on tap — covers the cold-launch /
+            // background-tap path that doesn't go through willPresent.
+            if isLink {
+                NotificationCenter.default.post(
+                    name: .lumoriaInviteRewardSignal,
+                    object: nil
+                )
+            }
             completionHandler()
         }
     }

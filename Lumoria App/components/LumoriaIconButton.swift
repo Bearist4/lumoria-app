@@ -47,6 +47,10 @@ enum LumoriaIconButtonPosition {
     case onDark
     /// Affirmative action button — solid green fill, white icon.
     case success
+    /// Destructive action button — solid red fill, white icon. Reuses
+    /// `Button.Danger.*` tokens so the colour stays in lockstep with
+    /// the destructive primary button.
+    case danger
 }
 
 // MARK: - Internal button style
@@ -87,6 +91,10 @@ private struct IconButtonStyle: ButtonStyle {
             return isPressed
                 ? Color.IconButton.Success.Background.pressed
                 : Color.IconButton.Success.Background.default
+        case .danger:
+            return isPressed
+                ? Color.Button.Danger.Background.pressed
+                : Color.Button.Danger.Background.default
         }
     }
 
@@ -96,6 +104,7 @@ private struct IconButtonStyle: ButtonStyle {
         case .onSurface:    return Color.IconButton.OnSurface.Content.default
         case .onDark:       return Color.IconButton.OnDark.Content.default
         case .success:      return Color.IconButton.Success.Content.default
+        case .danger:       return Color.Button.Danger.Label.default
         }
     }
 }
@@ -248,6 +257,7 @@ struct LumoriaIconButton: View {
         case .onSurface:    return Color.IconButton.OnSurface.Background.default
         case .onDark:       return Color.IconButton.OnDark.Background.default
         case .success:      return Color.IconButton.Success.Background.default
+        case .danger:       return Color.Button.Danger.Background.default
         }
     }
 
@@ -258,6 +268,7 @@ struct LumoriaIconButton: View {
         case .onSurface:    return Color.IconButton.OnSurface.Content.default
         case .onDark:       return Color.IconButton.OnDark.Content.default
         case .success:      return Color.IconButton.Success.Content.default
+        case .danger:       return Color.Button.Danger.Label.default
         }
     }
 

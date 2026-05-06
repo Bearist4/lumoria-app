@@ -34,10 +34,17 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
     case sign
     case infoscreen
     case grid
+    /// Movie / cinema stub. Movie title drives an OMDb lookup that
+    /// auto-fills the poster image and director name; everything else
+    /// is collected by the form.
+    case lumiere
 
     var id: String { rawValue }
 
-    /// Human-readable category label for the detail card.
+    /// Brand template name shown on the picker tile and detail card.
+    /// Unlocalized on purpose — template names are product nouns, not
+    /// translatable labels, and they keep a single recognizable form
+    /// across every locale.
     var displayName: String {
         switch self {
         case .afterglow:   return "Afterglow"
@@ -56,6 +63,7 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .sign:        return "Sign"
         case .infoscreen:  return "Infoscreen"
         case .grid:        return "Grid"
+        case .lumiere:     return "Lumiere"
         }
     }
 
@@ -67,6 +75,19 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
         case .concert:                                              return String(localized: "Concert ticket")
         case .eurovision:                                           return String(localized: "Event ticket")
         case .underground, .sign, .infoscreen, .grid:           return String(localized: "Public transport ticket")
+        case .lumiere:                                              return String(localized: "Movie ticket")
+        }
+    }
+
+    /// True for templates that sit behind the early-adopter gate.
+    /// Free users see them in the picker (with the premium badge) but
+    /// tapping presents the EarlyAdopterPromoSheet instead of
+    /// advancing the funnel. Currently scoped to plane templates —
+    /// other categories stay open until their second wave is ready.
+    var isEarlyAdopterOnly: Bool {
+        switch self {
+        case .prism, .heritage, .terminal: return true
+        default:                            return false
         }
     }
 
@@ -123,6 +144,13 @@ enum TicketTemplateKind: String, Codable, CaseIterable, Identifiable {
                                                              label: "Line (auto-detected)"),
                 .init(systemImage: "calendar",             label: "Date of travel"),
                 .init(systemImage: "ticket.fill",          label: "Ticket number, zones, fare"),
+            ]
+        case .lumiere:
+            return [
+                .init(systemImage: "film.fill",            label: "Movie title"),
+                .init(systemImage: "mappin.and.ellipse",   label: "Cinema location"),
+                .init(systemImage: "calendar.badge.clock", label: "Date & screening time"),
+                .init(systemImage: "ticket.fill",          label: "Room, row & seat"),
             ]
         default:
             var items: [TemplateRequirement] = [
@@ -253,6 +281,7 @@ enum TicketPayload: Encodable {
     case sign(UndergroundTicket)
     case infoscreen(UndergroundTicket)
     case grid(UndergroundTicket)
+    case lumiere(LumiereTicket)
 
     func encode(to encoder: Encoder) throws {
         switch self {
@@ -272,6 +301,7 @@ enum TicketPayload: Encodable {
         case .sign(let v):        try v.encode(to: encoder)
         case .infoscreen(let v):  try v.encode(to: encoder)
         case .grid(let v):        try v.encode(to: encoder)
+        case .lumiere(let v):     try v.encode(to: encoder)
         }
     }
 
@@ -293,6 +323,7 @@ enum TicketPayload: Encodable {
         case .sign:        return .sign
         case .infoscreen:  return .infoscreen
         case .grid:        return .grid
+        case .lumiere:     return .lumiere
         }
     }
 }

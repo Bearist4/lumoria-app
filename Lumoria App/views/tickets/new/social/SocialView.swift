@@ -90,6 +90,13 @@ struct SocialView: View {
         Analytics.track(.exportDestinationSelected(destination: format.analyticsDestination))
 
         let start = Date()
+        // Lumiere posters live in `MoviePosterImageCache` — pre-warm
+        // before the snapshot so the rendered image isn't blank.
+        if case .lumiere(let payload) = ticket.payload,
+           !payload.posterUrl.isEmpty,
+           let url = URL(string: payload.posterUrl) {
+            await MoviePosterImageCache.shared.load(from: url)
+        }
         let renderer = ImageRenderer(content: renderView(for: format))
         renderer.scale = UIScreen.main.scale
         renderer.isOpaque = true

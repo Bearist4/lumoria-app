@@ -87,7 +87,7 @@ enum TicketCategoryStyle: String, CaseIterable, Identifiable {
         case .museum:        return String(localized: "Museum")
         case .sport:         return String(localized: "Sport")
         case .garden:        return String(localized: "Parks & Gardens")
-        case .publicTransit: return String(localized: "Public Transport")
+        case .publicTransit: return String(localized: "Subway")
         }
     }
 
@@ -96,7 +96,7 @@ enum TicketCategoryStyle: String, CaseIterable, Identifiable {
     /// falls back to `displayName`.
     var pillLabel: String {
         switch self {
-        case .publicTransit: return String(localized: "Transport")
+        case .publicTransit: return String(localized: "Subway")
         case .food:          return String(localized: "Food")
         case .movie:         return String(localized: "Movie")
         case .garden:        return String(localized: "Park")
@@ -121,6 +121,8 @@ extension TicketTemplateKind {
             return .event
         case .underground, .sign, .infoscreen, .grid:
             return .publicTransit
+        case .lumiere:
+            return .movie
         }
     }
 }

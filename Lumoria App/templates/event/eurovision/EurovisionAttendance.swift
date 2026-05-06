@@ -20,8 +20,8 @@ enum EurovisionAttendance: String, CaseIterable, Codable, Hashable, Identifiable
     /// Title shown on the segmented control.
     var displayName: String {
         switch self {
-        case .inPerson: return String(localized: "In person")
-        case .atHome:   return String(localized: "At home")
+        case .inPerson: return String(localized: "In person", locale: .ticket)
+        case .atHome:   return String(localized: "At home", locale: .ticket)
         }
     }
 }

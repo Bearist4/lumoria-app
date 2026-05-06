@@ -189,6 +189,7 @@ enum TicketStyleCatalog {
         case .sign:        return sign
         case .infoscreen:  return infoscreen
         case .grid:        return grid
+        case .lumiere:     return lumiere
         }
     }
 
@@ -267,7 +268,7 @@ enum TicketStyleCatalog {
     /// label. Two-zone swatch: container = pale ticket bg, tab = accent.
     private static func studioLight(
         id: String,
-        label: String,
+        label: LocalizedStringResource,
         asset: String,
         base: Color,
         accent: Color,
@@ -275,7 +276,7 @@ enum TicketStyleCatalog {
     ) -> TicketStyleVariant {
         TicketStyleVariant(
             id: id,
-            label: label,
+            label: String(localized: label.withTicketLocale),
             backgroundAsset: asset,
             textPrimary: .black,
             textSecondary: .black.opacity(0.4),
@@ -302,7 +303,7 @@ enum TicketStyleCatalog {
     /// one; both are legitimate inverses within the dark family.
     private static func studioDark(
         id: String,
-        label: String,
+        label: LocalizedStringResource,
         asset: String,
         base: Color,
         accent: Color,
@@ -313,7 +314,7 @@ enum TicketStyleCatalog {
     ) -> TicketStyleVariant {
         TicketStyleVariant(
             id: id,
-            label: label,
+            label: String(localized: label.withTicketLocale),
             backgroundAsset: asset,
             textPrimary: .white,
             textSecondary: .white.opacity(0.4),
@@ -361,11 +362,11 @@ enum TicketStyleCatalog {
     /// passed in as hex strings; everything else (text, divider,
     /// footer) is the same dark-on-deep palette across all five.
     private static func afterglowVariant(
-        id: String, label: String, start: String, end: String
+        id: String, label: LocalizedStringResource, start: String, end: String
     ) -> TicketStyleVariant {
         TicketStyleVariant(
             id: id,
-            label: label,
+            label: String(localized: label.withTicketLocale),
             backgroundAsset: nil,
             backgroundColor: Color(hex: start),
             textPrimary: .white,
@@ -412,12 +413,12 @@ enum TicketStyleCatalog {
     /// 700 ramp; paper is the bg colour visible through the plane's
     /// perforations.
     private static func heritageVariant(
-        id: String, label: String,
+        id: String, label: LocalizedStringResource,
         accent: String, paper: String, swatchBg: String
     ) -> TicketStyleVariant {
         TicketStyleVariant(
             id: id,
-            label: label,
+            label: String(localized: label.withTicketLocale),
             backgroundAsset: nil,
             backgroundColor: Color(hex: paper),
             textPrimary: .black,
@@ -472,13 +473,13 @@ enum TicketStyleCatalog {
     /// Builder for a Terminal variant. `tints` is a 5-tuple of hex
     /// strings driving the five blob slots in order.
     private static func terminalVariant(
-        id: String, label: String,
+        id: String, label: LocalizedStringResource,
         paper: String,
         tints: (String, String, String, String, String)
     ) -> TicketStyleVariant {
         TicketStyleVariant(
             id: id,
-            label: label,
+            label: String(localized: label.withTicketLocale),
             backgroundAsset: nil,
             backgroundColor: Color(hex: paper),
             textPrimary: .white,
@@ -540,13 +541,13 @@ enum TicketStyleCatalog {
     /// three blob slots; `text` flips primary copy black/white per
     /// variant (Cosmic uses dark paper, so text needs to invert).
     private static func prismVariant(
-        id: String, label: String,
+        id: String, label: LocalizedStringResource,
         paper: String, text: Color,
         tints: (String, String, String)
     ) -> TicketStyleVariant {
         TicketStyleVariant(
             id: id,
-            label: label,
+            label: String(localized: label.withTicketLocale),
             backgroundAsset: "prism-bg",
             backgroundColor: Color(hex: paper),
             textPrimary: text,
@@ -848,6 +849,83 @@ enum TicketStyleCatalog {
         ),
     ]
 
+    private static let lumiere: [TicketStyleVariant] = [
+        // Black cinema stub — the poster carries the colour, chrome
+        // stays out of the way. Default ships with a warm amber accent
+        // so the small-caps labels (date / room / row / seat / cinema)
+        // read like a vintage marquee.
+        lumiereVariant(
+            id: "lumiere.default", label: "Default",
+            background: "000000", text: "FFFFFF", accent: "E8A020"
+        ),
+        // Burgundy-and-gold opera-house feel — deep wine bg, cream
+        // body copy, brushed-gold accents.
+        lumiereVariant(
+            id: "lumiere.velvet", label: "Velvet",
+            background: "3A0E16", text: "F5E6C8", accent: "D4AF37"
+        ),
+        // Midnight-blue arthouse — navy paper, pale-yellow body and a
+        // cool icy accent for the labels.
+        lumiereVariant(
+            id: "lumiere.noir", label: "Noir",
+            background: "0A1428", text: "F5DEB3", accent: "9CC4E4"
+        ),
+        // Cream paper ticket — vintage box-office stub. Dark coffee
+        // body copy with a vermilion accent for the labels.
+        lumiereVariant(
+            id: "lumiere.reel", label: "Reel",
+            background: "FFF6E5", text: "2A1810", accent: "C73E1D"
+        ),
+        // Off-white indie / nouvelle-vague — soft warm paper, near-
+        // black body, mustard accent for a modern editorial feel.
+        lumiereVariant(
+            id: "lumiere.matinee", label: "Matinee",
+            background: "F1EBE0", text: "1B1B1B", accent: "C28B00"
+        ),
+    ]
+
+    /// Builder for a Lumiere variant. Background flips swatch + footer
+    /// chrome between light and dark via the resolved text colour, so
+    /// callers only pass the three knobs the user actually controls.
+    private static func lumiereVariant(
+        id: String,
+        label: LocalizedStringResource,
+        background: String,
+        text: String,
+        accent: String
+    ) -> TicketStyleVariant {
+        let bg = Color(hex: background)
+        let textColor = Color(hex: text)
+        let accentColor = Color(hex: accent)
+        // Decide light/dark from the text colour the variant ships with
+        // — light text means the bg is dark, so the footer flips to a
+        // pale chip and vice-versa.
+        let isDarkBackground = (text.uppercased() != "1B1B1B"
+                                && text.uppercased() != "2A1810")
+        return TicketStyleVariant(
+            id: id,
+            label: String(localized: label.withTicketLocale),
+            backgroundAsset: nil,
+            backgroundColor: bg,
+            textPrimary: textColor,
+            textSecondary: textColor.opacity(0.5),
+            accent: accentColor,
+            onAccent: isDarkBackground ? .black : .white,
+            divider: textColor.opacity(0.15),
+            footerFill: isDarkBackground ? .black : .white,
+            footerText: isDarkBackground ? .white : .black,
+            footerScheme: isDarkBackground ? .dark : .light,
+            swatch: StyleSwatchPalette(
+                surface: accentColor,
+                accent: accentColor,
+                background: bg,
+                textOnSurface: isDarkBackground ? .black : .white,
+                textOnBackground: textColor,
+                layout: .twoZone
+            )
+        )
+    }
+
     private static let express: [TicketStyleVariant] = [
         // Shinkansen-style red border on white. The Express view paints
         // the red bands in code, so no background asset is needed.
@@ -956,6 +1034,13 @@ extension TicketTemplateKind {
             // and the text both follow `background` + `textPrimary`.
             return [.background, .textPrimary,
                     .tint1, .tint2, .tint3, .tint4, .tint5]
+        case .lumiere:
+            // Lumiere — black movie stub with amber labels. Three knobs:
+            // background (the surface behind the poster), accent (the
+            // small-caps detail labels), and primary text (movie title +
+            // value cells). Director text is derived from `textPrimary`
+            // at 0.5 opacity so the secondary line tracks recolours.
+            return [.background, .accent, .textPrimary]
         default:
             return []
         }

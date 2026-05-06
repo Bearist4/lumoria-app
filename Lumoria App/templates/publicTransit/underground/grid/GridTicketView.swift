@@ -163,11 +163,11 @@ struct GridTicketView: View {
 
     private func metaRow(scale s: CGFloat) -> some View {
         HStack(alignment: .top, spacing: 50 * s) {
-            metaCell(label: "TICKET",   value: ticket.ticketNumber, scale: s)
+            metaCell(label: "Ticket",   value: ticket.ticketNumber, scale: s)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            metaCell(label: "DATE",     value: ticket.date,         scale: s)
-            metaCell(label: "ZONE",     value: ticket.zones,        scale: s)
-            metaCell(label: "FARE",     value: ticket.fare,         scale: s)
+            metaCell(label: "Date",     value: ticket.date,         scale: s)
+            metaCell(label: "Zone",     value: ticket.zones,        scale: s)
+            metaCell(label: "Fare",     value: ticket.fare,         scale: s)
         }
     }
 

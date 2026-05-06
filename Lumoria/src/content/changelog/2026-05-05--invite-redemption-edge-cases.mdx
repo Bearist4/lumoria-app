@@ -1,0 +1,12 @@
+export const meta = {
+  version: '1.0.4',
+  date: '2026-05-05',
+  type: 'fix',
+  title: 'Invite redemption edge cases — claim-after-tickets and live present',
+}
+
+Three holes in the invite-reward path get patched. First, the `fire_link_on_first_ticket` trigger only fired on the user's *first* ticket, which meant an invitee who already had tickets when they tapped the invite link would never see their reward — the redemption condition could never satisfy on their account. The new `20260518000000_redeem_on_claim.sql` migration extracts the redemption work into an idempotent `fire_invite_redemption(invite_id)` helper, drops the "first ticket" gate from the existing trigger (the helper short-circuits on already-redeemed invites so re-firing is a no-op), and adds a sibling `fire_link_on_invite_claim` trigger on `UPDATE OF invites.claimed_by` — when a user's claim lands and they already have tickets, it redeems on the spot instead of waiting on a ticket-side event that will never come.
+
+Second, the reward sheets now present without an app restart. A new `Notification.Name.lumoriaInviteRewardSignal` is posted from two spots: `InvitesStore.claim` after the RPC succeeds (covers the "already had tickets" invitee), and `PushNotificationService` whenever a `kind = "link"` push lands in foreground or on tap (covers the inviter side). `ContentView` listens via `.onReceive` and re-runs `InviteRewardCoordinator.evaluate()`, so the moment the server says there's a reward to claim, the sheet pops.
+
+Third, the inviter push that the `notifications_fanout_push` trigger has been firing all along now actually does something on tap besides bumping analytics. The same signal-and-evaluate path catches it, and the existing `entitlement.refresh()` call inside the reward sheet's `confirm()` already keeps the cap bonus in sync. Apply the new migration via Supabase MCP before the client goes out — without it the "already had tickets" path stays broken.

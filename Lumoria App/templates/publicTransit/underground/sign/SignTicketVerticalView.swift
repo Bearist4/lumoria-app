@@ -48,12 +48,12 @@ struct SignTicketVerticalView: View {
                 // stretch the grid into the main body.
                 VStack(spacing: 8 * s) {
                     HStack(spacing: 8 * s) {
-                        stubCell(label: "TICKET", value: ticket.ticketNumber, scale: s)
-                        stubCell(label: "FARE",   value: ticket.fare,         scale: s)
+                        stubCell(label: "Ticket", value: ticket.ticketNumber, scale: s)
+                        stubCell(label: "Fare",   value: ticket.fare,         scale: s)
                     }
                     .frame(height: 40 * s)
                     HStack(spacing: 8 * s) {
-                        stubCell(label: "ZONES", value: ticket.zones, scale: s)
+                        stubCell(label: "Zones", value: ticket.zones, scale: s)
                         Text("ONE WAY")
                             .font(.system(size: 14 * s, weight: .black))
                             .tracking(2.52 * s)
@@ -244,8 +244,8 @@ struct SignTicketVerticalView: View {
 
     private var stopsLabel: String {
         ticket.stopsCount == 1
-            ? String(localized: "1 STOP")
-            : String(localized: "\(ticket.stopsCount) STOPS")
+            ? String(localized: "1 STOP", locale: .ticket)
+            : String(localized: "\(ticket.stopsCount) STOPS", locale: .ticket)
     }
 
     private func stubCell(

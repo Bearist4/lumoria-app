@@ -35,7 +35,7 @@ struct TemplateDetailTile: View {
                 .foregroundStyle(Color.Text.primary)
                 .frame(width: 32, height: 32)
 
-            Text(label)
+            Text(LocalizedStringKey(label))
                 .font(.subheadline)
                 .foregroundStyle(Color.Text.primary)
                 .multilineTextAlignment(.center)

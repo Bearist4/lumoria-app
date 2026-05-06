@@ -1,12 +1,34 @@
 appId: bearista.Lumoria-App
-name: Tap Sign up opens sheet
+name: S02 · Signup sheet opens via email morph
 tags:
   - smoke
+  - auth
 ---
 - launchApp:
     clearState: true
     arguments:
       uitest: "YES"
-- assertVisible: "Sign up"
-- tapOn: "Sign up"
+- extendedWaitUntil:
+    visible: "Tickets that last forever"
+    timeout: 10000
+- tapOn: "Get started"
+- extendedWaitUntil:
+    visible: "Continue with Email"
+    timeout: 5000
+- tapOn: "Continue with Email"
+- extendedWaitUntil:
+    visible:
+      id: "auth_email_field"
+    timeout: 5000
+- tapOn:
+    id: "auth_email_field"
+- inputText: "newuser-${MAESTRO_RUN_ID}@maestro-test.invalid"
+- tapOn:
+    text: "^Continue$"
+- extendedWaitUntil:
+    visible: "Let's create your account"
+    timeout: 10000
+- assertVisible:
+    id: "auth_signup_name"
+- assertVisible: "Create account"
 - takeScreenshot: signup_sheet

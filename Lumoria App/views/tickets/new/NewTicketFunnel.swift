@@ -37,23 +37,26 @@ enum TicketCategory: String, CaseIterable, Identifiable, Codable {
         case .museum:        return String(localized: "Museum")
         case .sport:         return String(localized: "Sport")
         case .garden:        return String(localized: "Parks & Gardens")
-        case .publicTransit: return String(localized: "Public Transport")
+        case .publicTransit: return String(localized: "Subway")
         }
     }
 
-    /// Named asset under `Assets.xcassets/misc`.
-    var imageName: String {
+    /// Glyph rendered above the title on the category-picker tile.
+    /// Emoji is intentional — visual variety with zero asset cost,
+    /// and it keeps the tile readable at every Dynamic Type size
+    /// without redrawing the bundled illustrations.
+    var emoji: String {
         switch self {
-        case .plane:         return "plane"
-        case .train:         return "train"
-        case .concert:       return "concert_stage"
-        case .event:         return "concert_stage"
-        case .food:          return "concert_stage"
-        case .movie:         return "concert_stage"
-        case .museum:        return "concert_stage"
-        case .sport:         return "concert_stage"
-        case .garden:        return "garden"
-        case .publicTransit: return "tram_stop"
+        case .plane:         return "✈️"
+        case .train:         return "🚆"
+        case .concert:       return "🎶"
+        case .event:         return "🎭"
+        case .food:          return "🍴"
+        case .movie:         return "🍿"
+        case .museum:        return "🖼️"
+        case .sport:         return "🏅"
+        case .garden:        return "🌳"
+        case .publicTransit: return "🚇"
         }
     }
 
@@ -72,6 +75,7 @@ enum TicketCategory: String, CaseIterable, Identifiable, Codable {
         case .train:         return [.express, .orient, .night, .post, .glow]
         case .concert:       return [.concert]
         case .event:         return [.eurovision]
+        case .movie:         return [.lumiere]
         case .publicTransit: return [.underground, .sign, .infoscreen, .grid]
         default:             return []
         }
@@ -372,6 +376,45 @@ struct EurovisionFormInput: Codable {
     var isValid: Bool { country != nil }
 }
 
+// MARK: - Movie form input
+
+/// Form input for the Lumiere (movie) template. Single-venue layout,
+/// so only the cinema slot is forwarded to the ticket's `originLocation`.
+/// `posterUrl` and `director` are populated asynchronously from OMDb on
+/// title commit; both stay editable.
+struct MovieFormInput: Codable {
+    var movieTitle: String = ""
+    var director: String = ""
+    var cinemaLocation: String = ""
+    var date: Date = Date()
+    var time: Date = Date()
+    /// Tracks whether the user has actually picked the matching slot.
+    /// Defaults false so the form's collapsibles stay "incomplete"
+    /// until touched.
+    var dateIsSet: Bool = false
+    var timeIsSet: Bool = false
+    var roomNumber: String = ""
+    var row: String = ""
+    var seat: String = ""
+    var posterUrl: String = ""
+
+    /// Single-venue location, mirrors `eventForm.venueLocation` —
+    /// forwarded to the ticket's `originLocation` so movies appear
+    /// on the memory map.
+    var cinemaVenueLocation: TicketLocation? = nil
+
+    /// Lumiere minimum: movie title + cinema name. Date/time default
+    /// to now and the rest of the seat metadata is optional — the
+    /// form's "auto-fill" pass fills room / row / seat with sensible
+    /// placeholders so the rendered ticket never has empty cells.
+    var isValid: Bool {
+        let trim: (String) -> String = { $0.trimmingCharacters(in: .whitespaces) }
+        let hasCinema = !trim(cinemaLocation).isEmpty
+                        || cinemaVenueLocation != nil
+        return !trim(movieTitle).isEmpty && hasCinema
+    }
+}
+
 // MARK: - Underground form
 
 /// Form input for the Underground (subway / metro) template. Two
@@ -621,6 +664,7 @@ final class NewTicketFunnel: ObservableObject {
     @Published var eventForm: EventFormInput = EventFormInput()
     @Published var eurovisionForm: EurovisionFormInput = EurovisionFormInput()
     @Published var undergroundForm: UndergroundFormInput = UndergroundFormInput()
+    @Published var movieForm: MovieFormInput = MovieFormInput()
     /// Identifier of the selected style variant for the chosen template.
     /// Resolved against `template.styles`; nil before a template is picked.
     /// Setting this clears `colorOverrides` so themes act as full presets.
@@ -638,6 +682,28 @@ final class NewTicketFunnel: ObservableObject {
     /// Internal latch used by `prefill(from:)` so hydrating a saved
     /// `selectedStyleId` doesn't immediately wipe the saved overrides.
     private var suppressColorOverrideReset: Bool = false
+
+    /// True when the user has changed the style step away from the
+    /// template's default — either by picking a non-default theme or by
+    /// recolouring at least one element. Drives the bottom-bar reset
+    /// affordance so it only appears when there's something to undo.
+    var isStyleModifiedFromDefault: Bool {
+        guard let template else { return false }
+        let defaultId = template.defaultStyle.id
+        let effectiveId = selectedStyleId ?? defaultId
+        return effectiveId != defaultId || !colorOverrides.isEmpty
+    }
+
+    /// Reverts the style step to the template's default — clears the
+    /// selected theme back to nil (so `isSelected` falls through to the
+    /// default variant) and drops every per-element override. Sets both
+    /// fields explicitly because the `selectedStyleId` `didSet` only
+    /// clears overrides when the value actually changes (no-op when
+    /// already nil).
+    func resetStyleToDefault() {
+        selectedStyleId = nil
+        colorOverrides = [:]
+    }
 
     // MARK: Import
 
@@ -721,6 +787,7 @@ final class NewTicketFunnel: ObservableObject {
             case .post, .glow:  return trainForm.isPostGlowValid
             case .concert:      return eventForm.isConcertValid
             case .eurovision:   return eurovisionForm.isValid
+            case .lumiere:      return movieForm.isValid
             case .underground, .sign, .infoscreen, .grid:
                 return undergroundForm.isValid
             default:            return form.isMinimallyValid
@@ -878,6 +945,20 @@ final class NewTicketFunnel: ObservableObject {
                     for: undergroundForm.selectedCity
                 )
                 autoFilledFields.append(String(localized: "Fare"))
+            }
+
+        case .lumiere:
+            if trim(movieForm.roomNumber).isEmpty {
+                movieForm.roomNumber = "\(Int.random(in: 1...12))"
+                autoFilledFields.append(String(localized: "Room"))
+            }
+            if trim(movieForm.row).isEmpty {
+                movieForm.row = "ABCDEFGHJKLM".randomElement().map { String($0) } ?? "K"
+                autoFilledFields.append(String(localized: "Row"))
+            }
+            if trim(movieForm.seat).isEmpty {
+                movieForm.seat = "\(Int.random(in: 1...30))"
+                autoFilledFields.append(String(localized: "Seat"))
             }
         }
     }
@@ -1408,6 +1489,19 @@ final class NewTicketFunnel: ObservableObject {
             return undergroundForm.legPayloads.first.map(TicketPayload.infoscreen)
         case .grid:
             return undergroundForm.legPayloads.first.map(TicketPayload.grid)
+        case .lumiere:
+            let m = movieForm
+            return .lumiere(LumiereTicket(
+                movieTitle: m.movieTitle,
+                director: m.director,
+                cinemaLocation: m.cinemaVenueLocation?.name ?? m.cinemaLocation,
+                date: Self.longDate(m.date),
+                time: Self.time(m.time),
+                roomNumber: m.roomNumber,
+                row: m.row,
+                seat: m.seat,
+                posterUrl: m.posterUrl
+            ))
         }
     }
 
@@ -1438,6 +1532,23 @@ final class NewTicketFunnel: ObservableObject {
         } else {
             await createNew(using: store)
         }
+    }
+
+    /// How many ticket rows the current funnel state will persist on
+    /// commit. Multi-leg public-transport trips persist one row per
+    /// planned leg; everything else is a single ticket. Used by
+    /// callers (e.g. `NewTicketFunnelView`'s Next button) to pre-flight
+    /// the free-tier cap before the user reaches the success step and
+    /// the writes start firing.
+    var pendingTicketCount: Int {
+        let isTransit = template == .underground
+            || template == .sign
+            || template == .infoscreen
+            || template == .grid
+        if isTransit {
+            return max(undergroundForm.legPayloads.count, 1)
+        }
+        return 1
     }
 
     private func createNew(using store: TicketsStore) async {
@@ -1609,6 +1720,8 @@ final class NewTicketFunnel: ObservableObject {
             return EurovisionFixtures.date
         case .underground, .sign, .infoscreen, .grid:
             return undergroundForm.date
+        case .lumiere:
+            return movieForm.date
         case .afterglow, .studio, .heritage, .terminal, .prism:
             return form.departureDate
         case .none:
@@ -1643,6 +1756,8 @@ final class NewTicketFunnel: ObservableObject {
             // inside `legPayloads`. The "primary" leg (first) is what
             // the top-level ticket represents.
             return (undergroundForm.originStation, undergroundForm.destinationStation)
+        case .lumiere:
+            return (movieForm.cinemaVenueLocation, nil)
         default:
             return (form.originAirport, form.destinationAirport)
         }
@@ -1672,6 +1787,7 @@ final class NewTicketFunnel: ObservableObject {
         trainForm = TrainFormInput()
         eventForm = EventFormInput()
         eurovisionForm = EurovisionFormInput()
+        movieForm = MovieFormInput()
 
         switch ticket.payload {
         case .afterglow(let t):
@@ -1885,6 +2001,20 @@ final class NewTicketFunnel: ObservableObject {
             eurovisionForm.seat = t.seat
             eurovisionForm.watchLocation = t.watchLocation
             eurovisionForm.ticketNumber = t.ticketNumber
+
+        case .lumiere(let t):
+            movieForm.movieTitle = t.movieTitle
+            movieForm.director = t.director
+            movieForm.cinemaLocation = t.cinemaLocation
+            movieForm.date = Self.longDateFormatter.date(from: t.date) ?? Date()
+            movieForm.dateIsSet = true
+            movieForm.time = Self.timeFormatter.date(from: t.time) ?? Date()
+            movieForm.timeIsSet = true
+            movieForm.roomNumber = t.roomNumber
+            movieForm.row = t.row
+            movieForm.seat = t.seat
+            movieForm.posterUrl = t.posterUrl
+            movieForm.cinemaVenueLocation = ticket.originLocation
 
         case .underground(let t), .sign(let t), .infoscreen(let t), .grid(let t):
             undergroundForm.originStation = ticket.originLocation
@@ -2121,6 +2251,18 @@ final class NewTicketFunnel: ObservableObject {
                 seat: "OPEN",
                 watchLocation: "",
                 ticketNumber: "ESC-2026-000142"
+            ))
+        case .lumiere:
+            return .lumiere(LumiereTicket(
+                movieTitle: "Movie title",
+                director: "Director",
+                cinemaLocation: "Cinema",
+                date: "21 Jun 2026",
+                time: "20:30",
+                roomNumber: "12",
+                row: "K",
+                seat: "14",
+                posterUrl: ""
             ))
         case .underground, .sign, .infoscreen, .grid:
             // Each public-transit template gets its own city so the

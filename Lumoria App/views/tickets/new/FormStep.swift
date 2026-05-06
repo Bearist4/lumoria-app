@@ -62,6 +62,7 @@ struct NewTicketFormStep: View {
         case .eurovision:  NewEurovisionFormStep(funnel: funnel)
         case .underground, .sign, .infoscreen, .grid:
             NewUndergroundFormStep(funnel: funnel)
+        case .lumiere:     NewMovieFormStep(funnel: funnel)
         default:           planeBody
         }
     }
@@ -267,7 +268,7 @@ struct NewTicketFormStep: View {
                 // Afterglow passes `originName` through as `originCity` in
                 // the payload — feed it the city, not the airport name.
                 return location.city ?? location.name
-            case .studio, .heritage, .terminal, .prism, .express, .orient, .night, .post, .glow, .concert, .eurovision, .underground, .sign, .infoscreen, .grid:
+            case .studio, .heritage, .terminal, .prism, .express, .orient, .night, .post, .glow, .concert, .eurovision, .underground, .sign, .infoscreen, .grid, .lumiere:
                 return location.name
             }
         }()
@@ -486,17 +487,29 @@ struct NewTicketFormStep: View {
 // MARK: - Preview tile
 
 /// Static ticket preview shown above the collapsible items on every form
-/// step. Reuses `OrientationTile` in non-interactive mode so it picks up
-/// the same chrome the orientation step shows.
+/// step. Card is locked at 225pt tall regardless of orientation, with
+/// the ticket inside sized 252pt wide for horizontal and 189pt tall for
+/// vertical per Figma 982-28859 — the previous `OrientationTile` reuse
+/// produced an oversized landscape preview that overflowed the form.
 struct FormPreviewTile: View {
     @ObservedObject var funnel: NewTicketFunnel
 
     var body: some View {
-        OrientationTile(
-            orientation: funnel.orientation,
-            previewPayload: payload,
-            isInteractive: false
-        )
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(Color.Background.fieldFill)
+            .frame(height: 225)
+            .overlay {
+                let ticket = Ticket(
+                    orientation: funnel.orientation,
+                    payload: payload
+                )
+                switch funnel.orientation {
+                case .horizontal:
+                    TicketPreview(ticket: ticket).frame(width: 252)
+                case .vertical:
+                    TicketPreview(ticket: ticket).frame(height: 189)
+                }
+            }
     }
 
     private var payload: TicketPayload {

@@ -5,6 +5,7 @@
 //  Design: figma.com/design/09xVBFOsdBBcmbA0Iql3qv/App?node-id=948-12558
 //
 
+import ProgressiveBlurHeader
 import SwiftUI
 
 struct MemoriesView: View {
@@ -23,6 +24,13 @@ struct MemoriesView: View {
     @State private var showNewTicketFunnel = false
     @State private var activeTemplateKind: TicketTemplateKind? = nil
     @State private var navigationPath = NavigationPath()
+    /// Drives the per-tile locked alert. Set when the user taps a
+    /// memory that's beyond the Free-tier cap (former early adopter).
+    @State private var showLockedAlert: Bool = false
+    /// Drives the early-adopter promo sheet route from the locked alert
+    /// when the user has already claimed their invite reward and
+    /// "Become an early adopter" is the only remaining unlock path.
+    @State private var showEarlyAdopterPromo: Bool = false
     /// Once true, the first-load intro animation has played for this
     /// view instance — subsequent appearances render steady.
     @State private var hasIntroducedOnce = false
@@ -34,67 +42,86 @@ struct MemoriesView: View {
 
     var body: some View {
         NavigationStack(path: $navigationPath) {
-            VStack(spacing: 0) {
-                header
-
+            Group {
                 if store.memories.isEmpty && !store.isLoading {
-                    Spacer(minLength: 0)
-                    emptyCopy
-                        .padding(.horizontal, 40)
-                    Spacer(minLength: 0)
+                    VStack(spacing: 0) {
+                        header
+                        Spacer(minLength: 0)
+                        emptyCopy
+                            .padding(.horizontal, 40)
+                        Spacer(minLength: 0)
+                        if let error = store.errorMessage {
+                            errorBanner(error)
+                        }
+                    }
                 } else {
-                    ScrollView {
-                        LazyVGrid(columns: columns, spacing: 24) {
-                            ForEach(Array(store.memories.enumerated()), id: \.element.id) { idx, m in
-                                let tickets = ticketsStore.tickets(in: m.id)
-                                NavigationLink(value: m) {
-                                    MemoryCard(
-                                        title: m.name,
-                                        subtitle: tickets.count == 1 ? "1 ticket" : "\(tickets.count) tickets",
-                                        state: .normal,
-                                        emoji: m.emoji,
-                                        filledCount: min(tickets.count, 5),
-                                        colorFamily: m.colorFamily,
-                                        cardSeed: UInt64(bitPattern: Int64(m.id.hashValue)),
-                                        introDelay: hasIntroducedOnce ? nil : Double(idx) * 0.08
-                                    ) { idx in
-                                        if idx < tickets.count {
-                                            MemoryCardSlot.frameForSlot(
-                                                TicketPreview(ticket: tickets[idx]),
-                                                orientation: tickets[idx].orientation
-                                            )
-                                        } else {
-                                            EmptyView()
+                    // Match the memory-detail blur: always-on
+                    // progressive 8pt blur with a 56pt fade extension
+                    // and no white tint, so the header reads as a
+                    // soft seam over scrolled cards.
+                    StickyBlurHeader(
+                        maxBlurRadius: 8,
+                        fadeExtension: 56,
+                        tintOpacityTop: 0,
+                        tintOpacityMiddle: 0
+                    ) {
+                        header
+                    } content: {
+                        VStack(spacing: 0) {
+                            LazyVGrid(columns: columns, spacing: 24) {
+                                let lockedIds = lockedMemoryIds
+                                ForEach(Array(store.memories.enumerated()), id: \.element.id) { idx, m in
+                                    let tickets = ticketsStore.tickets(in: m.id)
+                                    let isLocked = lockedIds.contains(m.id)
+                                    NavigationLink(value: m) {
+                                        MemoryCard(
+                                            title: m.name,
+                                            subtitle: tickets.count == 1 ? "1 ticket" : "\(tickets.count) tickets",
+                                            state: .normal,
+                                            emoji: m.emoji,
+                                            filledCount: min(tickets.count, 5),
+                                            colorFamily: m.colorFamily,
+                                            cardSeed: UInt64(bitPattern: Int64(m.id.hashValue)),
+                                            introDelay: hasIntroducedOnce ? nil : Double(idx) * 0.08
+                                        ) { idx in
+                                            if idx < tickets.count {
+                                                MemoryCardSlot.frameForSlot(
+                                                    TicketPreview(ticket: tickets[idx]),
+                                                    orientation: tickets[idx].orientation
+                                                )
+                                            } else {
+                                                EmptyView()
+                                            }
                                         }
                                     }
-                                }
-                                .buttonStyle(.plain)
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        Task { await store.delete(m) }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
+                                    .buttonStyle(.plain)
+                                    .freeTierLocked(isLocked) { showLockedAlert = true }
+                                    .contextMenu {
+                                        Button(role: .destructive) {
+                                            Task { await store.delete(m) }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
                                     }
+                                    .onboardingAnchor(
+                                        m.id == store.memories.first?.id
+                                            ? "memories.newTile"
+                                            : "unused.tile.\(m.id.uuidString)"
+                                    )
                                 }
-                                .onboardingAnchor(
-                                    m.id == store.memories.first?.id
-                                        ? "memories.newTile"
-                                        : "unused.tile.\(m.id.uuidString)"
-                                )
                             }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 16)
 
+                            if let error = store.errorMessage {
+                                errorBanner(error)
+                            }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 16)
                     }
                     .refreshable {
                         await store.load()
                         UINotificationFeedbackGenerator().notificationOccurred(.success)
                     }
-                }
-
-                if let error = store.errorMessage {
-                    errorBanner(error)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -151,6 +178,31 @@ struct MemoriesView: View {
             }
             .sheet(item: $activeTemplateKind) { kind in
                 TemplateDetailsSheet(kind: kind)
+            }
+            .sheet(isPresented: $showEarlyAdopterPromo) {
+                EarlyAdopterPromoSheet()
+                    .environment(entitlement)
+            }
+            .alert(
+                "Memory locked",
+                isPresented: $showLockedAlert
+            ) {
+                Button("Cancel", role: .cancel) { }
+                if entitlement.inviteRewardKind == nil {
+                    Button("Invite a friend") {
+                        Paywall.present(
+                            for: .memoryLimit,
+                            entitlement: entitlement,
+                            state: paywallState
+                        )
+                    }
+                } else {
+                    Button("Become an early adopter") {
+                        showEarlyAdopterPromo = true
+                    }
+                }
+            } message: {
+                Text(lockedMemoryAlertMessage)
             }
             .onChange(of: showNotificationCenter) { _, isPresented in
                 // Route the pending notification once the center dismisses
@@ -251,6 +303,31 @@ struct MemoriesView: View {
         }
     }
 
+    /// IDs of memories locked under the current Free-tier cap. Empty
+    /// for premium / grandfathered users (no caps fire) and for users
+    /// who haven't exceeded the cap. Drives the lock affordance on
+    /// each grid tile after a former early adopter revokes their seat.
+    private var lockedMemoryIds: Set<UUID> {
+        FreeCaps.lockedIDs(
+            items: store.memories,
+            cap: FreeCaps.memoryCap(rewardKind: entitlement.inviteRewardKind),
+            isPremium: entitlement.tier.hasPremium,
+            createdAt: \.createdAt
+        )
+    }
+
+    /// Body copy for the per-tile locked alert. Branches on whether the
+    /// user can still claim an invite reward — if they can, we point
+    /// them at the invite flow; otherwise we surface the delete /
+    /// early-adopter unlocks.
+    private var lockedMemoryAlertMessage: String {
+        let cap = FreeCaps.memoryCap(rewardKind: entitlement.inviteRewardKind)
+        if entitlement.inviteRewardKind == nil {
+            return String(localized: "You're at the Free tier limit of \(cap) memories. Invite a friend to unlock 1 more slot.")
+        }
+        return String(localized: "You're at the Free tier limit of \(cap) memories. Delete an older memory to free this one up, or become an early adopter for unlimited slots.")
+    }
+
     /// Gated entry to the new-memory sheet. Free-tier users at the
     /// memory cap see the paywall instead.
     private func presentNewMemoryOrPaywall() {
@@ -338,16 +415,32 @@ struct MemoriesView: View {
             let cap = FreeCaps.memoryCap(rewardKind: entitlement.inviteRewardKind)
             let remaining = max(0, cap - store.memories.count)
             if remaining == 0 {
-                Button {
-                    Paywall.present(
-                        for: .memoryLimit,
-                        entitlement: entitlement,
-                        state: paywallState
-                    )
-                } label: {
-                    LumoriaUpgradeIncentive(resource: .memory)
+                if entitlement.inviteRewardKind == nil {
+                    // Invite still available — surface the +1 reward.
+                    Button {
+                        Paywall.present(
+                            for: .memoryLimit,
+                            entitlement: entitlement,
+                            state: paywallState
+                        )
+                    } label: {
+                        LumoriaUpgradeIncentive(resource: .memory)
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    // Invite already redeemed — mirror the warning
+                    // subheadline used by AllTicketsView so the two
+                    // gallery surfaces speak the same language at the
+                    // hard cap.
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.Feedback.Warning.icon)
+                        Text("No slots available")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color.Feedback.Warning.text)
+                    }
                 }
-                .buttonStyle(.plain)
             } else {
                 Text("\(remaining) available slots")
                     .font(.system(size: 15))

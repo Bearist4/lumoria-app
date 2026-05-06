@@ -14,10 +14,8 @@ import SwiftUI
 struct CategoryTile: View {
 
     let title: String
-    /// SF Symbol name (fallback when `image` isn't provided).
-    var systemImage: String? = nil
-    /// Named asset from the catalog (preferred over `systemImage`).
-    var imageName: String? = nil
+    /// Emoji glyph painted above the title. One per category.
+    let emoji: String
     var isSelected: Bool = false
     var isAvailable: Bool = true
     var onTap: () -> Void = {}
@@ -26,8 +24,10 @@ struct CategoryTile: View {
         Button(action: onTap) {
             SelectionTile(isSelected: isSelected) {
                 VStack(spacing: 12) {
-                    thumbnail
+                    Text(emoji)
+                        .font(.system(size: 56))
                         .frame(width: 96, height: 80)
+                        .accessibilityHidden(true)
 
                     SelectionTileLabel(text: title, isSelected: isSelected)
                 }
@@ -41,33 +41,15 @@ struct CategoryTile: View {
         .animation(MotionTokens.impulse, value: isSelected)
         .sensoryFeedback(.selection, trigger: isSelected)
     }
-
-    // MARK: - Thumbnail
-
-    @ViewBuilder
-    private var thumbnail: some View {
-        if let imageName {
-            Image(imageName)
-                .resizable()
-                .scaledToFit()
-        } else if let systemImage {
-            Image(systemName: systemImage)
-                .resizable()
-                .scaledToFit()
-                .foregroundStyle(Color.Text.primary)
-        } else {
-            Rectangle().fill(Color.clear)
-        }
-    }
 }
 
 // MARK: - Preview
 
 #Preview("Category tiles") {
     HStack(spacing: 16) {
-        CategoryTile(title: "Plane", systemImage: "airplane")
-        CategoryTile(title: "Plane", systemImage: "airplane", isSelected: true)
-        CategoryTile(title: "Train", systemImage: "tram.fill", isAvailable: false)
+        CategoryTile(title: "Plane", emoji: "✈️")
+        CategoryTile(title: "Plane", emoji: "✈️", isSelected: true)
+        CategoryTile(title: "Train", emoji: "🚆", isAvailable: false)
     }
     .padding(24)
     .background(Color.Background.default)

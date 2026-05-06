@@ -141,6 +141,52 @@ final class InvitesStore: ObservableObject {
         }
     }
 
+    // MARK: - Reward picker (referrer / referree)
+
+    /// Which side of an invite (if any) currently has a pending
+    /// reward to claim. Drives presentation of the two
+    /// `InviteRedeemed*Sheet`s. `nil` means nothing to show.
+    enum PendingReward: String, Sendable {
+        case referrer
+        case referree
+    }
+
+    /// Calls the `pending_invite_reward` RPC. Returns the role with a
+    /// pending reward, or nil if the user has nothing to claim
+    /// (already chose, or no qualifying invite).
+    static func pendingReward() async -> PendingReward? {
+        do {
+            let raw: String? = try await supabase
+                .rpc("pending_invite_reward")
+                .execute()
+                .value
+            return raw.flatMap(PendingReward.init(rawValue:))
+        } catch {
+            print("[InvitesStore] pendingReward failed:", error)
+            return nil
+        }
+    }
+
+    /// Records the user's reward choice via the existing
+    /// `claim_invite_reward(p_kind)` RPC. The server stamps
+    /// `profiles.invite_reward_kind` + `invite_reward_claimed_at`,
+    /// and the +1 / +2 cap bonus picks up on the next
+    /// `EntitlementStore.refresh()`.
+    @discardableResult
+    static func claimReward(kind: InviteRewardKind) async -> Bool {
+        struct Params: Encodable { let p_kind: String }
+        do {
+            try await supabase.rpc(
+                "claim_invite_reward",
+                params: Params(p_kind: kind.rawValue)
+            ).execute()
+            return true
+        } catch {
+            print("[InvitesStore] claimReward failed:", error)
+            return false
+        }
+    }
+
     // MARK: - Claim (post-signup, invitee side)
 
     /// Attaches the given token to the signed-in user's account. Called from
@@ -161,6 +207,14 @@ final class InvitesStore: ObservableObject {
                 role: .invitee,
                 timeToClaimMs: ms
             ))
+            // Nudges the InviteRewardCoordinator to re-evaluate.
+            // For the "already had tickets" case the new
+            // fire_link_on_invite_claim trigger redeems on the spot,
+            // so the sheet is ready by the time evaluate() runs.
+            NotificationCenter.default.post(
+                name: .lumoriaInviteRewardSignal,
+                object: nil
+            )
         } catch {
             print("[InvitesStore] claim failed for token \(token):", error)
             Analytics.track(.appError(

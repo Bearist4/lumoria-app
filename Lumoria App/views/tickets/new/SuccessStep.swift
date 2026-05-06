@@ -53,6 +53,9 @@ struct NewTicketSuccessStep: View {
                 case .underground, .sign, .infoscreen, .grid:
                     let u = funnel.undergroundForm
                     return (0, u.originStation != nil, u.destinationStation != nil)
+                case .lumiere:
+                    let m = funnel.movieForm
+                    return (0, m.cinemaVenueLocation != nil, false)
                 default:
                     let f = funnel.form
                     return (0, f.originAirport != nil, f.destinationAirport != nil)

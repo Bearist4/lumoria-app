@@ -228,7 +228,7 @@ struct AfterglowTicketVerticalView: View {
         maxWidth: CGFloat? = nil
     ) -> some View {
         VStack(spacing: 4 * s) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 8 * s, weight: .regular))
                 .tracking(1.06 * s)
                 .foregroundStyle(secondary.opacity(0.4))

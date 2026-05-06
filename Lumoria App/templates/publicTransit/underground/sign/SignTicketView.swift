@@ -201,9 +201,9 @@ struct SignTicketView: View {
 
                     // Stub fields (TICKET / ZONES / FARE)
                     VStack(spacing: 8 * s) {
-                        stubCell(label: "TICKET", value: ticket.ticketNumber, scale: s)
-                        stubCell(label: "ZONES",  value: ticket.zones,        scale: s)
-                        stubCell(label: "FARE",   value: ticket.fare,         scale: s)
+                        stubCell(label: "Ticket", value: ticket.ticketNumber, scale: s)
+                        stubCell(label: "Zones",  value: ticket.zones,        scale: s)
+                        stubCell(label: "Fare",   value: ticket.fare,         scale: s)
                     }
                     .frame(width: 104 * s)
                     .padding(.leading, 338 * s)
@@ -256,8 +256,8 @@ struct SignTicketView: View {
 
     private var stopsLabel: String {
         ticket.stopsCount == 1
-            ? String(localized: "1 STOP")
-            : String(localized: "\(ticket.stopsCount) STOPS")
+            ? String(localized: "1 STOP", locale: .ticket)
+            : String(localized: "\(ticket.stopsCount) STOPS", locale: .ticket)
     }
 
     private func stubCell(

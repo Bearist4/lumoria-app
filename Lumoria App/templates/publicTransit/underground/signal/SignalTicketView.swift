@@ -260,9 +260,9 @@ struct SignalTicketView: View {
                 .frame(height: 1)
 
             HStack(alignment: .top, spacing: 0) {
-                metaCell(label: "TICKET", value: ticket.ticketNumber, scale: s)
-                metaCell(label: "ZONE",   value: ticket.zones,        scale: s)
-                metaCell(label: "FARE",   value: ticket.fare,         scale: s)
+                metaCell(label: "Ticket", value: ticket.ticketNumber, scale: s)
+                metaCell(label: "Zone",   value: ticket.zones,        scale: s)
+                metaCell(label: "Fare",   value: ticket.fare,         scale: s)
             }
             .padding(16 * s)
         }
@@ -294,16 +294,16 @@ struct SignalTicketView: View {
         guard let raw = ticket.mode,
               let mode = TransitMode(rawValue: raw)
         else {
-            return String(localized: "TRANSIT")
+            return String(localized: "TRANSIT", locale: .ticket)
         }
         switch mode {
-        case .subway:                 return String(localized: "SUBWAY")
-        case .tram, .cableTram:       return String(localized: "TRAM")
-        case .bus, .trolleybus:       return String(localized: "BUS")
-        case .rail:                   return String(localized: "TRAIN")
-        case .ferry:                  return String(localized: "FERRY")
-        case .aerialLift, .funicular: return String(localized: "CABLE")
-        case .monorail:               return String(localized: "MONORAIL")
+        case .subway:                 return String(localized: "SUBWAY", locale: .ticket)
+        case .tram, .cableTram:       return String(localized: "TRAM", locale: .ticket)
+        case .bus, .trolleybus:       return String(localized: "BUS", locale: .ticket)
+        case .rail:                   return String(localized: "TRAIN", locale: .ticket)
+        case .ferry:                  return String(localized: "FERRY", locale: .ticket)
+        case .aerialLift, .funicular: return String(localized: "CABLE", locale: .ticket)
+        case .monorail:               return String(localized: "MONORAIL", locale: .ticket)
         }
     }
 }

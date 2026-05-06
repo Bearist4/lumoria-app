@@ -203,7 +203,7 @@ struct ConcertTicketView: View {
         scale s: CGFloat
     ) -> some View {
         VStack(alignment: alignment, spacing: 6 * s) {
-            Text(label.uppercased())
+            Text(label).textCase(.uppercase)
                 .font(.system(size: 8 * s, weight: .medium))
                 .tracking(2.45 * s)
                 .foregroundStyle(style.textSecondary)

@@ -210,7 +210,7 @@ struct HeritageTicketVerticalView: View {
             }
 
             VStack(spacing: 4 * s) {
-                Text(label.uppercased())
+                Text(label).textCase(.uppercase)
                     .font(.system(size: 4.59 * s, weight: .medium))
                     .tracking(1.0 * s)
                     .foregroundStyle(ramp.shade500)

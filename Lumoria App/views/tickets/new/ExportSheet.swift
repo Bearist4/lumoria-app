@@ -30,6 +30,7 @@ struct ExportSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var onboardingCoordinator: OnboardingCoordinator
+    @Environment(EntitlementStore.self) private var entitlement
     @State private var phase: Phase = .destinations
 
     // IM share state
@@ -144,6 +145,7 @@ struct ExportSheet: View {
         isPreparingIMShare = true
         defer { isPreparingIMShare = false }
 
+        await prewarmRemoteAssets(for: ticket)
         let renderer = ImageRenderer(content: IMShareRenderView(ticket: ticket))
         renderer.scale = 2.0
         renderer.isOpaque = true  // skip alpha — render is fully opaque
@@ -151,6 +153,7 @@ struct ExportSheet: View {
 
         presentActivityController(for: image)
     }
+
 
     /// Presents the activity sheet via UIKit on the topmost presented view
     /// controller. SwiftUI's `.sheet` cannot host a `UIActivityViewController`
@@ -381,6 +384,8 @@ private struct CameraRollView: View {
     let onBack: () -> Void
     let onExported: () -> Void
 
+    @Environment(EntitlementStore.self) private var entitlement
+
     @State private var includeBackground: Bool = true
     @State private var backgroundStyle: ExportBackgroundStyle = .gradient
     @State private var includeWatermark: Bool = true
@@ -390,6 +395,9 @@ private struct CameraRollView: View {
 
     @State private var toastMessage: String? = nil
     @State private var isExporting: Bool = false
+    /// Drives the early-adopter promo from any of the gated export
+    /// controls (Watermark off, 2x / 3x resolution, JPG format).
+    @State private var showEarlyAdopterPromo: Bool = false
 
     enum Resolution: String, CaseIterable, Identifiable {
         case standard = "Standard", x2 = "2x", x3 = "3x"
@@ -436,12 +444,14 @@ private struct CameraRollView: View {
                     toggleRow(
                         title: "Watermark",
                         subtitle: "Let people know where the magic came from.",
-                        isOn: $includeWatermark
+                        isOn: $includeWatermark,
+                        proBadge: true
                     )
                     segmentedRow(
                         title: "Resolution",
                         subtitle: "Higher resolution means sharper prints and larger displays.",
-                        selection: $resolution
+                        selection: $resolution,
+                        proBadge: true
                     )
                     segmentedRow(
                         title: "Crop",
@@ -451,7 +461,8 @@ private struct CameraRollView: View {
                     segmentedRow(
                         title: "Format",
                         subtitle: "PNG preserves every detail. JPG keeps things light.",
-                        selection: $format
+                        selection: $format,
+                        proBadge: true
                     )
                 }
                 .padding(.horizontal, 16)
@@ -459,6 +470,32 @@ private struct CameraRollView: View {
             }
         }
         .lumoriaToast($toastMessage)
+        .sheet(isPresented: $showEarlyAdopterPromo) {
+            EarlyAdopterPromoSheet()
+                .environment(entitlement)
+        }
+        // Early-adopter gates on the camera-roll exporter. Defaults
+        // (watermark on, Standard / 1x, PNG) stay free; flipping any
+        // of them off the default reverts the choice and fires the
+        // promo sheet for non-adopters.
+        .onChange(of: includeWatermark) { _, newValue in
+            if !newValue, !entitlement.isEarlyAdopter {
+                includeWatermark = true
+                showEarlyAdopterPromo = true
+            }
+        }
+        .onChange(of: resolution) { _, newValue in
+            if newValue != .standard, !entitlement.isEarlyAdopter {
+                resolution = .standard
+                showEarlyAdopterPromo = true
+            }
+        }
+        .onChange(of: format) { _, newValue in
+            if newValue != .png, !entitlement.isEarlyAdopter {
+                format = .png
+                showEarlyAdopterPromo = true
+            }
+        }
     }
 
     // MARK: - Toolbar
@@ -561,13 +598,19 @@ private struct CameraRollView: View {
     private func toggleRow(
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
-        isOn: Binding<Bool>
+        isOn: Binding<Bool>,
+        proBadge: Bool = false
     ) -> some View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(Color.Text.primary)
+                HStack(alignment: .center, spacing: 8) {
+                    if proBadge {
+                        LumoriaPremiumBadge(style: .crown)
+                    }
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(Color.Text.primary)
+                }
                 Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(Color.Text.primary)
@@ -588,13 +631,19 @@ private struct CameraRollView: View {
     private func segmentedRow<T: Hashable & CaseIterable & Identifiable & RawRepresentable>(
         title: LocalizedStringKey,
         subtitle: LocalizedStringKey,
-        selection: Binding<T>
+        selection: Binding<T>,
+        proBadge: Bool = false
     ) -> some View where T.RawValue == String, T.AllCases: RandomAccessCollection {
         VStack(alignment: .leading, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.headline)
-                    .foregroundStyle(Color.Text.primary)
+                HStack(alignment: .center, spacing: 8) {
+                    if proBadge {
+                        LumoriaPremiumBadge(style: .crown)
+                    }
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(Color.Text.primary)
+                }
                 Text(subtitle)
                     .font(.footnote)
                     .foregroundStyle(Color.Text.primary)
@@ -643,6 +692,7 @@ private struct CameraRollView: View {
         Task { @MainActor in
             defer { isExporting = false }
 
+            await prewarmRemoteAssets(for: ticket)
             let rendered = renderImage()
             guard let image = rendered else {
                 toastMessage = String(localized: "Couldn't render ticket.")
@@ -752,6 +802,23 @@ private struct ExportRenderView: View {
         // render (or skip) the embedded Lumoria watermark in unison.
         .environment(\.showsLumoriaWatermark, includeWatermark)
     }
+}
+
+// MARK: - Remote-asset prewarm
+
+/// Templates that pull artwork from the network at render time
+/// (today: Lumiere's OMDb poster) need that artwork in the
+/// synchronous image cache before `ImageRenderer.uiImage` is called
+/// — `AsyncImage` doesn't load inside a snapshot. Awaits the load,
+/// then returns; subsequent `Image(uiImage:)` reads in the template
+/// view hit the cache. File-scope so both `ExportSheet`'s share path
+/// and `CameraRollView`'s render path can call it.
+@MainActor
+func prewarmRemoteAssets(for ticket: Ticket) async {
+    guard case .lumiere(let payload) = ticket.payload,
+          !payload.posterUrl.isEmpty,
+          let url = URL(string: payload.posterUrl) else { return }
+    await MoviePosterImageCache.shared.load(from: url)
 }
 
 // MARK: - Background style
