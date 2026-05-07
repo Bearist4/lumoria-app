@@ -16,6 +16,15 @@ Turn the empty `ResearchView` stub into a live, remotely-published list of resea
 - Reminder / re-engagement pushes (one push per entry, on publish).
 - Markdown rendering in `description` — plain text V1.
 - Admin UI inside the iOS app — authoring happens via Supabase Studio.
+- Server-side `notification_prefs` enforcement. The existing
+  `notification_prefs` table referenced by `NotificationPrefsStore.swift`
+  does not actually exist as a Postgres table — those toggles are
+  `@AppStorage`-only today. Adding a per-kind soft gate for research
+  would require building that table + an `notification_allowed()`
+  function across all existing kinds, which is out of scope.
+  Eligibility for V1 is therefore governed by the single
+  `profiles.participates_in_research` master flag, gated server-side
+  inside `publish_research_entry()`.
 
 ## Brainstorm decisions (locked)
 
@@ -64,42 +73,48 @@ Tag values are not enforced in SQL — kept as `text` for flexibility. Allowed v
 
 Migration file: `supabase/migrations/20260521000001_research_participation.sql`.
 
+The early-adopter flag is `profiles.grandfathered_at` (timestamptz, nullable). EA = `grandfathered_at IS NOT NULL`. Swift exposes this as `EntitlementStore.isEarlyAdopter`.
+
 ```sql
 alter table public.profiles
   add column participates_in_research boolean not null default false;
 
--- backfill: every existing early adopter auto-on
+-- Backfill: every existing early adopter auto-on.
 update public.profiles
    set participates_in_research = true
- where is_early_adopter = true;
+ where grandfathered_at is not null;
 ```
 
-Whatever path currently flips `is_early_adopter = true` (RPC, trigger, or website-signup migration) must also set `participates_in_research = true` in the same statement. Implementation step: locate that path during the implementation plan and patch it. User can flip the toggle off freely afterwards — we do not re-assert auto-on after the initial grant.
+Two server-side paths flip `grandfathered_at` and need to mirror to `participates_in_research` in the same statement:
 
-### Notification kind: `research_published`
+1. `public.handle_new_user()` — trigger on `auth.users` insert, runs the waitlist auto-stamp inside `20260516000000_early_adopter.sql`. Patch the `UPDATE public.profiles SET grandfathered_at = now() WHERE user_id = NEW.id` to also set `participates_in_research = true`.
+2. `public.claim_early_adopter_seat()` RPC — the self-service grant from the same migration. Same patch on its `UPDATE` statement.
+
+`public.revoke_early_adopter_seat()` deliberately does NOT clear `participates_in_research`. A user who claimed and then revoked their EA seat may still want to participate in research — keep the flag they last set.
+
+User can flip the toggle off freely after grant — we do not re-assert auto-on.
+
+### Notification routing kind: `research_published`
 
 Migration file: `supabase/migrations/20260521000002_research_notification_kind.sql`.
 
-```sql
-alter table public.notification_prefs
-  add column research_published boolean not null default true;
-```
-
-`public.notification_allowed(p_user_id uuid, p_kind text)` is extended so that:
+The `public.notifications` table currently constrains `kind` to `('throwback','onboarding','news','link')` (per `20260422000000_notifications.sql`). Widen that constraint:
 
 ```sql
-when p_kind = 'research_published' then
-  coalesce(
-    (select participates_in_research from profiles where id = p_user_id),
-    false
-  )
-  and coalesce(
-    (select research_published from notification_prefs where user_id = p_user_id),
-    true  -- default-on if no prefs row
-  )
+alter table public.notifications
+  drop constraint notifications_kind_check;
+
+alter table public.notifications
+  add constraint notifications_kind_check
+    check (kind in ('throwback','onboarding','news','link','research_published'));
+
+alter table public.notifications
+  add column research_entry_id uuid references public.research_entries(id) on delete cascade;
 ```
 
-Parameter names are renamed to avoid the column-vs-arg collision Postgres would otherwise hit. If the existing `notification_allowed` signature already uses `user_id` / `kind`, rename consistently in the same migration.
+The `research_entry_id` column is the deep-link payload for research pushes — same pattern as the existing `memory_id` / `template_kind` columns.
+
+V1 has **no** `notification_prefs.research_published` toggle (see Non-goals). Eligibility is enforced inside `publish_research_entry()` via the master `participates_in_research` flag.
 
 This means the master `participates_in_research` flag is the hard gate; the `research_published` notification toggle is a soft gate users can flip independently inside Notifications settings.
 
@@ -110,39 +125,94 @@ Bear publishes an entry in two steps:
 1. Insert a row in `research_entries` via Supabase Studio with `is_published = false` (drafting).
 2. Run `select publish_research_entry('<uuid>')`.
 
-The RPC:
+The RPC inserts one row into `public.notifications` per eligible user. The existing `notifications_fanout_push` AFTER INSERT trigger calls `send-push` for each row, which reads the row, looks up `device_tokens` for that user, and pushes via APNs. No new edge function needed.
 
 ```sql
-create or replace function public.publish_research_entry(entry_id uuid)
-returns void
+create or replace function public.publish_research_entry(p_entry_id uuid)
+returns integer
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
-  entry research_entries;
+  v_entry         research_entries;
+  v_inserted      integer;
 begin
   update research_entries
      set is_published = true,
-         published_at = now()
-   where id = entry_id
-   returning * into entry;
+         published_at = coalesce(published_at, now())
+   where id = p_entry_id
+   returning * into v_entry;
 
   if not found then
-    raise exception 'research entry % not found', entry_id;
+    raise exception 'research entry % not found', p_entry_id;
   end if;
 
-  -- Fan out push notifications to eligible users.
-  -- Implementation: pg_net.http_post to the existing send-push edge function
-  -- per recipient (or batched), passing kind = 'research_published' and
-  -- payload { entry_id, title, deadline }. The edge function honours
-  -- notification_allowed() server-side as it already does today.
+  -- Fan out: one notifications row per opted-in user.
+  insert into public.notifications
+    (user_id, kind, title, message, research_entry_id)
+  select
+    p.user_id,
+    'research_published',
+    'New research opening',
+    v_entry.title,
+    v_entry.id
+  from public.profiles p
+  where p.participates_in_research = true;
+
+  get diagnostics v_inserted = row_count;
+  return v_inserted;
 end;
 $$;
+
+revoke all on function public.publish_research_entry(uuid) from public, authenticated, anon;
+-- service role retains EXECUTE by default; Bear invokes from Studio.
 ```
 
-Permissions: callable only by service role — never expose to `anon` or `authenticated`. Bear invokes from Studio's SQL editor.
+Idempotency: re-running the RPC after a row is already published reuses the original `published_at` timestamp but re-inserts notifications. Since `notifications` has no uniqueness constraint for this kind, that would deliver duplicate pushes. Guard rail: the function checks `was_already_published` and skips fan-out on a second call.
 
-The fan-out detail (per-row HTTP vs. batched) is deferred to the implementation plan — the contract here is "one push per eligible user, fired synchronously on publish, tagged `research_published`".
+```sql
+-- Refined RPC body (replaces the simple version above):
+declare
+  v_entry             research_entries;
+  v_was_published     boolean;
+  v_inserted          integer := 0;
+begin
+  select is_published into v_was_published
+    from research_entries where id = p_entry_id;
+
+  if v_was_published is null then
+    raise exception 'research entry % not found', p_entry_id;
+  end if;
+
+  if v_was_published then
+    -- Already published; do not re-fan-out.
+    return 0;
+  end if;
+
+  update research_entries
+     set is_published = true,
+         published_at = now()
+   where id = p_entry_id
+   returning * into v_entry;
+
+  insert into public.notifications
+    (user_id, kind, title, message, research_entry_id)
+  select
+    p.user_id,
+    'research_published',
+    'New research opening',
+    v_entry.title,
+    v_entry.id
+  from public.profiles p
+  where p.participates_in_research = true;
+
+  get diagnostics v_inserted = row_count;
+  return v_inserted;
+end;
+```
+
+Permissions: callable only by service role — never expose to `anon` or `authenticated`.
 
 ## iOS — Research page
 
@@ -171,12 +241,11 @@ When zero active entries: existing "No active research" copy is retained.
 
 ## iOS — Settings surface
 
-There are two distinct controls. Keep them straight:
+One control. Keep it simple:
 
 | Control | What it gates | Default | Where it lives |
 |---|---|---|---|
-| `participates_in_research` (master) | Visibility of the Research row + push eligibility | `false` (auto-`true` for EAs) | Settings root row + mirrored toggle inside `ResearchView` top card |
-| `notification_prefs.research_published` (soft) | Push delivery only | `true` | `NotificationsView` only |
+| `participates_in_research` | Visibility of the Research row + push eligibility | `false` (auto-`true` for EAs) | Settings row + mirrored toggle inside `ResearchView` top card |
 
 ### Settings list (`SettingsView.swift`)
 
@@ -187,7 +256,7 @@ Two changes:
 2. **The existing "Research" disclosure row** that opens `ResearchView` is reparented under the same section, but conditionally rendered only when:
 
    ```swift
-   profile.isEarlyAdopter || profile.participatesInResearch
+   entitlement.isEarlyAdopter || profile.participatesInResearch
    ```
 
    (So an EA who toggles off can still re-enter the Research page to flip it back on via the in-page card; non-EAs who opted in see the row.)
@@ -196,11 +265,7 @@ Result: a single "Research" section in Settings with always-visible master toggl
 
 ### NotificationsView
 
-New section `"Research"` under existing Memories section, with one toggle:
-
-- **"Research updates"** — bound to `NotificationPrefsStore.Keys.researchPublished`. Subtitle: `When a new study opens.`
-
-Section is rendered only when `participatesInResearch == true` (no point exposing the soft gate when the hard gate is off).
+**No changes for V1.** A per-kind soft toggle would require building the missing `notification_prefs` server table first — out of scope.
 
 ### `ResearchView` top card
 
@@ -239,19 +304,24 @@ enum ResearchTag: String, Codable, CaseIterable {
 
 ### `ResearchParticipationStore`
 
-Folded into `ProfileStore` to avoid a third store object: extend `ProfileStore` with a `participatesInResearch: Bool` published property, mirrored to `@AppStorage("research.participates")` for instant UI, and an `setParticipates(_ on: Bool) async` method that upserts `profiles.participates_in_research`.
+Folded into `ProfileStore` to avoid a third store object: extend `ProfileStore` with a `participatesInResearch: Bool` published property, mirrored to `@AppStorage("research.participates")` for instant UI, and a `setParticipates(_ on: Bool) async` method that updates `profiles.participates_in_research` for the signed-in user.
 
 ### `NotificationPrefsStore`
 
-Add `researchPublished` field and key, mirroring the existing four. Update `Row` Codable struct, `apply()`, `save()`, and `pushLocalToStorage()`.
+No changes for V1.
 
 ## Push handling
 
-`PushNotificationService` already routes by kind. Add:
+The existing edge function `supabase/functions/send-push/index.ts` builds the APNs payload from columns it reads off the `notifications` row: `id`, `kind`, `memory_id`, `template_kind`. Two changes:
 
-- New case in the kind enum: `.researchPublished`.
-- Tap handler: pull `entry_id` from payload → set a deep-link target (e.g. `AppState.pendingDeepLink = .research(entryId:)`) → app navigates to `ResearchView` and scrolls to that entry on next appear.
-- Foreground receipt: post a `Notification.Name(.researchEntryPublished)` so a visible `ResearchView` reloads.
+1. Extend its `NotificationRow` interface and the `kind` literal union to include `'research_published'` and add `research_entry_id: string | null`.
+2. Add `research_entry_id: notification.research_entry_id` to the APNs body so the iOS delegate can deep-link.
+
+`Lumoria App/views/notifications/Notification.swift` — extend `LumoriaNotification.Kind` enum with `.researchPublished` and provide `eyebrow` + `backgroundColor` for it. Existing notification-center cards keep working; research pushes also show up there.
+
+`Lumoria App/services/PushNotificationService.swift` — `DeepLink` struct gains a `researchEntryId: UUID?` field. `ingestTappedPayload(_:)` reads the `research_entry_id` key from `userInfo`. The existing routing target (`MemoriesView` → `CollectionsView.route(_:)`) gains a research case that pushes onto the navigation stack to open `ResearchView` with the right entry pre-scrolled.
+
+Foreground receipt: when `willPresent` fires for a `research_published` kind, post `Notification.Name.lumoriaResearchPublished` so any visible `ResearchView` reloads its store.
 
 ## Analytics
 
@@ -275,9 +345,6 @@ All new copy lands in `Lumoria App/Localizable.xcstrings`. Keys:
 - `research.empty.body` = (existing copy retained)
 - `research.toggle.title` = "Participate in research"
 - `research.toggle.subtitle` = "Help shape Lumoria. Get notified when new studies open."
-- `notifications.section.research` = "Research"
-- `notifications.research.title` = "Research updates"
-- `notifications.research.subtitle` = "When a new study opens."
 
 ## Changelog
 
@@ -296,13 +363,14 @@ Per `feedback_changelog_mdx`: add an entry at `lumoria/src/content/changelog/202
 **Modified:**
 - `Lumoria App/views/settings/ResearchView.swift` (full rewrite — list, card, toggle)
 - `Lumoria App/views/settings/SettingsView.swift` (gate change + new "Participate in research" row)
-- `Lumoria App/views/settings/NotificationsView.swift` (new "Research" section)
-- `Lumoria App/views/settings/NotificationPrefsStore.swift` (new field + key)
 - `Lumoria App/views/settings/ProfileStore.swift` (new `participatesInResearch` field + setter)
-- `Lumoria App/services/PushNotificationService.swift` (new kind + deep-link)
+- `Lumoria App/views/notifications/Notification.swift` (new `.researchPublished` kind)
+- `Lumoria App/views/collections/CollectionsView.swift` (route research deep-link)
+- `Lumoria App/services/PushNotificationService.swift` (new payload field + deep-link)
 - `Lumoria App/services/analytics/AnalyticsEvent.swift` (3 new cases)
 - `Lumoria App/Localizable.xcstrings`
-- Wherever `is_early_adopter` is granted on the server (RPC / trigger): mirror to `participates_in_research`.
+- `supabase/functions/send-push/index.ts` (kind union + research_entry_id field)
+- `supabase/migrations/20260516000000_early_adopter.sql` is **not** touched directly; instead, the new participation migration patches `handle_new_user()` and `claim_early_adopter_seat()` in place via `CREATE OR REPLACE`.
 
 ## Testing
 
